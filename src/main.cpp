@@ -5,6 +5,9 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <list>
+#include <PubSubClient.h>
+
+//#define DEBUG ;
 
 using namespace std;
 // MACs ESPs:
@@ -14,6 +17,16 @@ using namespace std;
 
 uint8_t broadcastAddress[] = {0x24, 0x6F, 0x28, 0xB2, 0x23, 0xD0};
 esp_now_peer_info_t peerInfo;
+
+// Replace the next variables with your SSID/Password combination
+const char *ssid = "RFREITAS";
+const char *password = "941138872";
+
+const char *mqtt_server = "192.168.15.84";
+
+// Initializes the espClient. You should change the espClient name if you have multiple ESPs running in your home automation system
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 enum defaultChars
 {
@@ -46,32 +59,99 @@ public:
   Menu(String _name) { name = _name; }
 };
 
+enum CarStatus
+{
+  IN_CURVE = 0,
+  IN_LINE = 1
+};
+
+struct valuesS
+{
+  uint16_t *channel;
+  int16_t line;
+};
+
 struct valuesEnc
 {
-  uint32_t encDir = 0;
-  uint32_t encEsq = 0;
-  uint32_t media = 0;
+  int32_t encDir = 0;
+  int32_t encEsq = 0;
+};
+
+struct valuesMarks
+{
+  int16_t leftPassed = 0;
+  int16_t rightPassed = 0;
+  bool sLatEsq;
+  bool sLatDir;
+};
+
+struct valuesPID
+{
+  // Parâmetros
+  int16_t *input = NULL;
+  float output = 0;
+};
+
+struct valuesSpeed
+{
+  int8_t right = 0;
+  int8_t left = 0;
+};
+
+struct paramSpeed
+{
+  int8_t max = 80;
+  int8_t min = 5;
+  int8_t base = 40;
+};
+
+struct paramPID
+{
+  int16_t setpoint = 3500;
+  float Kp = 0.01;
+  float Ki = 0.00;
+  float Kd = 0.10;
+};
+
+struct valuesCar
+{
+  int8_t state = 1; // 0: parado, 1: linha, 2: curva
+  valuesSpeed speed;
+  valuesPID PID;
+  valuesMarks latMarks;
+  valuesEnc motEncs;
+  valuesS sLat;
+  valuesS sArray;
+};
+
+struct paramsCar
+{
+  paramSpeed speed;
+  paramPID PID;
+};
+
+struct dataCar
+{
+  valuesCar values;
+  paramsCar params;
 };
 
 struct valuesSamples
 {
-  valuesEnc motEncs;
-  int sLat;
-  int sArray;
-  unsigned long time;
+  valuesCar carVal;
+  uint32_t time;
 
-  valuesSamples(valuesEnc motEncs, int sLat, int sArray) : motEncs(motEncs), sLat(sLat), sArray(sArray)
+  valuesSamples(valuesCar carVal) : carVal(carVal)
   {
-    time = millis();
+    time = esp_log_timestamp();
   };
 
   valuesSamples(){};
 };
 
-// Create a struct_message to hold incoming sensor readings
-valuesSamples incomingSample;
-valuesSamples tempSample;
-list<valuesSamples> samplesList;
+valuesSamples incomingdataCar;
+valuesSamples tempdataCar;
+list<valuesSamples> dataCarList;
 
 // Inicializa o display no endereco 0x27
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
@@ -117,7 +197,9 @@ void draw_menu_itens(Menu *actualMenu)
 
   // Guarda a quantidade de itens do menu
   itens = actualMenu->MenuItens.size();
+#ifdef DEBUG
   Serial.printf("Quantidade de itens no menu: %d\n", itens);
+#endif
 
   // Desenha o Titulo
   lcd.setCursor(0, 0);
@@ -177,7 +259,9 @@ void draw_menu_insert_mac(Menu *actualMenu)
 
   // Guarda a quantidade de itens do menu
   itens = actualMenu->MenuItens.size();
+#ifdef DEBUG
   Serial.printf("Quantidade de itens no menu: %d\n", itens);
+#endif
 
   // Desenha o Titulo
   lcd.setCursor(0, 0);
@@ -235,23 +319,110 @@ void draw_menu_insert_mac(Menu *actualMenu)
 // Callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
+#ifdef DEBUG
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+#endif
 }
 
 // Callback when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
-  memcpy(&incomingSample, incomingData, sizeof(incomingSample));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
+  if (len == sizeof(incomingdataCar))
+  {
+    memcpy(&incomingdataCar, incomingData, sizeof(incomingdataCar));
+#ifdef DEBUG
+    Serial.print("Bytes calVal: ");
+    Serial.println(len);
+#endif
+    dataCarList.push_back(incomingdataCar);
+  }
+}
 
-  samplesList.push_back(incomingSample);
+void setup_wifi()
+{
+  delay(10);
+// We start by connecting to a WiFi network
+#ifdef DEBUG
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+#endif
+
+  WiFi.persistent(false);
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.begin(ssid, password);
+  WiFi.setSleep(false);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+#ifdef DEBUG
+    Serial.print(".");
+#endif
+  }
+#ifdef DEBUG
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.printf("Canal: %d\n", WiFi.channel());
+  Serial.println(WiFi.localIP());
+#endif
+}
+
+void callback(char *topic, byte *message, unsigned int length)
+{
+#ifdef DEBUG
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+
+  String messageTemp;
+
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
+#endif
+}
+
+void reconnect()
+{
+  // Loop until we're reconnected
+  while (!client.connected())
+  {
+#ifdef DEBUG
+    Serial.print("Attempting MQTT connection...");
+#endif
+    // Attempt to connect
+    if (client.connect("ESP8266Client"))
+    {
+#ifdef DEBUG
+      Serial.println("connected");
+#endif
+      // Subscribe
+      client.subscribe("esp32/output");
+    }
+    else
+    {
+#ifdef DEBUG
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+#endif
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
 }
 
 void setup()
 {
-  Serial.begin(9600);
+#ifdef DEBUG
+  Serial.begin(115200);
+#endif
 
   upBtn.begin();
   downBtn.begin();
@@ -284,13 +455,17 @@ void setup()
   mPrincipal.MenuItens.add(&mConfigs);
   mPrincipal.MenuItens.add(&mInfo);
 
-  // Set device as a Wi-Fi Station
-  WiFi.mode(WIFI_STA);
+  setup_wifi();
+
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 
   // Init ESP-NOW
   if (esp_now_init() != ESP_OK)
   {
+#ifdef DEBUG
     Serial.println("Error initializing ESP-NOW");
+#endif
     return;
   }
 
@@ -300,28 +475,54 @@ void setup()
 
   // Register peer
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;
+  peerInfo.channel = 11;
   peerInfo.encrypt = false;
+  peerInfo.ifidx = ESP_IF_WIFI_STA;
 
   // Add peer
   if (esp_now_add_peer(&peerInfo) != ESP_OK)
   {
+#ifdef DEBUG
     Serial.println("Failed to add peer");
+#endif
     return;
   }
   // Register for a callback function that will be called when data is received
   esp_now_register_recv_cb(OnDataRecv);
 
+#ifdef DEBUG
   Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
+#endif
 }
 
 void loop()
 {
-  while (samplesList.size() > 0)
+  if (!client.connected())
   {
-    tempSample = samplesList.front();
-    printf("Tempo: %ld | tencEsq: %d | encDir: %d | encMedia: %d | sLat: %d | sArray: %d\n", tempSample.time, tempSample.motEncs.encEsq, tempSample.motEncs.encDir,
-           tempSample.motEncs.media, tempSample.sLat, tempSample.sArray);
-    samplesList.pop_front();
+    reconnect();
+  }
+  client.loop();
+
+  if (dataCarList.size() > 0)
+  {
+    tempdataCar = dataCarList.front();
+    
+    client.publish("runtime", String(tempdataCar.time).c_str());
+
+    client.publish("sensor/array/line", String(tempdataCar.carVal.sArray.line).c_str());
+    client.publish("sensor/encoder/esq", String(tempdataCar.carVal.motEncs.encEsq).c_str());
+    client.publish("sensor/encoder/dir", String(tempdataCar.carVal.motEncs.encDir).c_str());
+
+    client.publish("values/latMarks/leftPassed", String(tempdataCar.carVal.latMarks.leftPassed).c_str());
+    client.publish("values/latMarks/rightPassed", String(tempdataCar.carVal.latMarks.rightPassed).c_str());
+    client.publish("values/latMarks/sLatDir", String(tempdataCar.carVal.latMarks.sLatDir).c_str());
+    client.publish("values/latMarks/sLatEsq", String(tempdataCar.carVal.latMarks.sLatEsq).c_str());
+    client.publish("values/speed/left", String(tempdataCar.carVal.speed.left).c_str());
+    client.publish("values/speed/right", String(tempdataCar.carVal.speed.right).c_str());
+
+    client.publish("values/speed/right", String(tempdataCar.carVal.speed.right).c_str());
+
+
+    dataCarList.pop_front();
   }
 }

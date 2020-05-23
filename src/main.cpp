@@ -1,13 +1,25 @@
-#include <EasyButton.h>
-#include <LinkedList.h>
-#include <LiquidCrystal_I2C.h>
-#include <Wire.h>
-#include <WiFi.h>
-#include <esp_now.h>
+// C/C++
+#include <iostream>
 #include <list>
-#include <PubSubClient.h>
+#include <string>
+#include <cstring>
 
-//#define DEBUG ;
+// Espressif
+#include "WiFi.h"
+#include "esp_now.h"
+#include "Wire.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
+#include "freertos/semphr.h"
+#include "esp_log.h"
+#include "esp_wifi.h"
+
+// Custom
+#include "PubSubClient.h"
+
+// BraiaDataStructs
+#include "C:\GitHub\LineFollower_Braia_Code\ESP-IDF\main\dataStructs.hpp"
 
 using namespace std;
 // MACs ESPs:
@@ -15,459 +27,445 @@ using namespace std;
 // Braia: 24:6F:28:B2:23:D0
 // CCenter: 24:6F:28:9D:7C:44
 
+struct sendMQTT
+{
+  const char *path;
+  String value;
+
+  sendMQTT(const char *_path, String _value) : path(_path), value(_value){};
+  sendMQTT(){};
+};
+
 uint8_t broadcastAddress[] = {0x24, 0x6F, 0x28, 0xB2, 0x23, 0xD0};
 esp_now_peer_info_t peerInfo;
 
-// Replace the next variables with your SSID/Password combination
-const char *ssid = "RFREITAS";
-const char *password = "941138872";
+const char *ssid = "TT-Server";
+const char *password = "W2knaft@123";
 
-const char *mqtt_server = "192.168.15.84";
+TaskHandle_t xTaskMQTTSend;
+TaskHandle_t xTaskMQTTPrepare;
+TaskHandle_t xTaskESPNOW;
 
-// Initializes the espClient. You should change the espClient name if you have multiple ESPs running in your home automation system
 WiFiClient espClient;
-PubSubClient client(espClient);
 
-enum defaultChars
+// Listas para envio de dados ESP-NOW
+list<valuesSamples> valuesToESPNOW;
+list<paramsSamples> paramsToESPNOW;
+
+// Listas de recebimento de dados ESP-NOW
+list<valuesSamples> valuesFromESPNOW;
+list<paramsSamples> paramsFromESPNOW;
+
+// Objetos de recebimento de dados ESP-NOW
+valuesSamples valueFromESPNOW;
+paramsSamples paramFromESPNOW;
+
+// Objetos de dados validos
+valuesSamples valueValid;
+paramsSamples paramValid;
+
+list<sendMQTT> sendMQTTList;
+
+SemaphoreHandle_t xSemaphoreCarValuesFromESPNOW = NULL;
+SemaphoreHandle_t xSemaphoreCarParamsFromESPNOW = NULL;
+
+SemaphoreHandle_t xSemaphoreValueValid = NULL;
+SemaphoreHandle_t xSemaphoreParamValid = NULL;
+
+SemaphoreHandle_t xSemaphoreSendMQTTList = NULL;
+
+SemaphoreHandle_t xSemaphoreCarValuesToESPNOW = NULL;
+SemaphoreHandle_t xSemaphoreCarParamsToESPNOW = NULL;
+
+void takeSample(list<valuesSamples> *list, valuesCar *carVal)
 {
-  lcd_setaEsq = B0111111,
-  lcd_setaDir = B01111110,
-  lcd_pontoCentro = B10100101,
-};
-
-enum Buttons
-{
-  BTN_NONE = 0,
-  BTN_UP = 17,
-  BTN_DOWN = 18,
-  BTN_LEFT = 23,
-  BTN_RIGHT = 5,
-  BTN_CANCEL = 4,
-  BTN_ACCEPT = 15
-};
-
-byte customChar[] = {B00000, B00000, B00000, B01110,
-                     B01110, B00000, B00000, B00000};
-
-class Menu
-{
-public:
-  String name = "";
-  void *function = NULL;
-  LinkedList<Menu *> MenuItens = LinkedList<Menu *>();
-
-  Menu(String _name) { name = _name; }
-};
-
-enum CarStatus
-{
-  IN_CURVE = 0,
-  IN_LINE = 1
-};
-
-struct valuesS
-{
-  uint16_t *channel;
-  int16_t line;
-};
-
-struct valuesEnc
-{
-  int32_t encDir = 0;
-  int32_t encEsq = 0;
-};
-
-struct valuesMarks
-{
-  int16_t leftPassed = 0;
-  int16_t rightPassed = 0;
-  bool sLatEsq;
-  bool sLatDir;
-};
-
-struct valuesPID
-{
-  // Parâmetros
-  int16_t *input = NULL;
-  float output = 0;
-};
-
-struct valuesSpeed
-{
-  int8_t right = 0;
-  int8_t left = 0;
-};
-
-struct paramSpeed
-{
-  int8_t max = 80;
-  int8_t min = 5;
-  int8_t base = 40;
-};
-
-struct paramPID
-{
-  int16_t setpoint = 3500;
-  float Kp = 0.01;
-  float Ki = 0.00;
-  float Kd = 0.10;
-};
-
-struct valuesCar
-{
-  int8_t state = 1; // 0: parado, 1: linha, 2: curva
-  valuesSpeed speed;
-  valuesPID PID;
-  valuesMarks latMarks;
-  valuesEnc motEncs;
-  valuesS sLat;
-  valuesS sArray;
-};
-
-struct paramsCar
-{
-  paramSpeed speed;
-  paramPID PID;
-};
-
-struct dataCar
-{
-  valuesCar values;
-  paramsCar params;
-};
-
-struct valuesSamples
-{
-  valuesCar carVal;
-  uint32_t time;
-
-  valuesSamples(valuesCar carVal) : carVal(carVal)
+  if (xSemaphoreTake(xSemaphoreValueValid, (TickType_t)10) == pdTRUE && xSemaphoreTake(xSemaphoreCarValuesToESPNOW, (TickType_t)10) == pdTRUE)
   {
-    time = esp_log_timestamp();
-  };
+    if (list->size() < 100)
+      list->emplace_back(valuesSamples(*carVal, esp_log_timestamp()));
 
-  valuesSamples(){};
-};
-
-valuesSamples incomingdataCar;
-valuesSamples tempdataCar;
-list<valuesSamples> dataCarList;
-
-// Inicializa o display no endereco 0x27
-LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
-
-EasyButton upBtn(BTN_UP, 40, true, false);
-EasyButton downBtn(BTN_DOWN, 40, true, true);
-EasyButton leftBtn(BTN_LEFT, 40, true, true);
-EasyButton rightBtn(BTN_RIGHT, 40, true, false);
-EasyButton cancelBtn(BTN_CANCEL, 40, true, true);
-EasyButton acceptBtn(BTN_ACCEPT, 40, true, false);
-
-Buttons get_pressed_button()
-{
-  while (1)
-  {
-    upBtn.read();
-    downBtn.read();
-    leftBtn.read();
-    rightBtn.read();
-    cancelBtn.read();
-    acceptBtn.read();
-
-    if (upBtn.wasPressed())
-      return BTN_UP;
-    else if (downBtn.wasPressed())
-      return BTN_DOWN;
-    else if (leftBtn.wasPressed())
-      return BTN_LEFT;
-    else if (rightBtn.wasPressed())
-      return BTN_RIGHT;
-    else if (cancelBtn.wasPressed())
-      return BTN_CANCEL;
-    else if (acceptBtn.wasPressed())
-      return BTN_ACCEPT;
+    xSemaphoreGive(xSemaphoreValueValid);
+    xSemaphoreGive(xSemaphoreCarValuesToESPNOW);
   }
 }
 
-void draw_menu_itens(Menu *actualMenu)
+void takeSample(list<paramsSamples> *list, paramsCar *carParam)
 {
-  lcd.clear();
-
-  short itens = 0, actItem = 0, firstItem = 0, pssBtn = BTN_NONE;
-
-  // Guarda a quantidade de itens do menu
-  itens = actualMenu->MenuItens.size();
-#ifdef DEBUG
-  Serial.printf("Quantidade de itens no menu: %d\n", itens);
-#endif
-
-  // Desenha o Titulo
-  lcd.setCursor(0, 0);
-  lcd.printf("Menu: %s", actualMenu->name.c_str());
-  lcd.setCursor(0, 1);
-  lcd.print("--------------------");
-
-  do
+  if (xSemaphoreTake(xSemaphoreParamValid, (TickType_t)10) == pdTRUE && xSemaphoreTake(xSemaphoreCarParamsToESPNOW, (TickType_t)10) == pdTRUE)
   {
-    // Limpa os espaços
-    lcd.setCursor(0, 2);
-    lcd.print("            ");
-    lcd.setCursor(0, 3);
-    lcd.print("            ");
+    if (list->size() < 100)
+      list->emplace_back(paramsSamples(*carParam, esp_log_timestamp()));
 
-    // Escreve o primeiro item
-    lcd.setCursor(0, 2);
-    lcd.print(actItem == 0 ? (char)lcd_setaDir : (char)lcd_pontoCentro);
-    lcd.print(actualMenu->MenuItens.get(firstItem)->name.c_str());
-
-    // Escreve o segundo item
-    lcd.setCursor(0, 3);
-    lcd.print(actItem == 1 ? (char)lcd_setaDir : (char)lcd_pontoCentro);
-    lcd.print(actualMenu->MenuItens.get(firstItem + 1)->name.c_str());
-
-    // Chama função para verificar botões
-    pssBtn = get_pressed_button();
-
-    switch (pssBtn)
-    {
-    case BTN_UP:
-      if (actItem == 1)
-        actItem--;
-      else
-        firstItem = firstItem == 0 ? firstItem : firstItem - 1;
-      break;
-    case BTN_DOWN:
-      if (actItem == 0)
-        actItem++;
-      else
-        firstItem = (firstItem + 1) == (itens - 1) ? firstItem : firstItem + 1;
-      break;
-
-    default:
-      break;
-    }
-
-  } while (pssBtn != BTN_CANCEL);
+    xSemaphoreGive(xSemaphoreParamValid);
+    xSemaphoreGive(xSemaphoreCarParamsToESPNOW);
+  }
 }
 
-void draw_menu_insert_mac(Menu *actualMenu)
-{
-  lcd.clear();
-
-  short itens = 0, actItem = 0, firstItem = 0, pssBtn = BTN_NONE;
-  char macAddress[12] = {'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'};
-
-  // Guarda a quantidade de itens do menu
-  itens = actualMenu->MenuItens.size();
-#ifdef DEBUG
-  Serial.printf("Quantidade de itens no menu: %d\n", itens);
-#endif
-
-  // Desenha o Titulo
-  lcd.setCursor(0, 0);
-  lcd.printf("Robo: MAC");
-  lcd.setCursor(0, 1);
-  lcd.print("--------------------");
-
-  do
-  {
-    lcd.noBlink();
-
-    lcd.setCursor(0, 3);
-    lcd.print("            ");
-
-    // Escreve o primeiro item
-    lcd.setCursor(0, 2);
-    lcd.print(actItem == 0 ? (char)lcd_setaDir : (char)lcd_pontoCentro);
-    lcd.print(actualMenu->MenuItens.get(firstItem)->name.c_str());
-
-    // Escreve o segundo item
-    lcd.setCursor(0, 3);
-    lcd.print(actItem == 1 ? (char)lcd_setaDir : (char)lcd_pontoCentro);
-    lcd.print(actualMenu->MenuItens.get(firstItem + 1)->name.c_str());
-
-    lcd.setCursor(1, 2);
-    lcd.printf("%c%c:%c%c:%c%c:%c%c%c%c:%c%c", macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5], macAddress[6], macAddress[7], macAddress[8], macAddress[9], macAddress[10], macAddress[11]);
-
-    lcd.blink();
-
-    // Chama função para verificar botões
-    pssBtn = get_pressed_button();
-
-    switch (pssBtn)
-    {
-    case BTN_UP:
-      if (actItem == 1)
-        actItem--;
-      else
-        firstItem = firstItem == 0 ? firstItem : firstItem - 1;
-      break;
-    case BTN_DOWN:
-      if (actItem == 0)
-        actItem++;
-      else
-        firstItem = (firstItem + 1) == (itens - 1) ? firstItem : firstItem + 1;
-      break;
-
-    default:
-      break;
-    }
-
-  } while (pssBtn != BTN_CANCEL);
-}
-
-// Callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-#ifdef DEBUG
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-#endif
 }
 
-// Callback when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
-  if (len == sizeof(incomingdataCar))
+  if (len == sizeof(enum_espNOW))
   {
-    memcpy(&incomingdataCar, incomingData, sizeof(incomingdataCar));
-#ifdef DEBUG
-    Serial.print("Bytes calVal: ");
-    Serial.println(len);
-#endif
-    dataCarList.push_back(incomingdataCar);
+    enum_espNOW cmdESPNOW;
+    memcpy(&cmdESPNOW, incomingData, sizeof(cmdESPNOW));
+
+    ESP_LOGD("ESP-NOW", "Bytes cmdESPNOW: %d", len);
+
+    switch (cmdESPNOW)
+    {
+    case REQUEST_CARVALUES:
+      ESP_LOGD("ESP-NOW", "Valores solicitados pelo robô, adicioando na fila");
+      takeSample(&valuesToESPNOW, &valueValid.carVal);
+      ESP_LOGD("ESP-NOW", "Adicionado com sucesso");
+
+      break;
+
+    case REQUEST_CARPARAM:
+      ESP_LOGD("ESP-NOW", "Parâmetros solicitados pelo robô, adicioando na fila");
+      takeSample(&paramsToESPNOW, &paramValid.carParam);
+      ESP_LOGD("ESP-NOW", "Adicionado com sucesso");
+
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  else if (len == sizeof(valueFromESPNOW))
+  {
+    ESP_LOGD("ESP-NOW", "Sample de valores recebido, bytes: %d", len);
+
+    memcpy(&valueFromESPNOW, incomingData, sizeof(valueFromESPNOW));
+
+    ESP_LOGD("ESP-NOW", "Tentando salvar sample na lista");
+    if (xSemaphoreTake(xSemaphoreCarValuesFromESPNOW, (TickType_t)40) == pdTRUE)
+    {
+      valuesFromESPNOW.push_back(valueFromESPNOW);
+
+      ESP_LOGD("ESP-NOW", "Sample salvo com sucesso!");
+
+      xSemaphoreGive(xSemaphoreCarValuesFromESPNOW);
+    }
+  }
+
+  else if (len == sizeof(paramFromESPNOW))
+  {
+    ESP_LOGD("ESP-NOW", "Sample de parâmetros recebido, bytes: %d", len);
+
+    memcpy(&paramFromESPNOW, incomingData, sizeof(paramFromESPNOW));
+
+    ESP_LOGD("ESP-NOW", "Tentando salvar sample na lista");
+    if (xSemaphoreTake(xSemaphoreCarParamsFromESPNOW, (TickType_t)40) == pdTRUE)
+    {
+      paramsFromESPNOW.push_back(paramFromESPNOW);
+
+      ESP_LOGD("ESP-NOW", "Sample salvo com sucesso!");
+
+      String maxsmins = "";
+      for (uint8_t i = 0; i < 8; i++)
+        maxsmins += String(paramsFromESPNOW.back().carParam.sArray.minChannel[i]) + ' ';
+
+      maxsmins += '\n';
+
+      for (uint8_t i = 0; i < 8; i++)
+        maxsmins += String(paramsFromESPNOW.back().carParam.sArray.maxChannel[i]) + ' ';
+
+      ESP_LOGD("QTRSensors", "\n%s", maxsmins.c_str());
+
+      maxsmins = "";
+      for (uint8_t i = 0; i < 2; i++)
+        maxsmins += String(paramsFromESPNOW.back().carParam.sLat.minChannel[i]) + ' ';
+
+      maxsmins += '\n';
+
+      for (uint8_t i = 0; i < 2; i++)
+        maxsmins += String(paramsFromESPNOW.back().carParam.sLat.maxChannel[i]) + ' ';
+
+      ESP_LOGD("PARAM-QTRSENSORS", "\n%s", maxsmins.c_str());
+
+      ESP_LOGD("PARAM-SPEED", "Speed (Curva) -> Max: %d | Min: %d | Base: %d", paramsFromESPNOW.back().carParam.speed.curva.max, paramsFromESPNOW.back().carParam.speed.curva.min, paramsFromESPNOW.back().carParam.speed.curva.base);
+
+      xSemaphoreGive(xSemaphoreCarParamsFromESPNOW);
+    }
   }
 }
 
 void setup_wifi()
 {
   delay(10);
-// We start by connecting to a WiFi network
-#ifdef DEBUG
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-#endif
+  // We start by connecting to a WiFi network
+
+  ESP_LOGD("Wi-Fi", "Connecting to %s", ssid);
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_AP_STA);
+  WiFi.setHostname("BraiaCentral");
+  WiFi.softAPsetHostname("BraiaCentral");
+  esp_wifi_set_ps(WIFI_PS_NONE);
   WiFi.begin(ssid, password);
-  WiFi.setSleep(false);
 
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
-#ifdef DEBUG
-    Serial.print(".");
-#endif
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    ESP_LOGD("Wi-Fi", ".");
   }
-#ifdef DEBUG
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.printf("Canal: %d\n", WiFi.channel());
-  Serial.println(WiFi.localIP());
-#endif
+
+  ESP_LOGD("Wi-Fi", "WiFi connected");
+  ESP_LOGD("Wi-Fi", "IP address: %s", WiFi.localIP().toString().c_str());
+  ESP_LOGD("Wi-Fi", "Canal: %d", WiFi.channel());
 }
 
 void callback(char *topic, byte *message, unsigned int length)
 {
-#ifdef DEBUG
-  Serial.print("Message arrived on topic: ");
-  Serial.print(topic);
-  Serial.print(". Message: ");
+  string strTopic = string(topic);
+  message[length] = '\0';
+  string strMessage = string((char *)message);
 
-  String messageTemp;
+  ESP_LOGD("MQTT", "Msg recebida %s - %d - %s", topic, length, strMessage.c_str());
 
-  for (int i = 0; i < length; i++)
+  if (strTopic.find("param") != string::npos)
   {
-    Serial.print((char)message[i]);
-    messageTemp += (char)message[i];
+
+    enum_parametros linha = strTopic.find("reta") != string::npos ? RETA : CURVA;
+
+    if (strTopic.find("speed", 6) != string::npos)
+    {
+      paramSpeedVals *speed = linha == RETA ? &paramValid.carParam.speed.reta : &paramValid.carParam.speed.curva;
+
+      if (strTopic.find("max", 12) != string::npos)
+      {
+        speed->max = atoi(strMessage.c_str());
+        ESP_LOGD("MQTT", "Vel %s max: %d", linha == RETA ? "reta" : "curva", speed->max);
+      }
+      else if (strTopic.find("min", 12) != string::npos)
+      {
+        speed->min = atoi(strMessage.c_str());
+        ESP_LOGD("MQTT", "Vel %s min: %d", linha == RETA ? "reta" : "curva", speed->min);
+      }
+      else if (strTopic.find("base", 12) != string::npos)
+      {
+        speed->base = atoi(strMessage.c_str());
+        ESP_LOGD("MQTT", "Vel %s base: %d", linha == RETA ? "reta" : "curva", speed->base);
+      }
+    }
+    else if (strTopic.find("PID", 6) != string::npos)
+    {
+      paramPIDVals *PID = linha == RETA ? &paramValid.carParam.PID.reta : &paramValid.carParam.PID.curva;
+
+      if (strTopic.find("Kp", 12) != string::npos)
+      {
+        PID->Kp = atof(strMessage.c_str());
+        ESP_LOGD("MQTT", "PID %s Kp: %f", linha == RETA ? "reta" : "curva", PID->Kp);
+      }
+      else if (strTopic.find("Ki", 12) != string::npos)
+      {
+        PID->Ki = atof(strMessage.c_str());
+        ESP_LOGD("MQTT", "PID %s Ki: %f", linha == RETA ? "reta" : "curva", PID->Ki);
+      }
+      else if (strTopic.find("Kd", 12) != string::npos)
+      {
+        PID->Kd = atof(strMessage.c_str());
+        ESP_LOGD("MQTT", "PID %s Kd: %f", linha == RETA ? "reta" : "curva", PID->Kd);
+      }
+      else if (strTopic.find("setpoint", 12) != string::npos)
+      {
+        PID->setpoint = atoi(strMessage.c_str());
+        ESP_LOGD("MQTT", "PID %s setpoint: %d", linha == RETA ? "reta" : "curva", PID->setpoint);
+      }
+    }
   }
-  Serial.println();
-#endif
+  else if (strTopic.find("value") >= 0)
+  {
+  }
 }
 
-void reconnect()
+void reconnectMQTT(PubSubClient *client)
 {
-  // Loop until we're reconnected
-  while (!client.connected())
+  while (!client->connected())
   {
-#ifdef DEBUG
-    Serial.print("Attempting MQTT connection...");
-#endif
-    // Attempt to connect
-    if (client.connect("ESP8266Client"))
+    //ESP_LOGD("MQTT", "Attempting MQTT connection...");
+
+    if (client->connect("ESP8266Client"))
     {
-#ifdef DEBUG
-      Serial.println("connected");
-#endif
-      // Subscribe
-      client.subscribe("esp32/output");
+      //ESP_LOGD("MQTT", "connected");
+      client->subscribe("toC/param/#");
     }
     else
     {
-#ifdef DEBUG
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-#endif
-      // Wait 5 seconds before retrying
-      delay(5000);
+      ESP_LOGE("MQTT", "failed, rc=%d try again in 5 seconds", client->state());
+      vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
   }
 }
 
-void setup()
+void vTaskMQTTPrepare(void *pvParameters)
 {
-#ifdef DEBUG
-  Serial.begin(115200);
-#endif
+  valuesSamples tempdataCar;
 
-  upBtn.begin();
-  downBtn.begin();
-  leftBtn.begin();
-  rightBtn.begin();
-  cancelBtn.begin();
-  acceptBtn.begin();
+  for (;;)
+  {
+    // Valores
+    if (xSemaphoreTake(xSemaphoreCarValuesFromESPNOW, (TickType_t)10) == pdTRUE)
+    {
+      if (valuesFromESPNOW.size() > 1)
+      {
+        tempdataCar = valuesFromESPNOW.front();
 
-  lcd.begin(20, 4);
-  lcd.setBacklight(HIGH);
+        xSemaphoreGive(xSemaphoreCarValuesFromESPNOW);
 
-  lcd.clear();
+        if (xSemaphoreTake(xSemaphoreSendMQTTList, (TickType_t)10) == pdTRUE)
+        {
+          sendMQTTList.emplace_back("runtime", String(tempdataCar.time));
 
-  lcd.setCursor(1, 0);
-  lcd.print("TT - LineFollower");
+          sendMQTTList.emplace_back("sensor/array/line", String(tempdataCar.carVal.sArray.line));
+          sendMQTTList.emplace_back("sensor/encoder/esq", String(tempdataCar.carVal.motEncs.encEsq));
+          sendMQTTList.emplace_back("sensor/encoder/dir", String(tempdataCar.carVal.motEncs.encDir));
 
-  lcd.setCursor(3, 1);
-  lcd.print("Control Unit");
+          sendMQTTList.emplace_back("values/latMarks/leftPassed", String(tempdataCar.carVal.latMarks.leftPassed));
+          sendMQTTList.emplace_back("values/latMarks/rightPassed", String(tempdataCar.carVal.latMarks.rightPassed));
+          sendMQTTList.emplace_back("values/latMarks/sLatDir", String(tempdataCar.carVal.latMarks.sLatDir));
+          sendMQTTList.emplace_back("values/latMarks/sLatEsq", String(tempdataCar.carVal.latMarks.sLatEsq));
 
-  lcd.setCursor(1, 3);
-  lcd.print("V0.1 Raphera@2020");
+          sendMQTTList.emplace_back("values/speed/left", String(tempdataCar.carVal.speed.left));
+          sendMQTTList.emplace_back("values/speed/right", String(tempdataCar.carVal.speed.right));
 
-  Menu mPrincipal("Inicio");
+          String arrayChannel = "";
+          arrayChannel += tempdataCar.carVal.sArray.channel[0];
+          for (uint8_t i = 1; i < 8; i++)
+          {
+            arrayChannel += ",";
+            arrayChannel += String(tempdataCar.carVal.sArray.channel[i]);
+          }
 
-  Menu mDados("Dados");
-  Menu mConfigs("Ajustes");
-  Menu mInfo("Info");
+          sendMQTTList.emplace_back("sensor/array/channel", arrayChannel);
 
-  mPrincipal.MenuItens.add(&mDados);
-  mPrincipal.MenuItens.add(&mConfigs);
-  mPrincipal.MenuItens.add(&mInfo);
+          xSemaphoreGive(xSemaphoreSendMQTTList);
+        }
 
-  setup_wifi();
+        if (xSemaphoreTake(xSemaphoreCarValuesFromESPNOW, (TickType_t)10) == pdTRUE)
+        {
+          valuesFromESPNOW.pop_front();
+
+          xSemaphoreGive(xSemaphoreCarValuesFromESPNOW);
+        }
+      }
+      else
+      {
+        xSemaphoreGive(xSemaphoreCarValuesFromESPNOW);
+      }
+    }
+
+    vTaskDelay(1);
+
+    // Parâmetros
+    if (xSemaphoreTake(xSemaphoreCarParamsFromESPNOW, (TickType_t)10) == pdTRUE)
+    {
+      if (paramsFromESPNOW.size() > 0)
+      {
+        ESP_LOGD("PARAMS Manager", "Existem samples de parâmetro na lista");
+        if (paramsFromESPNOW.front().carParam.validParams & (PID_VALID | SPEED_VALID | SARRAY_VALID | SLAT_VALID))
+        {
+          if (xSemaphoreTake(xSemaphoreParamValid, (TickType_t)10) == pdTRUE)
+          {
+            ESP_LOGD("PARAMS Manager", "Sample válido, quardando e enviando via MQTT");
+            memcpy(&paramValid, &paramsFromESPNOW.front(), sizeof(paramValid));
+            paramsFromESPNOW.pop_front();
+            xSemaphoreGive(xSemaphoreCarParamsFromESPNOW);
+            ESP_LOGD("PARAMS Manager", "Sample guardado");
+
+            if (xSemaphoreTake(xSemaphoreSendMQTTList, (TickType_t)10) == pdTRUE)
+            {
+              //PID
+              sendMQTTList.emplace_back("params/PID/curva/setpoint", String(paramValid.carParam.PID.curva.setpoint));
+              sendMQTTList.emplace_back("params/PID/curva/Kp", String(paramValid.carParam.PID.curva.Kp));
+              sendMQTTList.emplace_back("params/PID/curva/Ki", String(paramValid.carParam.PID.curva.Ki));
+              sendMQTTList.emplace_back("params/PID/curva/Kd", String(paramValid.carParam.PID.curva.Kd));
+
+              sendMQTTList.emplace_back("params/PID/reta/setpoint", String(paramValid.carParam.PID.reta.setpoint));
+              sendMQTTList.emplace_back("params/PID/reta/Kp", String(paramValid.carParam.PID.reta.Kp));
+              sendMQTTList.emplace_back("params/PID/reta/Ki", String(paramValid.carParam.PID.reta.Ki));
+              sendMQTTList.emplace_back("params/PID/reta/Kd", String(paramValid.carParam.PID.reta.Kd));
+
+              //Speed
+              sendMQTTList.emplace_back("params/speed/curva/max", String(paramValid.carParam.speed.curva.max));
+              sendMQTTList.emplace_back("params/speed/curva/min", String(paramValid.carParam.speed.curva.min));
+              sendMQTTList.emplace_back("params/speed/curva/base", String(paramValid.carParam.speed.curva.base));
+
+              sendMQTTList.emplace_back("params/speed/reta/max", String(paramValid.carParam.speed.reta.max));
+              sendMQTTList.emplace_back("params/speed/reta/min", String(paramValid.carParam.speed.reta.min));
+              sendMQTTList.emplace_back("params/speed/reta/base", String(paramValid.carParam.speed.reta.base));
+
+              xSemaphoreGive(xSemaphoreSendMQTTList);
+              ESP_LOGD("PARAMS Manager", "Sample inserido na fila para envio ao MQTT");
+            }
+            xSemaphoreGive(xSemaphoreParamValid);
+          }
+          else
+          {
+            xSemaphoreGive(xSemaphoreCarParamsFromESPNOW);
+          }
+        }
+        else
+        {
+          ESP_LOGD("PARAMS Manager", "Sample inválido, descartando");
+          paramsFromESPNOW.pop_front();
+          xSemaphoreGive(xSemaphoreCarParamsFromESPNOW);
+        }
+      }
+      else
+      {
+        xSemaphoreGive(xSemaphoreCarParamsFromESPNOW);
+      }
+    }
+
+    vTaskDelay(1);
+  }
+}
+
+void vTaskMQTTSend(void *pvParameters)
+{
+  const char *mqtt_server = WiFi.gatewayIP().toString().c_str();
+  PubSubClient client(espClient);
 
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-  // Init ESP-NOW
-  if (esp_now_init() != ESP_OK)
+  for (;;)
   {
-#ifdef DEBUG
-    Serial.println("Error initializing ESP-NOW");
-#endif
-    return;
+    if (!client.connected())
+      reconnectMQTT(&client);
+
+    client.loop();
+
+    if (xSemaphoreTake(xSemaphoreSendMQTTList, (TickType_t)10) == pdTRUE)
+    {
+      for (uint16_t i = 0; i < sendMQTTList.size(); i++)
+      {
+        if (client.publish(sendMQTTList.front().path, sendMQTTList.front().value.c_str()))
+        {
+          //ESP_LOGD("MQTT", "%s | %s", sendMQTTList.front().path, sendMQTTList.front().value.c_str());
+          sendMQTTList.pop_front();
+        }
+      }
+      xSemaphoreGive(xSemaphoreSendMQTTList);
+    }
+
+    vTaskDelay(50 / portTICK_PERIOD_MS);
   }
+}
+
+void vTaskESPNOW(void *pvParameters)
+{
+  //valuesCar *carVal = &((dataCar *)pvParameters)->values;
+
+  enum_espNOW cmdESPNOW;
+
+  if (esp_now_init() != 0)
+    ESP_LOGD("ESP-NOW", "Falha ao iniciar");
 
   // Once ESPNow is successfully Init, we will register for Send CB to
   // get the status of Trasnmitted packet
@@ -482,47 +480,72 @@ void setup()
   // Add peer
   if (esp_now_add_peer(&peerInfo) != ESP_OK)
   {
-#ifdef DEBUG
-    Serial.println("Failed to add peer");
-#endif
+    ESP_LOGD("ESP-NOW", "Failed to add peer");
     return;
   }
-  // Register for a callback function that will be called when data is received
+
   esp_now_register_recv_cb(OnDataRecv);
 
-#ifdef DEBUG
-  Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
-#endif
+  // Requisita os parametros para o robô
+  ESP_LOGD("ESP-NOW", "Solicitando parâmetros para o Robô");
+  cmdESPNOW = REQUEST_CARPARAM;
+  esp_now_send(broadcastAddress, (uint8_t *)&cmdESPNOW, sizeof(cmdESPNOW));
+
+  ESP_LOGD("ESP-NOW", "Aguardando 3s");
+  vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  for (;;)
+  {
+    // Envio de valores
+    if (xSemaphoreTake(xSemaphoreCarValuesToESPNOW, (TickType_t)5) == pdTRUE)
+    {
+      if (valuesToESPNOW.size() > 0)
+        if (esp_now_send(broadcastAddress, (uint8_t *)&valuesToESPNOW.front(), sizeof(valuesToESPNOW.front())) == ESP_OK)
+        {
+          ESP_LOGD("ESP-NOW", "Sample de valores enviado para o robô, bytes: %d", sizeof(valuesToESPNOW.front()));
+          valuesToESPNOW.pop_front();
+        }
+
+      xSemaphoreGive(xSemaphoreCarValuesToESPNOW);
+    }
+
+    vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_PERIOD_MS);
+
+    // Envio de parâmetros
+    if (xSemaphoreTake(xSemaphoreCarParamsToESPNOW, (TickType_t)1) == pdTRUE)
+    {
+      if (paramsToESPNOW.size() > 0)
+        if (esp_now_send(broadcastAddress, (uint8_t *)&paramsToESPNOW.front(), sizeof(paramsToESPNOW.front())) == ESP_OK)
+        {
+          ESP_LOGD("ESP-NOW", "Sample de parâmetros enviado para o robô, bytes: %d", sizeof(paramsToESPNOW.front()));
+          paramsToESPNOW.pop_front();
+        }
+      xSemaphoreGive(xSemaphoreCarParamsToESPNOW);
+    }
+
+    vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_PERIOD_MS);
+  }
+}
+
+void setup()
+{
+  setup_wifi();
+
+  vSemaphoreCreateBinary(xSemaphoreSendMQTTList);
+  vSemaphoreCreateBinary(xSemaphoreCarValuesFromESPNOW);
+  vSemaphoreCreateBinary(xSemaphoreCarParamsFromESPNOW);
+  vSemaphoreCreateBinary(xSemaphoreValueValid);
+  vSemaphoreCreateBinary(xSemaphoreParamValid);
+  vSemaphoreCreateBinary(xSemaphoreCarValuesToESPNOW);
+  vSemaphoreCreateBinary(xSemaphoreCarParamsToESPNOW);
+
+  xTaskCreate(vTaskESPNOW, "TaskESPNOW", 10000, NULL, 10, &xTaskESPNOW);
+  xTaskCreate(vTaskMQTTPrepare, "TaskMQTTPrepare", 10000, NULL, 8, &xTaskMQTTPrepare);
+  xTaskCreate(vTaskMQTTSend, "TaskMQTTSend", 10000, NULL, 9, &xTaskMQTTSend);
 }
 
 void loop()
 {
-  if (!client.connected())
-  {
-    reconnect();
-  }
-  client.loop();
-
-  if (dataCarList.size() > 0)
-  {
-    tempdataCar = dataCarList.front();
-    
-    client.publish("runtime", String(tempdataCar.time).c_str());
-
-    client.publish("sensor/array/line", String(tempdataCar.carVal.sArray.line).c_str());
-    client.publish("sensor/encoder/esq", String(tempdataCar.carVal.motEncs.encEsq).c_str());
-    client.publish("sensor/encoder/dir", String(tempdataCar.carVal.motEncs.encDir).c_str());
-
-    client.publish("values/latMarks/leftPassed", String(tempdataCar.carVal.latMarks.leftPassed).c_str());
-    client.publish("values/latMarks/rightPassed", String(tempdataCar.carVal.latMarks.rightPassed).c_str());
-    client.publish("values/latMarks/sLatDir", String(tempdataCar.carVal.latMarks.sLatDir).c_str());
-    client.publish("values/latMarks/sLatEsq", String(tempdataCar.carVal.latMarks.sLatEsq).c_str());
-    client.publish("values/speed/left", String(tempdataCar.carVal.speed.left).c_str());
-    client.publish("values/speed/right", String(tempdataCar.carVal.speed.right).c_str());
-
-    client.publish("values/speed/right", String(tempdataCar.carVal.speed.right).c_str());
-
-
-    dataCarList.pop_front();
-  }
+  vTaskDelay(1);
 }

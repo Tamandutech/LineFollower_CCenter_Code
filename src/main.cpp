@@ -14,6 +14,8 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
+#include "ESPmDNS.h"
+#include <WiFiUdp.h>
 
 // Custom
 #include "PubSubClient.h"
@@ -39,8 +41,8 @@ struct sendMQTT
 uint8_t broadcastAddress[] = {0x24, 0x6F, 0x28, 0xB2, 0x23, 0xD0};
 esp_now_peer_info_t peerInfo;
 
-const char *ssid = "TT-Server";
-const char *password = "W2knaft@123";
+//const char *ssid = "TT-Server";
+//const char *password = "W2knaft@123";
 
 TaskHandle_t xTaskMQTTSend;
 TaskHandle_t xTaskMQTTPrepare;
@@ -196,17 +198,60 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 
 void setup_wifi()
 {
-  delay(10);
-  // We start by connecting to a WiFi network
-
-  ESP_LOGD("Wi-Fi", "Connecting to %s", ssid);
+  String ssid;
+  String password;
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_AP_STA);
+
+  ESP_LOGD("Wi-Fi", "Procurando AP");
+
+  int nAPs = WiFi.scanNetworks();
+
+  ESP_LOGD("Wi-Fi", "Busca completa, encontrados %d APs", nAPs);
+
+  for (uint8_t i = 0; i < nAPs && ssid.length() == 0; i++)
+  {
+    ESP_LOGD("Wi-Fi", "Procurando: %d de %d | ActualLength: %d", i + 1, nAPs, ssid.length());
+    if (WiFi.SSID(i).indexOf("Braia") >= 0 && WiFi.SSID(i).indexOf("Server") >= 0)
+    {
+      ssid = WiFi.SSID(i);
+      password = "W2knaft@123";
+      ESP_LOGD("Wi-Fi", "AP do servidor encontrado, conectando em %s", ssid.c_str());
+    }
+  }
+
+  if (ssid.length() == 0)
+  {
+    for (uint8_t i = 0; i < nAPs && ssid.length() == 0; i++)
+    {
+      ESP_LOGD("Wi-Fi", "Procurando: %d de %d | ActualLength: %d", i + 1, nAPs, ssid.length());
+      if (WiFi.SSID(i).indexOf("RFREITAS") >= 0 && WiFi.SSID(i).indexOf("EXT") >= 0)
+      {
+        ssid = WiFi.SSID(i);
+        password = "941138872";
+        ESP_LOGD("Wi-Fi", "AP residencial encontrado, conectando em %s", ssid.c_str());
+      }
+    }
+  }
+
+  if (ssid.length() == 0)
+  {
+    for (uint8_t i = 0; i < nAPs && ssid.length() == 0; i++)
+    {
+      ESP_LOGD("Wi-Fi", "Procurando: %d de %d | ActualLength: %d", i + 1, nAPs, ssid.length());
+      if (WiFi.SSID(i).indexOf("RFREITAS") >= 0 && WiFi.SSID(i).indexOf("EXT") < 0)
+      {
+        ssid = WiFi.SSID(i);
+        password = "941138872";
+        ESP_LOGD("Wi-Fi", "AP residencial encontrado, conectando em %s", ssid.c_str());
+      }
+    }
+  }
+
   WiFi.setHostname("BraiaCentral");
-  WiFi.softAPsetHostname("BraiaCentral");
   esp_wifi_set_ps(WIFI_PS_NONE);
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid.c_str(), password.c_str());
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -214,9 +259,24 @@ void setup_wifi()
     ESP_LOGD("Wi-Fi", ".");
   }
 
-  ESP_LOGD("Wi-Fi", "WiFi connected");
-  ESP_LOGD("Wi-Fi", "IP address: %s", WiFi.localIP().toString().c_str());
-  ESP_LOGD("Wi-Fi", "Canal: %d", WiFi.channel());
+  ESP_LOGD("[STA]Wi-Fi", "WiFi conectado");
+  ESP_LOGD("[STA]Wi-Fi", "IP address: %s, DNS address: %s", WiFi.localIP().toString().c_str(), WiFi.dnsIP().toString().c_str());
+  ESP_LOGD("[STA]Wi-Fi", "Canal: %d", WiFi.channel());
+
+  WiFi.softAPsetHostname("BraiaCentral");
+  WiFi.softAP("[Braia]TT-Central", "W2knaft@123", WiFi.channel(), 0, 3);
+
+  ESP_LOGD("[AP]Wi-Fi", "AP configurado");
+  ESP_LOGD("[AP]Wi-Fi", "IP address: %s", WiFi.softAPIP().toString().c_str());
+
+  ESP_LOGD("[AP]Wi-Fi", "Hostname: %s", WiFi.getHostname());
+  ESP_LOGD("[AP]Wi-Fi", "Hostname: %s", WiFi.softAPgetHostname());
+
+  if (!MDNS.begin("braiacentral"))
+  {
+    ESP_LOGD("mDNS", "Error starting mDNS");
+  }
+
 }
 
 void callback(char *topic, byte *message, unsigned int length)
@@ -428,8 +488,22 @@ void vTaskMQTTPrepare(void *pvParameters)
 
 void vTaskMQTTSend(void *pvParameters)
 {
-  const char *mqtt_server = WiFi.gatewayIP().toString().c_str();
+  const char *mqtt_server = "braiaserver";
   PubSubClient client(espClient);
+
+  ESP_LOGD("MQTT", "Procurando Central via mDNS (braiaserver)");
+
+  int nrOfHosts = MDNS.queryService("_mqtt", "_tcp");
+
+  ESP_LOGD("MQTT", "Encotradas %d central(is)", nrOfHosts);
+
+  if (nrOfHosts > 0)
+  {
+    mqtt_server = MDNS.IP(0).toString().c_str();
+    ESP_LOGD("MQTT", "IP: %s | Hostname: %s", mqtt_server, MDNS.txt(0, 0).c_str());
+  }
+
+
 
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);

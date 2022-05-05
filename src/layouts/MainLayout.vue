@@ -7,14 +7,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer
-      v-model="drawer"
-      show-if-above
-      :width="300"
-      :breakpoint="500"
-      bordered
-      class="bg-grey-3"
-    >
+    <q-drawer v-model="drawer" show-if-above :width="300" :breakpoint="500" bordered class="bg-grey-3">
       <q-scroll-area class="fit">
         <q-list>
           <q-item clickable :to="'/'" exact>
@@ -24,15 +17,9 @@
             <q-item-section> Início </q-item-section>
           </q-item>
 
-          <q-separator :key="'sep' + index" />
+          <q-separator />
 
-          <q-expansion-item
-            :content-inset-level="0.5"
-            expand-separator
-            icon="car_repair"
-            label="Robô"
-            default-opened
-          >
+          <q-expansion-item :content-inset-level="0.5" expand-separator icon="car_repair" label="Robô" default-opened>
             <q-item clickable :to="'/robot/parameters'" exact>
               <q-item-section avatar>
                 <q-icon :name="'tune'" />

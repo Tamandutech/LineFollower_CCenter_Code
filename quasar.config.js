@@ -35,15 +35,14 @@ module.exports = configure(function (/* ctx */) {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       // 'ionicons-v4',
-      // 'mdi-v5',
+      // 'mdi-v6',
       // 'fontawesome-v6',
       // 'eva-icons',
       // 'themify',
       // 'line-awesome',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
-
-      'roboto-font', // optional, you are not bound to it
-      'material-icons', // optional, you are not bound to it
+      // 'roboto-font', // optional, you are not bound to it
+      // 'material-icons', // optional, you are not bound to it
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#build
@@ -52,13 +51,6 @@ module.exports = configure(function (/* ctx */) {
         browser: ['es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
         node: 'node16',
       },
-
-      // extendWebpack(cfg) {
-      //   cfg.watchOptions = {
-      //     aggregateTimeout: 200,
-      //     poll: 1000,
-      //   };
-      // },
 
       devtool: 'source-map',
       vueRouterMode: 'hash', // available values: 'hash', 'history'
@@ -73,16 +65,31 @@ module.exports = configure(function (/* ctx */) {
       // env: {},
       // rawDefine: {}
       // ignorePublicFolder: true,
-      // minify: false,
+      minify: 'terser',
       // polyfillModulePreload: true,
       // distDir
 
-      // extendViteConf (viteConf) {},
-      // viteVuePluginOptions: {},
+      extendViteConf(viteConf) {
+        console.log(viteConf);
 
-      // vitePlugins: [
-      //   [ 'package-name', { ..options.. } ]
-      // ]
+        viteConf.build.sourcemap = false;
+        viteConf.build.assetsInlineLimit = 2000000000;
+        viteConf.build.cssCodeSplit = false;
+
+        viteConf.build.rollupOptions = {
+          output: {
+            inlineDynamicImports: true,
+            entryFileNames: 'assets/[name].js',
+            chunkFileNames: 'assets/[name].js',
+            assetFileNames: 'assets/[name].[ext]',
+            // format: 'iife',
+          },
+        };
+
+        console.log(viteConf);
+      },
+      // viteVuePluginOptions: {},
+      vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -93,10 +100,23 @@ module.exports = configure(function (/* ctx */) {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
     framework: {
-      config: {},
+      config: {
+        brand: {
+          primary: '#191919',
+          secondary: '#26A69A',
+          accent: '#9C27B0',
 
-      // iconSet: 'material-icons', // Quasar icon set
-      // lang: 'en-US', // Quasar language pack
+          dark: '#1d1d1d',
+
+          positive: '#21BA45',
+          negative: '#C10015',
+          info: '#31CCEC',
+          warning: '#F2C037',
+        },
+      },
+
+      iconSet: 'svg-mdi-v6', // Quasar icon set
+      lang: 'pt-BR', // Quasar language pack
 
       // For special cases outside of where the auto-import strategy can have an impact
       // (like functional components as one of the examples),
@@ -106,7 +126,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: ['AppFullscreen'],
     },
 
     // animations: 'all', // --- includes all animations

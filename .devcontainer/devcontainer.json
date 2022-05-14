@@ -33,7 +33,8 @@
 		"eamodio.gitlens",
 		"wix.vscode-import-cost",
 		"eg2.vscode-npm-script",
-		"vscode-icons-team.vscode-icons"
+		"vscode-icons-team.vscode-icons",
+		"GitHub.copilot"
 	],
 
 	"mounts": [

@@ -7,7 +7,7 @@
 
           <q-input borderless dense debounce="300" v-model="filter" placeholder="Procurar">
             <template v-slot:append>
-              <q-icon name="search" />
+              <q-icon :name="mdiDatabaseSearch" />
             </template>
           </q-input>
 
@@ -57,6 +57,7 @@
 import { Parameter, useRobotParameters } from 'src/stores/robotParameters';
 import { ref, computed, watch, defineComponent } from 'vue';
 import { useQuasar } from 'quasar'
+import { mdiDatabaseSearch } from '@quasar/extras/mdi-v6';
 import ws from './../ws';
 
 export default defineComponent({
@@ -103,6 +104,8 @@ export default defineComponent({
     })
 
     return {
+      mdiDatabaseSearch,
+
       classes,
 
       filter,

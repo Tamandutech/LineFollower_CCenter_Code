@@ -6,7 +6,6 @@
 
 <script lang="ts">
 import ParametersComponent from 'src/components/ParametersComponent.vue';
-import { DataClass } from 'components/models';
 import { defineComponent } from 'vue';
 
 export default defineComponent({

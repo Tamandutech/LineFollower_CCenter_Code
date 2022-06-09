@@ -39,6 +39,12 @@
               </q-item-section>
               <q-item-section> Parâmetros </q-item-section>
             </q-item>
+            <q-item clickable :to="'/robot/mapping'" exact>
+              <q-item-section avatar>
+                <q-icon :name="mdiTableLarge" />
+              </q-item-section>
+              <q-item-section> Mapeamento </q-item-section>
+            </q-item>
           </q-expansion-item>
         </q-list>
       </q-scroll-area>
@@ -53,7 +59,7 @@
 <script lang="ts">
 import { ref } from 'vue';
 
-import { mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit } from '@quasar/extras/mdi-v6';
+import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit } from '@quasar/extras/mdi-v6';
 
 export default {
   setup() {
@@ -64,6 +70,7 @@ export default {
       mdiRobotMowerOutline,
       mdiFullscreen,
       mdiFullscreenExit,
+      mdiTableLarge,
 
       drawer: ref(false),
     };

@@ -1,7 +1,7 @@
 import { defineComponent } from 'vue';
 
-const host = 'ws://' + document.location.host + '/dashws';
-// let host = "ws://192.168.1.x/dashws"; // For Local Testing via npm run serve
+//const host = 'ws://' + document.location.host + '/dashws';
+let host = "ws://192.168.1.2/dashws"; // For Local Testing via npm run serve
 
 const socket = new WebSocket(host);
 

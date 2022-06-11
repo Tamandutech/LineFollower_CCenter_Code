@@ -18,6 +18,17 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
+  {
+    path: '/robot/mapping',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('src/pages/MappingPage.vue'),
+      },
+    ],
+  },
+
   // Always leave this as last one,
   // but you can also remove it
   {

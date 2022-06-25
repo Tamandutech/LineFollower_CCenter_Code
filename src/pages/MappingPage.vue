@@ -46,13 +46,31 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-        <q-btn @click = "SendMap" color="primary" label="Enviar mapeamento" />
+        <q-btn @click = "SendMap" color="primary" label="Enviar mapeamento" :disable = "MapSending"/>
         <q-btn @click = "ReceiveMap" color="primary" label="Ler mapeamento" />
         <q-btn @click = "ReceiveMapRam" color="primary" label="Ler mapeamento na Ram" />
-        <q-btn @click = "SaveMap" color="primary" label="Salvar mapeamento" />
+        <q-btn @click = "SaveMap" color="primary" label="Salvar mapeamento" :disable ="MapSaving" />
+        <q-dialog
+          v-model="MapSendDialog"
+        >
+          <q-card style="width: 300px">
+            <q-card-section>
+              <div class="text-h6">Mapeamento</div>
+            </q-card-section>
+
+            <q-card-section class="q-pt-none">
+              {{MapStringDialog}}
+            </q-card-section>
+
+            <q-card-actions align="right" class="bg-white text-teal">
+              <q-btn flat label="OK" v-close-popup />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
     </div>
     <div class="q-pa-md q-gutter-sm">
         <q-btn @click = "DeleteMapReg" color="primary" label="Deletar Registro" />
+         <q-btn @click = "DeleteAllMapRegs" color="primary" label="Deletar todos os registros" />
         <q-select v-model="DeleteRegID" :options="options" label="Selecione o ID do registro que será deletado" />
     </div>
     <q-table
@@ -98,7 +116,7 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click = "AddMapReg" color="primary" label="Adicionar Registro" />
+      <q-btn @click = "AddMapReg" color="primary" label="Adicionar Registro"/>
     </div>
   </div>
 </template>
@@ -144,6 +162,10 @@ const MapStore = mappingStore();
 const MapRows = MapStore.Mapregs;
 let ReSendTries = 3;
 let options = ref([1]);
+let MapSending = ref(false);
+let MapSaving = ref(false);
+let MapSendDialog = ref(false);
+let MapStringDialog = ref("");
     export default {
       setup () {
          let DeleteRegID = ref(0);
@@ -154,7 +176,12 @@ let options = ref([1]);
             NewReg: ref(NewReg),
             options,
             DeleteRegID,
+            MapSending,
+            MapSaving,
+            MapSendDialog,
+            MapStringDialog,
             DeleteMapReg,
+            DeleteAllMapRegs,
           }
           function DeleteMapReg ()
           {
@@ -163,6 +190,12 @@ let options = ref([1]);
             for (var i=0; i < MapStore.TotalRegs; i++) options.value.push(MapStore.Mapregs.at(i).id);
             if(MapStore.TotalRegs > 0) DeleteRegID.value = MapStore.Mapregs.at(0).id;
             else DeleteRegID.value = 0;
+          }
+          function DeleteAllMapRegs ()
+          {
+            MapStore.clearMap();
+            ws.send('rmt map_clear -w');
+            ws.send('rmt map_clearFlash -w');
           }
         },
         created() {
@@ -177,22 +210,55 @@ let options = ref([1]);
             const received = JSON.parse(event.data) as { cmdExecd: string, data: string }
             console.log('Recebido:', received);
             console.log('Mensagem Recebida');
+            if (received.cmdExecd.includes('map_SaveRuntime')) {
+              MapSaving.value = false;
+              if(received.data === "OK")
+              {
+                MapStringDialog.value = "Mapeamento salvo na flash com sucesso.";
+                MapSendDialog.value = true;
+              }
+              else
+              {
+                MapStringDialog.value = "Falha ao salvar mapeamento na flash.";
+                MapSendDialog.value = true;
+              }
+            }
             if (received.cmdExecd.includes('map_add')) {
               if(received.data === "OK")
               {
                 if(MapStore.TotalRegs > MapStore.getRegToSend + 1)
                 {
                   ReSendTries = 3;
-                  ws.send('rmt "map_add ' + MapStore.getRegString(MapStore.getRegToSend + 1) +'" -w');
-                  MapStore.setRegToSend(MapStore.getRegToSend + 1);
+                  let RegsString = "";
+                  while(MapStore.TotalRegs > MapStore.getRegToSend + 1){
+                    if((RegsString + MapStore.getRegString(MapStore.getRegToSend + 1) + ";").length <= 90)
+                    {
+                      RegsString +=  MapStore.getRegString(MapStore.getRegToSend + 1) + ";";
+                      MapStore.setRegToSend(MapStore.getRegToSend + 1);
+                    }
+                    else break;
+
+                  }
+                  ws.send('rmt "map_add ' + RegsString +'" -w');
                 }
-                else console.log("Mapeamento enviado")
+                else {
+                  console.log("Mapeamento enviado");
+                  MapStringDialog.value = "Mapeamento enviado com sucesso.";
+                  MapSending.value = false;
+                  MapSendDialog.value = true;
+                }
 
               }
               else if(ReSendTries > 0)
               {
                 ReSendTries = ReSendTries - 1;
                 ws.send('rmt "map_add ' + MapStore.getRegString(MapStore.getRegToSend) +'" -w');
+              }
+              else
+              {
+                MapStringDialog.value = "Falha ao enviar o mapeamento.";
+                MapSendDialog.value = true;
+                MapSending.value = false;
               }
             }  
             if (received.cmdExecd.includes('map_get')) {
@@ -212,7 +278,8 @@ let options = ref([1]);
           SendMap() {
             let tempMap = MapStore.Mapregs;
             tempMap.sort((d1,d2) => d1.EncMedia-d2.EncMedia);
-            console.log(MapStore.getRegString(0)); 
+            console.log(MapStore.getRegString(0));
+            MapSending.value = true;
             ws.send('rmt map_clear -w');
             ws.send('rmt "map_add ' + MapStore.getRegString(0) +'" -w');
             MapStore.setRegToSend(0);
@@ -226,6 +293,7 @@ let options = ref([1]);
           },
           SaveMap(){
             ws.send('rmt map_SaveRuntime -w');
+            MapSaving.value = true;
           },
           AddMapReg() {
             let NewMapReg = {} as RegMap;

@@ -76,15 +76,15 @@ module.exports = configure(function (/* ctx */) {
         viteConf.build.assetsInlineLimit = 2000000000;
         viteConf.build.cssCodeSplit = false;
 
-        viteConf.build.rollupOptions = {
-          output: {
-            inlineDynamicImports: true,
-            entryFileNames: 'assets/[name].js',
-            chunkFileNames: 'assets/[name].js',
-            assetFileNames: 'assets/[name].[ext]',
-            // format: 'iife',
-          },
-        };
+        // viteConf.build.rollupOptions = {
+        //   output: {
+        //     inlineDynamicImports: true,
+        //     entryFileNames: 'assets/[name].js',
+        //     chunkFileNames: 'assets/[name].js',
+        //     assetFileNames: 'assets/[name].[ext]',
+        //     // format: 'iife',
+        //   },
+        // };
 
         console.log(viteConf);
       },

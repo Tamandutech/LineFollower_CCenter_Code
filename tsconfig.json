@@ -12,7 +12,8 @@
       "boot/*": ["src/boot/*"],
       "stores/*": ["src/stores/*"],
       "utils/*": ["src/utils/*"]
-    }
+    },
+    "strictNullChecks": false,
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

@@ -36,6 +36,8 @@ export const useQueueStore = defineStore('queue', {
     },
 
     startNextJob() {
+      console.log('> startNextJob');
+
       if (Object.keys(this.active).length > 0) {
         this.addCompletedJob(this.active);
       }

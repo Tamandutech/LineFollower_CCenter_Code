@@ -3,6 +3,11 @@ import { useQueueStore } from 'src/stores/queue';
 
 import BLE from './ble';
 
+type Response = {
+  cmdExecd: string;
+  data: string;
+};
+
 const queue = useQueueStore();
 const robotParameters = useRobotParameters();
 
@@ -68,10 +73,10 @@ export default class CmdParam {
 }
 
 export class CmdParamReader {
-  static param_list(data: string) {
+  static param_list(rsp: Response) {
     console.log('Parâmetros recebidos');
 
-    const lines: string[] = data.split('\n');
+    const lines: string[] = rsp.data.split('\n');
 
     const qtdParams = Number(lines[0].substring(lines[0].indexOf(':') + 2));
     console.log('Qtd de parâmetros: ' + qtdParams);
@@ -95,38 +100,38 @@ export class CmdParamReader {
 
       console.log(
         'ClassName: ' +
-          className +
-          ', ParamName: ' +
-          paramName +
-          ', ParamValue: ' +
-          paramValue
+        className +
+        ', ParamName: ' +
+        paramName +
+        ', ParamValue: ' +
+        paramValue
       );
     }
   }
 
-  static param_get(data: string) {
-    // console.log('Parâmetro recebido');
-    //     let match = received.cmdExecd.match(
-    //       'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
-    //     );
-    //     console.log(match);
-    //     console.log(
-    //       'Classe: ' +
-    //         match?.groups?.classe +
-    //         ', Param: ' +
-    //         match?.groups?.parametro +
-    //         ', Value: ' +
-    //         received.data
-    //     );
-    //     if (
-    //       match?.groups?.classe === undefined ||
-    //       match?.groups?.parametro === undefined
-    //     )
-    //       return;
-    //     this.classes.addParameter(
-    //       match?.groups?.classe,
-    //       match?.groups?.parametro,
-    //       received.data
-    //     );
+  static param_get(rsp: Response) {
+    console.log('Parâmetro recebido');
+        const match = rsp.cmdExecd.match(
+          'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
+        );
+        console.log(match);
+        console.log(
+          'Classe: ' +
+            match?.groups?.classe +
+            ', Param: ' +
+            match?.groups?.parametro +
+            ', Value: ' +
+            rsp.data
+        );
+        if (
+          match?.groups?.classe === undefined ||
+          match?.groups?.parametro === undefined
+        )
+          return;
+        robotParameters.addParameter(
+          match?.groups?.classe,
+          match?.groups?.parametro,
+          rsp.data
+        );
   }
 }

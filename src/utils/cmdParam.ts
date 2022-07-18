@@ -12,20 +12,16 @@ const queue = useQueueStore();
 const robotParameters = useRobotParameters();
 
 export default class CmdParam {
-  static updateValue(
-    row: Parameter,
-    value: undefined,
-    initialValue: undefined
-  ) {
+  static param_set(row: Parameter, value: undefined, initialValue: undefined) {
     queue.addJob({
-      id: 'cmdParam.updateValue',
-      handler: function () {
+      id: 'cmdParam.param_set',
+      handler: async function () {
         if (value !== initialValue) {
-          console.log('updateValue', row, value, initialValue);
-          BLE.send(
+          console.log('param_set', row, value, initialValue);
+          await BLE.send(
             'param_set ' + row.class.name + '.' + row.name + ' ' + value
           );
-          BLE.send('param_get ' + row.class.name + '.' + row.name);
+          await BLE.send('param_get ' + row.class.name + '.' + row.name);
         }
 
         queue.startNextJob();
@@ -36,8 +32,9 @@ export default class CmdParam {
   static param_list() {
     queue.addJob({
       id: 'cmdParam.param_list',
-      handler: function () {
-        BLE.send('param_list');
+      handler: async function () {
+        await BLE.send('param_list');
+
         queue.startNextJob();
       }.bind(this),
     });
@@ -46,9 +43,10 @@ export default class CmdParam {
   static param_get(className: string, paramName: string) {
     queue.addJob({
       id: 'cmdParam.param_get',
-      handler: function () {
+      handler: async function () {
         console.log('param_get', className, paramName);
-        BLE.send('param_get ' + className + '.' + paramName);
+        await BLE.send('param_get ' + className + '.' + paramName);
+
         queue.startNextJob();
       }.bind(this),
     });
@@ -100,38 +98,43 @@ export class CmdParamReader {
 
       console.log(
         'ClassName: ' +
-        className +
-        ', ParamName: ' +
-        paramName +
-        ', ParamValue: ' +
-        paramValue
+          className +
+          ', ParamName: ' +
+          paramName +
+          ', ParamValue: ' +
+          paramValue
       );
     }
   }
 
   static param_get(rsp: Response) {
     console.log('Parâmetro recebido');
-        const match = rsp.cmdExecd.match(
-          'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
-        );
-        console.log(match);
-        console.log(
-          'Classe: ' +
-            match?.groups?.classe +
-            ', Param: ' +
-            match?.groups?.parametro +
-            ', Value: ' +
-            rsp.data
-        );
-        if (
-          match?.groups?.classe === undefined ||
-          match?.groups?.parametro === undefined
-        )
-          return;
-        robotParameters.addParameter(
-          match?.groups?.classe,
-          match?.groups?.parametro,
-          rsp.data
-        );
+    const match = rsp.cmdExecd.match(
+      'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
+    );
+    console.log(match);
+    console.log(
+      'Classe: ' +
+        match?.groups?.classe +
+        ', Param: ' +
+        match?.groups?.parametro +
+        ', Value: ' +
+        rsp.data
+    );
+    if (
+      match?.groups?.classe === undefined ||
+      match?.groups?.parametro === undefined
+    )
+      return;
+    robotParameters.addParameter(
+      match?.groups?.classe,
+      match?.groups?.parametro,
+      rsp.data
+    );
+  }
+
+  static param_set(rsp: Response) {
+    if (rsp.data.match('OK')) console.log('Parâmetro alterado');
+    else console.log('Erro ao alterar parâmetro');
   }
 }

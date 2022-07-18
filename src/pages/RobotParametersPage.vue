@@ -47,7 +47,7 @@
                           :model-value="props.row.value"
                           @save="
                             (val, initialValue) =>
-                              cmdParam.updateValue(props.row, val, initialValue)
+                              cmdParam.param_set(props.row, val, initialValue)
                           "
                           :title="props.row.name"
                           buttons
@@ -149,18 +149,18 @@ export default defineComponent({
     cmdParam.param_get('speed', 'accel');
   },
 
-  created() {
-    ws.onmessage = (event) => {
-      const received = JSON.parse(event.data) as {
-        cmdExecd: string;
-        data: string;
-      };
-      console.log('Recebido:', received);
+  // created() {
+  //   ws.onmessage = (event) => {
+  //     const received = JSON.parse(event.data) as {
+  //       cmdExecd: string;
+  //       data: string;
+  //     };
+  //     console.log('Recebido:', received);
 
-      if (received.cmdExecd.includes('param_get')) {
-      }
-    };
-  },
+  //     if (received.cmdExecd.includes('param_get')) {
+  //     }
+  //   };
+  // },
 });
 </script>
 

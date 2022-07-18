@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { defineStore } from 'pinia';
 
+type Job = {
+  id: string;
+  handler: Function;
+};
+
 export const useQueueStore = defineStore('queue', {
   state: () => ({
-    pending: [] as { id: string; handler: () => void }[],
-    completed: [] as { id: string; handler: () => void }[],
-    active: {} as { id: string; handler: () => void },
+    pending: [] as Job[],
+    completed: [] as Job[],
+    active: {} as Job,
   }),
 
   getters: {
@@ -23,7 +28,7 @@ export const useQueueStore = defineStore('queue', {
   },
 
   actions: {
-    addJob(job: { id: string; handler: () => void }) {
+    addJob(job: Job) {
       console.log('> addJob', job.id);
 
       this.$patch(() => {
@@ -46,15 +51,15 @@ export const useQueueStore = defineStore('queue', {
         this.setActiveJob(this.pending[0]);
         this.popCurrentJob();
       } else {
-        this.setActiveJob({ id: '', handler: () => null });
+        this.active = {} as Job;
       }
     },
 
-    addPendingJob(job: { id: string; handler: () => void }) {
+    addPendingJob(job: Job) {
       this.pending.push(job);
     },
 
-    setActiveJob(job: { id: string; handler: () => void }) {
+    setActiveJob(job: Job) {
       this.active = job;
     },
 
@@ -62,7 +67,7 @@ export const useQueueStore = defineStore('queue', {
       this.pending.shift();
     },
 
-    addCompletedJob(job: { id: string; handler: () => void }) {
+    addCompletedJob(job: Job) {
       this.completed.push(job);
     },
   },

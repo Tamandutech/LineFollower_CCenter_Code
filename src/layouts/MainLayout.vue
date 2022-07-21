@@ -14,7 +14,11 @@
             :icon="
               BluetoothStore.isConnected ? mdiBluetoothOff : mdiBluetoothConnect
             "
-          />
+            :loading="BluetoothStore.isConnecting"
+          >
+            <template v-slot:loading>
+              <q-spinner-radio class="on-center" /> </template
+          ></q-btn>
 
           <q-btn
             color="secondary"

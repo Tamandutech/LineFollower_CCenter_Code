@@ -14,15 +14,15 @@ export const useQueueStore = defineStore('queue', {
   }),
 
   getters: {
-    PENDING(state) {
+    PENDING(): Job[] {
       return this.pending;
     },
 
-    ACTIVE(state) {
+    ACTIVE(): Job {
       return this.active;
     },
 
-    COMPLETED(state) {
+    COMPLETED(): Job[] {
       return this.completed;
     },
   },

@@ -3,7 +3,7 @@
     <div class="q-pa-md">
       <q-table
         grid
-        :card-container-class="cardContainerClass"
+        card-container-class="row wrap justify-start items-baseline"
         title="Classes"
         :rows="classes.dataClasses"
         :columns="columns"
@@ -40,7 +40,7 @@
         </template>
 
         <template v-slot:item="props">
-          <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
+          <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4" style="height: 100%">
             <q-card>
               <q-card-section class="text-center">
                 <strong>{{ props.row.name }}</strong>
@@ -87,7 +87,7 @@
 </template>
 
 <script lang="ts">
-import { Parameter, useRobotParameters } from 'src/stores/robotParameters';
+import { useRobotParameters } from 'src/stores/robotParameters';
 import cmdParam from './../utils/cmdParam';
 import { ref, computed, watch, defineComponent } from 'vue';
 import { useQuasar } from 'quasar';
@@ -117,29 +117,7 @@ export default defineComponent({
 
     const $q = useQuasar();
 
-    function getItemsPerPage() {
-      if ($q.screen.lt.sm) {
-        return 3;
-      }
-      if ($q.screen.lt.md) {
-        return 6;
-      }
-      return 9;
-    }
-
     const filter = ref('');
-
-    const pagination = ref({
-      page: 1,
-      rowsPerPage: getItemsPerPage(),
-    });
-
-    watch(
-      () => $q.screen.name,
-      () => {
-        pagination.value.rowsPerPage = getItemsPerPage();
-      }
-    );
 
     return {
       mdiDatabaseSearch,
@@ -149,8 +127,6 @@ export default defineComponent({
       filter,
       loadingParameters,
       loadParameters,
-
-      pagination,
 
       cmdParam,
 
@@ -178,10 +154,10 @@ export default defineComponent({
 });
 </script>
 
-<style lang="sass">
+<!-- <style lang="sass">
 .grid-masonry
   flex-direction: column
-  height: 10000px
+  height: 700px
 
   &--2
     > div
@@ -210,4 +186,4 @@ export default defineComponent({
       flex: 1 0 100% !important
       width: 0 !important
       order: 2
-</style>
+</style> -->

@@ -8,7 +8,7 @@ const UART_RX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const UART_TX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
 const bluetoothStore = useBluetoothStore();
-bluetoothStore.setConnected(false);
+bluetoothStore.setDisconnected();
 
 let robotDevice: BluetoothDevice;
 let rxCharacteristic: BluetoothRemoteGATTCharacteristic;
@@ -31,7 +31,7 @@ export default class BLE {
           return device.gatt.connect();
         })
         .then((server) => {
-          bluetoothStore.setConnected(true);
+          bluetoothStore.setConnecting();
           console.log('Obtendo serviço UART...');
           return server.getPrimaryService(UART_SERVICE_UUID);
         })
@@ -55,15 +55,19 @@ export default class BLE {
                 BLE.onTxCharacteristicValueChanged
               );
             });
+        })
+        .then(() => {
+          bluetoothStore.setConnected();
         });
     } catch (error) {
       console.log(error);
+      bluetoothStore.setDisconnected();
     }
   }
 
   static onDisconnected() {
     console.log('> Bluetooth Device disconnected');
-    bluetoothStore.setConnected(false);
+    bluetoothStore.setDisconnected();
     tempMsg = '';
   }
 

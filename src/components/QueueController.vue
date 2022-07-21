@@ -27,9 +27,13 @@ export default defineComponent({
 
   methods: {
     processJob() {
-      console.log('> processJob: ' + this.active.id);
+      console.log('> processando job: ' + this.active.id);
       if (this.active.handler != null) {
-        this.active.handler();
+        try {
+          this.active.handler();
+        } catch (e) {
+          console.error(e);
+        }
       }
     },
   },

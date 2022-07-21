@@ -16,12 +16,18 @@ export default class CmdParam {
     queue.addJob({
       id: 'cmdParam.param_set',
       handler: async function () {
-        if (value !== initialValue) {
-          console.log('param_set', row, value, initialValue);
-          await BLE.send(
-            'param_set ' + row.class.name + '.' + row.name + ' ' + value
-          );
-          await BLE.send('param_get ' + row.class.name + '.' + row.name);
+        try {
+          if (value !== initialValue) {
+            console.log('param_set', row, value, initialValue);
+            await BLE.send(
+              'param_set ' + row.class.name + '.' + row.name + ' ' + value
+            );
+            await BLE.send('param_get ' + row.class.name + '.' + row.name);
+          }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          queue.startNextJob();
         }
 
         queue.startNextJob();
@@ -33,9 +39,13 @@ export default class CmdParam {
     queue.addJob({
       id: 'cmdParam.param_list',
       handler: async function () {
-        await BLE.send('param_list');
-
-        queue.startNextJob();
+        try {
+          await BLE.send('param_list');
+        } catch (error) {
+          console.error(error);
+        } finally {
+          queue.startNextJob();
+        }
       }.bind(this),
     });
   }
@@ -44,26 +54,15 @@ export default class CmdParam {
     queue.addJob({
       id: 'cmdParam.param_get',
       handler: async function () {
-        console.log('param_get', className, paramName);
-        await BLE.send('param_get ' + className + '.' + paramName);
+        try {
+          console.log('param_get', className, paramName);
+          await BLE.send('param_get ' + className + '.' + paramName);
+        } catch (error) {
+          console.error(error);
+        } finally {
+          queue.startNextJob();
+        }
 
-        queue.startNextJob();
-      }.bind(this),
-    });
-  }
-
-  static teste() {
-    console.log('Adicionando task na fila...');
-
-    queue.addJob({
-      id: 'teste',
-      handler: function () {
-        // Add functionality and data here
-
-        console.log('Executando task...');
-
-        // Complete the job. Can also be called from
-        // a promise like when making an API request
         queue.startNextJob();
       }.bind(this),
     });

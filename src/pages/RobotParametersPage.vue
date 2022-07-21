@@ -12,6 +12,19 @@
         hide-header
         hide-bottom
       >
+        <template v-slot:top-left>
+          <q-btn
+            :loading="loadingParameters"
+            :icon="mdiRefreshCircle"
+            @click="loadParameters"
+            color="primary"
+          >
+            <template v-slot:loading>
+              <q-spinner-hourglass class="on-center" />
+            </template>
+          </q-btn>
+        </template>
+
         <template v-slot:top-right>
           <q-input
             borderless
@@ -78,19 +91,29 @@ import { Parameter, useRobotParameters } from 'src/stores/robotParameters';
 import cmdParam from './../utils/cmdParam';
 import { ref, computed, watch, defineComponent } from 'vue';
 import { useQuasar } from 'quasar';
-import { mdiDatabaseSearch } from '@quasar/extras/mdi-v6';
-import ws from './../ws';
+import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';
 
 export default defineComponent({
   name: 'IndexPage',
 
   setup() {
+    const loadingParameters = ref(false);
+
+    function loadParameters() {
+      loadingParameters.value = true;
+      cmdParam.param_list();
+
+      setTimeout(() => {
+        // we're done, we reset loading state
+        loadingParameters.value = false;
+      }, 10000);
+    }
+
     const classes = useRobotParameters();
 
-    // classes.$subscribe((mutation, state) => {
-    //   console.log('mutation', mutation);
-    //   console.log('state', state);
-    // });
+    classes.$onAction(() => {
+      loadingParameters.value = false;
+    }, true);
 
     const $q = useQuasar();
 
@@ -120,8 +143,14 @@ export default defineComponent({
 
     return {
       mdiDatabaseSearch,
+      mdiRefreshCircle,
       classes,
+
       filter,
+      loadingParameters,
+      loadParameters,
+
+      pagination,
 
       cmdParam,
 
@@ -143,31 +172,16 @@ export default defineComponent({
   },
 
   mounted() {
-    console.log('Buscando parâmetros...');
-    cmdParam.param_list();
-    console.log('Buscando parâmetro speed...');
-    cmdParam.param_get('speed', 'accel');
+    // console.log('Buscando parâmetros...');
+    // cmdParam.param_list();
   },
-
-  // created() {
-  //   ws.onmessage = (event) => {
-  //     const received = JSON.parse(event.data) as {
-  //       cmdExecd: string;
-  //       data: string;
-  //     };
-  //     console.log('Recebido:', received);
-
-  //     if (received.cmdExecd.includes('param_get')) {
-  //     }
-  //   };
-  // },
 });
 </script>
 
 <style lang="sass">
 .grid-masonry
   flex-direction: column
-  height: 700px
+  height: 10000px
 
   &--2
     > div

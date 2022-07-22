@@ -1,6 +1,6 @@
 import { useBluetoothStore } from '../stores/bluetooth';
 
-import { cmdHandlerMap } from './cmd';
+import { RobotCommandsMap } from './commands/commands';
 
 const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 
@@ -37,24 +37,17 @@ export default class BLE {
         })
         .then((uartService) => {
           console.log('Obtendo característica RX...');
-          uartService
-            .getCharacteristic(UART_RX_CHARACTERISTIC_UUID)
-            .then((characteristic) => {
-              rxCharacteristic = characteristic;
-              console.log('Característica RX obtida.');
-            });
+          uartService.getCharacteristic(UART_RX_CHARACTERISTIC_UUID).then((characteristic) => {
+            rxCharacteristic = characteristic;
+            console.log('Característica RX obtida.');
+          });
 
           console.log('Obtendo característica TX...');
-          uartService
-            .getCharacteristic(UART_TX_CHARACTERISTIC_UUID)
-            .then((characteristic) => {
-              console.log('Característica TX obtida.');
-              characteristic.startNotifications();
-              characteristic.addEventListener(
-                'characteristicvaluechanged',
-                BLE.onTxCharacteristicValueChanged
-              );
-            });
+          uartService.getCharacteristic(UART_TX_CHARACTERISTIC_UUID).then((characteristic) => {
+            console.log('Característica TX obtida.');
+            characteristic.startNotifications();
+            characteristic.addEventListener('characteristicvaluechanged', BLE.onTxCharacteristicValueChanged);
+          });
         })
         .then(() => {
           bluetoothStore.setConnected();
@@ -120,7 +113,7 @@ export default class BLE {
       console.log(JSON.parse(tempMsg.substring(0, tempMsg.length - 1)));
 
       const received = JSON.parse(tempMsg.substring(0, tempMsg.length - 1));
-      cmdHandlerMap.get(received.cmdExecd.split(' ')[0])(received);
+      RobotCommandsMap.get(received.cmdExecd.split(' ')[0])(received);
 
       tempMsg = '';
     }

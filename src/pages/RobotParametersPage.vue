@@ -1,24 +1,9 @@
 <template>
   <q-page>
     <div class="q-pa-md">
-      <q-table
-        grid
-        card-container-class="row wrap justify-start items-baseline"
-        title="Classes"
-        :rows="classes.dataClasses"
-        :columns="columns"
-        row-key="name"
-        :filter="filter"
-        hide-header
-        hide-bottom
-      >
+      <q-table grid card-container-class="row wrap justify-start items-baseline" title="Classes" :rows="classes.dataClasses" :columns="columns" row-key="name" :filter="filter" hide-header hide-bottom>
         <template v-slot:top-left>
-          <q-btn
-            :loading="loadingParameters"
-            :icon="mdiRefreshCircle"
-            @click="loadParameters"
-            color="primary"
-          >
+          <q-btn :loading="loadingParameters" :icon="mdiRefreshCircle" @click="loadParameters" color="primary">
             <template v-slot:loading>
               <q-spinner-hourglass class="on-center" />
             </template>
@@ -26,13 +11,7 @@
         </template>
 
         <template v-slot:top-right>
-          <q-input
-            borderless
-            dense
-            debounce="300"
-            v-model="filter"
-            placeholder="Procurar"
-          >
+          <q-input borderless dense debounce="300" v-model="filter" placeholder="Procurar">
             <template v-slot:append>
               <q-icon :name="mdiDatabaseSearch" />
             </template>
@@ -56,22 +35,8 @@
 
                       <q-td key="value" :props="props">
                         {{ props.row.value }}
-                        <q-popup-edit
-                          :model-value="props.row.value"
-                          @save="
-                            (val, initialValue) =>
-                              cmdParam.param_set(props.row, val, initialValue)
-                          "
-                          :title="props.row.name"
-                          buttons
-                          v-slot="scope"
-                        >
-                          <q-input
-                            type="number"
-                            v-model="scope.value"
-                            dense
-                            autofocus
-                          />
+                        <q-popup-edit :model-value="props.row.value" @save="(val, initialValue) => cmdParam.param_set(props.row, val, initialValue)" :title="props.row.name" buttons v-slot="scope">
+                          <q-input type="number" v-model="scope.value" dense autofocus />
                         </q-popup-edit>
                       </q-td>
                     </q-tr>
@@ -88,8 +53,8 @@
 
 <script lang="ts">
 import { useRobotParameters } from 'src/stores/robotParameters';
-import cmdParam from './../utils/cmdParam';
-import { ref, computed, watch, defineComponent } from 'vue';
+import cmdParam from './../utils/commands/robot/cmd_param';
+import { ref, computed, defineComponent } from 'vue';
 import { useQuasar } from 'quasar';
 import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';
 
@@ -104,7 +69,6 @@ export default defineComponent({
       cmdParam.param_list();
 
       setTimeout(() => {
-        // we're done, we reset loading state
         loadingParameters.value = false;
       }, 10000);
     }
@@ -136,9 +100,7 @@ export default defineComponent({
       ],
 
       cardContainerClass: computed(() => {
-        return $q.screen.gt.xs
-          ? 'grid-masonry grid-masonry--' + ($q.screen.gt.sm ? '3' : '2')
-          : null;
+        return $q.screen.gt.xs ? 'grid-masonry grid-masonry--' + ($q.screen.gt.sm ? '3' : '2') : null;
       }),
 
       rowsPerPageOptions: computed(() => {
@@ -146,44 +108,5 @@ export default defineComponent({
       }),
     };
   },
-
-  mounted() {
-    // console.log('Buscando parâmetros...');
-    // cmdParam.param_list();
-  },
 });
 </script>
-
-<!-- <style lang="sass">
-.grid-masonry
-  flex-direction: column
-  height: 700px
-
-  &--2
-    > div
-      &:nth-child(2n + 1)
-        order: 1
-      &:nth-child(2n)
-        order: 2
-
-    &:before
-      content: ''
-      flex: 1 0 100% !important
-      width: 0 !important
-      order: 1
-  &--3
-    > div
-      &:nth-child(3n + 1)
-        order: 1
-      &:nth-child(3n + 2)
-        order: 2
-      &:nth-child(3n)
-        order: 3
-
-    &:before,
-    &:after
-      content: ''
-      flex: 1 0 100% !important
-      width: 0 !important
-      order: 2
-</style> -->

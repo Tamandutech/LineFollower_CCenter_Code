@@ -1,17 +1,13 @@
 import { Parameter, useRobotParameters } from 'src/stores/robotParameters';
 import { useQueueStore } from 'src/stores/queue';
+import { RobotResponse } from './types';
 
-import BLE from './ble';
-
-type Response = {
-  cmdExecd: string;
-  data: string;
-};
+import BLE from '../../ble';
 
 const queue = useQueueStore();
 const robotParameters = useRobotParameters();
 
-export default class CmdParam {
+export default class RobotCommand {
   static param_set(row: Parameter, value: undefined, initialValue: undefined) {
     queue.addJob({
       id: 'cmdParam.param_set',
@@ -19,9 +15,7 @@ export default class CmdParam {
         try {
           if (value !== initialValue) {
             console.log('param_set', row, value, initialValue);
-            await BLE.send(
-              'param_set ' + row.class.name + '.' + row.name + ' ' + value
-            );
+            await BLE.send('param_set ' + row.class.name + '.' + row.name + ' ' + value);
             await BLE.send('param_get ' + row.class.name + '.' + row.name);
           }
         } catch (error) {
@@ -67,10 +61,21 @@ export default class CmdParam {
       }.bind(this),
     });
   }
+
+  // TODO
+
+  // static map_get (){}
+  // static map_getRuntime (){}
+  // static map_set (){}
+  // static map_add (){}
+  // static map_SaveRuntime (){}
+  // static map_clear (){}
+  // static map_clearFlash (){}
+  // static map_clearAtIndex (){}
 }
 
-export class CmdParamReader {
-  static param_list(rsp: Response) {
+export class RobotCommandReader {
+  static param_list(rsp: RobotResponse) {
     console.log('Parâmetros recebidos');
 
     const lines: string[] = rsp.data.split('\n');
@@ -79,60 +84,28 @@ export class CmdParamReader {
     console.log('Qtd de parâmetros: ' + qtdParams);
 
     for (let index = 0; index < qtdParams; index++) {
-      const className: string = lines[index + 1].substring(
-        lines[index + 1].indexOf('-') + 2,
-        lines[index + 1].indexOf('.')
-      );
+      const className: string = lines[index + 1].substring(lines[index + 1].indexOf('-') + 2, lines[index + 1].indexOf('.'));
 
-      const paramName: string = lines[index + 1].substring(
-        lines[index + 1].indexOf('.') + 1,
-        lines[index + 1].indexOf(':')
-      );
+      const paramName: string = lines[index + 1].substring(lines[index + 1].indexOf('.') + 1, lines[index + 1].indexOf(':'));
 
-      const paramValue: string = lines[index + 1].substring(
-        lines[index + 1].indexOf(':') + 2
-      );
+      const paramValue: string = lines[index + 1].substring(lines[index + 1].indexOf(':') + 2);
 
       robotParameters.addParameter(className, paramName, paramValue);
 
-      console.log(
-        'ClassName: ' +
-          className +
-          ', ParamName: ' +
-          paramName +
-          ', ParamValue: ' +
-          paramValue
-      );
+      console.log('ClassName: ' + className + ', ParamName: ' + paramName + ', ParamValue: ' + paramValue);
     }
   }
 
-  static param_get(rsp: Response) {
+  static param_get(rsp: RobotResponse) {
     console.log('Parâmetro recebido');
-    const match = rsp.cmdExecd.match(
-      'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
-    );
+    const match = rsp.cmdExecd.match('param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)');
     console.log(match);
-    console.log(
-      'Classe: ' +
-        match?.groups?.classe +
-        ', Param: ' +
-        match?.groups?.parametro +
-        ', Value: ' +
-        rsp.data
-    );
-    if (
-      match?.groups?.classe === undefined ||
-      match?.groups?.parametro === undefined
-    )
-      return;
-    robotParameters.addParameter(
-      match?.groups?.classe,
-      match?.groups?.parametro,
-      rsp.data
-    );
+    console.log('Classe: ' + match?.groups?.classe + ', Param: ' + match?.groups?.parametro + ', Value: ' + rsp.data);
+    if (match?.groups?.classe === undefined || match?.groups?.parametro === undefined) return;
+    robotParameters.addParameter(match?.groups?.classe, match?.groups?.parametro, rsp.data);
   }
 
-  static param_set(rsp: Response) {
+  static param_set(rsp: RobotResponse) {
     if (rsp.data.match('OK')) console.log('Parâmetro alterado');
     else console.log('Erro ao alterar parâmetro');
   }

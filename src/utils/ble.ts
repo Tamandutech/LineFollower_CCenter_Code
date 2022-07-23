@@ -1,6 +1,6 @@
 import { useBluetoothStore } from '../stores/bluetooth';
+import { useRobotQueueStore } from 'src/stores/robotQueue';
 
-import { RobotCommandsMap } from './commands/commands';
 
 const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 
@@ -8,6 +8,8 @@ const UART_RX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const UART_TX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
 const bluetoothStore = useBluetoothStore();
+const robotQueueStore = useRobotQueueStore();
+
 bluetoothStore.setDisconnected();
 
 let robotDevice: BluetoothDevice;
@@ -113,7 +115,9 @@ export default class BLE {
       console.log(JSON.parse(tempMsg.substring(0, tempMsg.length - 1)));
 
       const received = JSON.parse(tempMsg.substring(0, tempMsg.length - 1));
-      RobotCommandsMap.get(received.cmdExecd.split(' ')[0])(received);
+      // RobotCommandsMap.get(received.cmdExecd.split(' ')[0])(received);
+
+      robotQueueStore.active.setResponse(received);
 
       tempMsg = '';
     }

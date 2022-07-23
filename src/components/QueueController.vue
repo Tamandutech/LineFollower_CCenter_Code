@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { mapState } from 'pinia';
-import { useQueueStore } from 'src/stores/queue';
+import { useRobotQueueStore } from 'src/stores/robotQueue';
 
 export default defineComponent({
   name: 'QueueController',
@@ -11,7 +11,7 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapState(useQueueStore, {
+    ...mapState(useRobotQueueStore, {
       pending: 'pending',
       active: 'active',
       completed: 'completed',
@@ -20,20 +20,24 @@ export default defineComponent({
 
   watch: {
     active() {
-      console.log('> active');
-      this.processJob();
+      this.processCommand();
     },
   },
 
   methods: {
-    processJob() {
-      console.log('> processando job: ' + this.active.id);
-      if (this.active.handler != null) {
+    async processCommand() {
+      if (this.active && this.active.id) {
+      console.log('> processando Command: ' + this.active.id);
         try {
-          this.active.handler();
+          await this.active.execute();
+
         } catch (e) {
           console.error(e);
+        } finally {
+          // useRobotQueueStore().startNextCommand();
         }
+
+        // useRobotQueueStore().startNextCommand();
       }
     },
   },

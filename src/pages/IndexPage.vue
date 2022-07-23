@@ -5,12 +5,11 @@
 </template>
 
 <script lang="ts">
-import ParametersComponent from 'src/components/ParametersComponent.vue';
 import { defineComponent } from 'vue';
 
 export default defineComponent({
   name: 'IndexPage',
-  components: { ParametersComponent },
+  components: {  },
   data() {
     return {
       pidVel: {

@@ -1,12 +1,6 @@
 <template>
   <div class="q-pa-md">
-    <q-table
-      title="Mapeamento"
-      :rows="MapRows"
-      :columns="columns"
-      row-key="id"
-      binary-state-sort
-    >
+    <q-table title="Mapeamento" :rows="MapRows" :columns="columns" row-key="id" binary-state-sort>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="id" :props="props">
@@ -14,56 +8,31 @@
           </q-td>
           <q-td key="EncMedia" :props="props">
             {{ props.row.EncMedia }}
-            <q-popup-edit
-              v-model="props.row.EncMedia"
-              title="Atualizar Média dos encoders"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncMedia" title="Atualizar Média dos encoders" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Time" :props="props">
             {{ props.row.Time }}
-            <q-popup-edit
-              v-model="props.row.Time"
-              title="Atualizar o tempo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Time" title="Atualizar o tempo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncRight" :props="props">
             {{ props.row.EncRight }}
-            <q-popup-edit
-              v-model="props.row.EncRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncRight" title="Atualizar Encoder direito" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncLeft" :props="props">
             {{ props.row.EncLeft }}
-            <q-popup-edit
-              v-model="props.row.EncLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncLeft" title="Atualizar Encoder esquerdo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.Status }}
-            <q-popup-edit
-              v-model="props.row.Status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Status" title="Atualizar o status" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
@@ -71,24 +40,10 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn
-        @click="SendMap"
-        color="primary"
-        label="Enviar mapeamento"
-        :disable="MapSending"
-      />
-      <q-btn @click="ReceiveMap" color="primary" label="Ler mapeamento" />
-      <q-btn
-        @click="ReceiveMapRam"
-        color="primary"
-        label="Ler mapeamento na Ram"
-      />
-      <q-btn
-        @click="SaveMap"
-        color="primary"
-        label="Salvar mapeamento"
-        :disable="MapSaving"
-      />
+      <q-btn @click="SendMap" color="primary" label="Enviar mapeamento" :disable="MapStore.MapSending" />
+      <q-btn @click="cmdParam.map_get" color="primary" label="Ler mapeamento" />
+      <q-btn @click="cmdParam.map_getRuntime" color="primary" label="Ler mapeamento na Ram" />
+      <q-btn @click="SaveMap" color="primary" label="Salvar mapeamento" :disable="MapStore.MapSaving" />
       <q-dialog v-model="MapSendDialog">
         <q-card style="width: 300px">
           <q-card-section>
@@ -107,78 +62,39 @@
     </div>
     <div class="q-pa-md q-gutter-sm">
       <q-btn @click="DeleteMapReg" color="primary" label="Deletar Registro" />
-      <q-btn
-        @click="DeleteAllMapRegs"
-        color="primary"
-        label="Deletar todos os registros"
-      />
-      <q-select
-        v-model="DeleteRegID"
-        :options="options"
-        label="Selecione o ID do registro que será deletado"
-      />
+      <q-btn @click="DeleteAllMapRegs" color="primary" label="Deletar todos os registros" />
+      <q-select v-model="DeleteRegID" :options="options" label="Selecione o ID do registro que será deletado" />
     </div>
-    <q-table
-      title="Adicionar Registro"
-      :rows="NewReg"
-      :columns="Newcolumns"
-      row-key="id"
-      binary-state-sort
-    >
+    <q-table title="Adicionar Registro" :rows="NewReg" :columns="Newcolumns" row-key="id" binary-state-sort>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="EncMedia" :props="props">
             {{ props.row.EncMedia }}
-            <q-popup-edit
-              v-model="props.row.EncMedia"
-              title="Atualizar Média dos encoders"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncMedia" title="Atualizar Média dos encoders" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Time" :props="props">
             {{ props.row.Time }}
-            <q-popup-edit
-              v-model="props.row.Time"
-              title="Atualizar o tempo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Time" title="Atualizar o tempo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncRight" :props="props">
             {{ props.row.EncRight }}
-            <q-popup-edit
-              v-model="props.row.EncRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncRight" title="Atualizar Encoder direito" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncLeft" :props="props">
             {{ props.row.EncLeft }}
-            <q-popup-edit
-              v-model="props.row.EncLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncLeft" title="Atualizar Encoder esquerdo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.Status }}
-            <q-popup-edit
-              v-model="props.row.Status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Status" title="Atualizar o status" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
@@ -192,10 +108,10 @@
 </template>
 
 <script lang="ts">
-import { RegMap, mappingStore } from 'src/stores/MappingData';
-import { ref, onMounted } from 'vue';
+import { RegMap, useMappingStore } from 'src/stores/MappingData';
+import cmdParam from './../utils/commands/robot/cmd_param';
+import { ref } from 'vue';
 import ws from './../ws';
-import { useQuasar } from 'quasar';
 
 const columns = [
   {
@@ -244,14 +160,16 @@ const NewReg = [
   },
 ];
 
-const MapStore = mappingStore();
+const MapStore = useMappingStore();
 const MapRows = MapStore.Mapregs;
+
 let ReSendTries = 3;
+
 let options = ref([1]);
-let MapSending = ref(false);
-let MapSaving = ref(false);
+
 let MapSendDialog = ref(false);
 let MapStringDialog = ref('');
+
 export default {
 
   setup() {
@@ -264,12 +182,12 @@ export default {
       NewReg: ref(NewReg),
       options,
       DeleteRegID,
-      MapSending,
-      MapSaving,
       MapSendDialog,
       MapStringDialog,
       DeleteMapReg,
       DeleteAllMapRegs,
+      cmdParam,
+      MapStore
     };
 
     function DeleteMapReg() {
@@ -293,10 +211,6 @@ export default {
     while (options.value.length !== 0) options.value.pop();
     for (var i = 0; i < MapStore.TotalRegs; i++)
       options.value.push(MapStore.Mapregs.at(i).id);
-    ws.onopen = () => {
-      console.log('Conectado, buscando parâmetros...');
-      ws.send('rmt param_list -w');
-    };
 
     ws.onmessage = (event) => {
 
@@ -305,11 +219,12 @@ export default {
         data: string;
       };
 
+
       console.log('Recebido:', received);
       console.log('Mensagem Recebida');
 
       if (received.cmdExecd.includes('map_SaveRuntime')) {
-        MapSaving.value = false;
+        MapStore.MapSaving = false;
         if (received.data === 'OK') {
           MapStringDialog.value = 'Mapeamento salvo na flash com sucesso.';
           MapSendDialog.value = true;
@@ -341,23 +256,23 @@ export default {
           } else {
             console.log('Mapeamento enviado');
             MapStringDialog.value = 'Mapeamento enviado com sucesso.';
-            MapSending.value = false;
+            MapStore.MapSending = false;
             MapSendDialog.value = true;
           }
         } else if (ReSendTries > 0) {
           ReSendTries = ReSendTries - 1;
           ws.send(
             'rmt "map_add ' +
-              MapStore.getRegString(MapStore.getRegToSend) +
-              '" -w'
+            MapStore.getRegString(MapStore.getRegToSend) +
+            '" -w'
           );
         } else {
           MapStringDialog.value = 'Falha ao enviar o mapeamento.';
           MapSendDialog.value = true;
-          MapSending.value = false;
+          MapStore.MapSending = false;
         }
       }
-      
+
       if (received.cmdExecd.includes('map_get')) {
         console.log('Mapeamento recebido');
         MapStore.clearMap();
@@ -380,24 +295,15 @@ export default {
       let tempMap = MapStore.Mapregs;
       tempMap.sort((d1, d2) => d1.EncMedia - d2.EncMedia);
       console.log(MapStore.getRegString(0));
-      MapSending.value = true;
-      ws.send('rmt map_clear -w');
-      ws.send('rmt "map_add ' + MapStore.getRegString(0) + '" -w');
+      MapStore.MapSending = true;
+      cmdParam.map_clear();
+      cmdParam.map_add(MapStore.getRegByPosition(0));
       MapStore.setRegToSend(0);
-      //ws.send('rmt "map_set ' + MapStore.getMapRegsString(;) +'" -w');
-    },
-
-    ReceiveMapRam() {
-      ws.send('rmt map_getRuntime -w');
-    },
-
-    ReceiveMap() {
-      ws.send('rmt map_get -w');
     },
 
     SaveMap() {
-      ws.send('rmt map_SaveRuntime -w');
-      MapSaving.value = true;
+      cmdParam.map_SaveRuntime();
+      MapStore.MapSaving = true;
     },
 
     AddMapReg() {

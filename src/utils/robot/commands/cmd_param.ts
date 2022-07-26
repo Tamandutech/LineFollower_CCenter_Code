@@ -104,71 +104,122 @@ export class param_list extends Command {
   }
 }
 
+export class map_clear extends Command {
+  command: string;
 
-// export default class RobotCommand {
-//   static map_get() {
-//     queue.addJob({
-//       id: 'cmd_param.map_get',
-//       caller: 'map_get',
-//       handler: async function () {
-//         console.log('map_get');
-//         await BLE.send('map_get');
-//       }.bind(this),
-//     });
-//   }
+  constructor(ram = true) {
+    const command = ram ? 'map_clear' : 'map_clearFlash';
+    super(command);
+    this.command = command;
+  }
 
-//   static map_getRuntime() {
-//     queue.addJob({
-//       id: 'cmd_param.map_getRuntime',
-//       handler: async function () {
-//         console.log('map_getRuntime');
-//         await BLE.send('map_getRuntime');
-//       }.bind(this),
-//     });
-//   }
+  async func() {
+    try {
+      mappingStore.clearMap();
+      await BLE.send(this.command);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
 
-//   static map_SaveRuntime() {
-//     queue.addJob({
-//       id: 'cmd_param.map_SaveRuntime',
-//       handler: async function () {
-//         console.log('map_SaveRuntime');
-//         await BLE.send('map_SaveRuntime');
-//       }.bind(this),
-//     });
-//   }
+  async rspInterpreter(response: RobotResponse) {
+    if (response.data.match('OK')) console.log('Dados de mapeamento deletados');
+    else console.log('Erro ao limpar mapeamento.');
+  }
+}
 
-//   static map_clear() {
-//     queue.addJob({
-//       id: 'cmd_param.map_clear',
-//       handler: async function () {
-//         console.log('map_clear');
-//         await BLE.send('map_clear');
-//       }.bind(this),
-//     });
-//   }
+export class map_get extends Command {
+  command: string;
+  constructor(fromRam = false) {
+    const command = fromRam ? 'map_getRuntime' : 'map_get';
+    super(command);
+    this.command = command;
+  }
 
-//   static map_clearFlash() {
-//     queue.addJob({
-//       id: 'cmd_param.map_clearFlash',
-//       handler: async function () {
-//         console.log('map_clearFlash');
-//         await BLE.send('map_clearFlash');
-//       }.bind(this),
-//     });
-//   }
+  async func() {
+    try {
+      await BLE.send(this.command);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
 
-//   static map_add(regMap: RegMap) {
-//     queue.addJob({
-//       id: 'cmd_param.map_add',
-//       handler: async function () {
-//         console.log(`map_add ${regMap.id},${regMap.Time},${regMap.EncMedia},${regMap.EncLeft},${regMap.EncRight},${regMap.Status}`);
-//         await BLE.send(`map_add ${regMap.id},${regMap.Time},${regMap.EncMedia},${regMap.EncLeft},${regMap.EncRight},${regMap.Status}`);
-//       }.bind(this),
-//     });
-//   }
+  async rspInterpreter(response: RobotResponse) {
+    console.log('Mapeamento recebido');
+    mappingStore.clearMap();
+    const Regs: string[] = response.data.split('\n');
+    Regs.pop();
+    console.log(Regs);
+    Regs.forEach((reg) => mappingStore.addReg(reg));
+    while (mappingStore.options.length !== 0) mappingStore.options.pop();
+    for (let i = 0; i < mappingStore.TotalRegs; i++) mappingStore.options.push(mappingStore.Mapregs.at(i).id);
+    console.log(JSON.stringify(mappingStore.Mapregs));
+  }
+}
 
-//   // TODO
+export class map_SaveRuntime extends Command {
+  constructor() {
+    super('map_SaveRuntime');
+  }
 
-//   // static map_set (){}
-//   // static map_clearAtIndex (){}
-// }
+  async func() {
+    try {
+      await BLE.send('map_SaveRuntime');
+    } catch (error) {
+      Promise.reject(error);
+    }
+  }
+
+  async rspInterpreter(response: RobotResponse) {
+    mappingStore.MapSaving = false;
+    if (response.data === 'OK') {
+      mappingStore.MapStringDialog = 'Mapeamento salvo na flash com sucesso.';
+      mappingStore.MapSent = true;
+    } else {
+      mappingStore.MapStringDialog = 'Falha ao salvar mapeamento na flash.';
+      mappingStore.MapSent = true;
+    }
+  }
+}
+
+export class map_add extends Command {
+  regMap: RegMap;
+
+  constructor(regMap: RegMap) {
+    super('map_add');
+    this.regMap = regMap;
+  }
+
+  async func() {
+    console.log(`map_add ${this.regMap.id},${this.regMap.Time},${this.regMap.EncMedia},${this.regMap.EncLeft},${this.regMap.EncRight},${this.regMap.Status}`);
+    await BLE.send(`map_add ${this.regMap.id},${this.regMap.Time},${this.regMap.EncMedia},${this.regMap.EncLeft},${this.regMap.EncRight},${this.regMap.Status}`);
+  }
+
+  async rspInterpreter(rsp: RobotResponse) {
+    if (rsp.data === 'OK') {
+      if (mappingStore.TotalRegs > mappingStore.getRegToSend + 1) {
+        mappingStore.resendTries = 3;
+        let RegsString = '';
+        while (mappingStore.TotalRegs > mappingStore.getRegToSend + 1) {
+          if ((RegsString + mappingStore.getRegString(mappingStore.getRegToSend + 1) + ';').length <= 90) {
+            RegsString += mappingStore.getRegString(mappingStore.getRegToSend + 1) + ';';
+            mappingStore.setRegToSend(mappingStore.getRegToSend + 1);
+          } else break;
+        }
+        BLE.send(`map_add ${RegsString}`);
+      } else {
+        console.log('Mapeamento enviado');
+        mappingStore.MapStringDialog = 'Mapeamento enviado com sucesso.';
+        mappingStore.MapSending = false;
+        mappingStore.MapSent = true;
+      }
+    } else if (mappingStore.resendTries > 0) {
+      mappingStore.resendTries = mappingStore.resendTries - 1;
+      BLE.send(`map_add ${mappingStore.getRegString(mappingStore.getRegToSend)}`);
+    } else {
+      mappingStore.MapStringDialog = 'Falha ao enviar o mapeamento.';
+      mappingStore.MapSent = true;
+      mappingStore.MapSending = false;
+    }
+  }
+}

@@ -40,18 +40,18 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="SendMap" color="primary" label="Enviar mapeamento" :disable="MapStore.MapSending" />
-      <q-btn @click="cmdParam.map_get" color="primary" label="Ler mapeamento" />
-      <q-btn @click="cmdParam.map_getRuntime" color="primary" label="Ler mapeamento na Ram" />
+      <q-btn @click="SendMap" color="primary" label="Enviar mapeamento" :disable="MapStore.MapSending || MapStore.Mapregs.length === 0" />
+      <q-btn @click="RobotHandler.queueCommand(new map_get())" color="primary" label="Ler mapeamento" />
+      <q-btn @click="RobotHandler.queueCommand(new map_get(true))" color="primary" label="Ler mapeamento na Ram" />
       <q-btn @click="SaveMap" color="primary" label="Salvar mapeamento" :disable="MapStore.MapSaving" />
-      <q-dialog v-model="MapSendDialog">
+      <q-dialog v-model="MapStore.MapSent">
         <q-card style="width: 300px">
           <q-card-section>
             <div class="text-h6">Mapeamento</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            {{ MapStringDialog }}
+            {{ MapStore.MapStringDialog }}
           </q-card-section>
 
           <q-card-actions align="right" class="bg-white text-teal">
@@ -63,7 +63,7 @@
     <div class="q-pa-md q-gutter-sm">
       <q-btn @click="DeleteMapReg" color="primary" label="Deletar Registro" />
       <q-btn @click="DeleteAllMapRegs" color="primary" label="Deletar todos os registros" />
-      <q-select v-model="DeleteRegID" :options="options" label="Selecione o ID do registro que será deletado" />
+      <q-select v-model="DeleteRegID" :options="MapStore.options" label="Selecione o ID do registro que será deletado" />
     </div>
     <q-table title="Adicionar Registro" :rows="NewReg" :columns="Newcolumns" row-key="id" binary-state-sort>
       <template v-slot:body="props">
@@ -109,9 +109,9 @@
 
 <script lang="ts">
 import { RegMap, useMappingStore } from 'src/stores/MappingData';
-import cmdParam from './../utils/commands/robot/cmd_param';
+import { map_add, map_clear, map_get, map_SaveRuntime } from './../utils/robot/commands/cmd_param';
 import { ref } from 'vue';
-import ws from './../ws';
+import { RobotHandler } from 'src/utils/robot/handler';
 
 const columns = [
   {
@@ -163,15 +163,7 @@ const NewReg = [
 const MapStore = useMappingStore();
 const MapRows = MapStore.Mapregs;
 
-let ReSendTries = 3;
-
-let options = ref([1]);
-
-let MapSendDialog = ref(false);
-let MapStringDialog = ref('');
-
 export default {
-
   setup() {
     let DeleteRegID = ref(0);
 
@@ -180,129 +172,49 @@ export default {
       Newcolumns,
       MapRows: ref(MapRows),
       NewReg: ref(NewReg),
-      options,
       DeleteRegID,
-      MapSendDialog,
-      MapStringDialog,
       DeleteMapReg,
       DeleteAllMapRegs,
-      cmdParam,
-      MapStore
+      MapStore,
+      RobotHandler,
+      map_add,
+      map_clear,
+      map_get,
+      map_SaveRuntime,
     };
 
     function DeleteMapReg() {
       MapStore.deleteReg(DeleteRegID.value);
-      while (options.value.length !== 0) options.value.pop();
-      for (var i = 0; i < MapStore.TotalRegs; i++)
-        options.value.push(MapStore.Mapregs.at(i).id);
+      while (MapStore.options.length !== 0) MapStore.options.pop();
+      for (var i = 0; i < MapStore.TotalRegs; i++) MapStore.options.push(MapStore.Mapregs.at(i).id);
       if (MapStore.TotalRegs > 0) DeleteRegID.value = MapStore.Mapregs.at(0).id;
-      else DeleteRegID.value = 0;
+      else DeleteRegID.value = 1;
     }
 
     function DeleteAllMapRegs() {
       MapStore.clearMap();
-      ws.send('rmt map_clear -w');
-      ws.send('rmt map_clearFlash -w');
+      RobotHandler.queueCommands([new map_clear(true), new map_clear()]);
     }
-
   },
 
   created() {
-    while (options.value.length !== 0) options.value.pop();
-    for (var i = 0; i < MapStore.TotalRegs; i++)
-      options.value.push(MapStore.Mapregs.at(i).id);
-
-    ws.onmessage = (event) => {
-
-      const received = JSON.parse(event.data) as {
-        cmdExecd: string;
-        data: string;
-      };
-
-
-      console.log('Recebido:', received);
-      console.log('Mensagem Recebida');
-
-      if (received.cmdExecd.includes('map_SaveRuntime')) {
-        MapStore.MapSaving = false;
-        if (received.data === 'OK') {
-          MapStringDialog.value = 'Mapeamento salvo na flash com sucesso.';
-          MapSendDialog.value = true;
-        } else {
-          MapStringDialog.value = 'Falha ao salvar mapeamento na flash.';
-          MapSendDialog.value = true;
-        }
-      }
-
-      if (received.cmdExecd.includes('map_add')) {
-        if (received.data === 'OK') {
-          if (MapStore.TotalRegs > MapStore.getRegToSend + 1) {
-            ReSendTries = 3;
-            let RegsString = '';
-            while (MapStore.TotalRegs > MapStore.getRegToSend + 1) {
-              if (
-                (
-                  RegsString +
-                  MapStore.getRegString(MapStore.getRegToSend + 1) +
-                  ';'
-                ).length <= 90
-              ) {
-                RegsString +=
-                  MapStore.getRegString(MapStore.getRegToSend + 1) + ';';
-                MapStore.setRegToSend(MapStore.getRegToSend + 1);
-              } else break;
-            }
-            ws.send('rmt "map_add ' + RegsString + '" -w');
-          } else {
-            console.log('Mapeamento enviado');
-            MapStringDialog.value = 'Mapeamento enviado com sucesso.';
-            MapStore.MapSending = false;
-            MapSendDialog.value = true;
-          }
-        } else if (ReSendTries > 0) {
-          ReSendTries = ReSendTries - 1;
-          ws.send(
-            'rmt "map_add ' +
-            MapStore.getRegString(MapStore.getRegToSend) +
-            '" -w'
-          );
-        } else {
-          MapStringDialog.value = 'Falha ao enviar o mapeamento.';
-          MapSendDialog.value = true;
-          MapStore.MapSending = false;
-        }
-      }
-
-      if (received.cmdExecd.includes('map_get')) {
-        console.log('Mapeamento recebido');
-        MapStore.clearMap();
-        let Regs: string[] = received.data.split('\n');
-        Regs.pop();
-        console.log(Regs);
-        Regs.forEach((reg) => MapStore.addReg(reg));
-        while (options.value.length !== 0) options.value.pop();
-        for (var i = 0; i < MapStore.TotalRegs; i++)
-          options.value.push(MapStore.Mapregs.at(i).id);
-        console.log(JSON.stringify(MapRows));
-      }
-
-    };
+    while (MapStore.options.length !== 0) MapStore.options.pop();
+    for (var i = 0; i < MapStore.TotalRegs; i++) MapStore.options.push(MapStore.Mapregs.at(i).id);
   },
 
   methods: {
-
     SendMap() {
       let tempMap = MapStore.Mapregs;
       tempMap.sort((d1, d2) => d1.EncMedia - d2.EncMedia);
       console.log(MapStore.getRegString(0));
       MapStore.MapSending = true;
-      cmdParam.map_clear();
-      cmdParam.map_add(MapStore.getRegByPosition(0));
+      RobotHandler.queueCommand(new map_clear());
+      RobotHandler.queueCommand(new map_add(MapStore.getRegByPosition(0)));
       MapStore.setRegToSend(0);
     },
 
     SaveMap() {
-      cmdParam.map_SaveRuntime();
+      RobotHandler.queueCommand(new map_SaveRuntime());
       MapStore.MapSaving = true;
     },
 
@@ -317,6 +229,5 @@ export default {
       MapStore.addRegObj(NewMapReg);
     },
   },
-
 };
 </script>

@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 export enum RobotStatus {
   CAR_IN_CURVE = 0,
   CAR_IN_LINE = 1,
-  CAR_STOPPED = 2
+  CAR_STOPPED = 2,
 }
 
 export type RegMap = {
@@ -20,11 +20,13 @@ export const useMappingStore = defineStore('mapping', {
     return {
       RegToSend: 0,
       Mapregs: [],
-
+      options: [1],
       MapSending: false,
       MapSaving: false,
+      MapStringDialog: '',
+      MapSent: false,
+      resendTries: 3,
     };
-
   },
   getters: {
     getRegToSend: (state) => {
@@ -39,7 +41,6 @@ export const useMappingStore = defineStore('mapping', {
         });
         stringReg = stringReg.substring(0, stringReg.length - 1);
         return stringReg;
-
       };
     },
     getRegString: (state) => {
@@ -106,7 +107,6 @@ export const useMappingStore = defineStore('mapping', {
         const index = this.Mapregs.findIndex((r) => r.id === id);
         this.Mapregs.splice(index, 1);
       }
-
-    }
+    },
   },
 });

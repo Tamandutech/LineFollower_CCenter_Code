@@ -4,6 +4,7 @@ import { useRobotQueueStore, Command } from 'src/stores/robotQueue';
 import { RobotResponse } from '../types';
 
 import BLE from '../../ble';
+import { RobotHandler } from '../handler';
 
 const queue = useRobotQueueStore();
 const mappingStore = useMappingStore();
@@ -115,7 +116,7 @@ export class map_clear extends Command {
 
   async func() {
     try {
-      mappingStore.clearMap();
+      // mappingStore.clearMap();
       await BLE.send(this.command);
     } catch (error) {
       return Promise.reject(error);
@@ -183,43 +184,65 @@ export class map_SaveRuntime extends Command {
 }
 
 export class map_add extends Command {
-  regMap: RegMap;
+  regMaps: RegMap[];
+  actualReg: number;
 
-  constructor(regMap: RegMap) {
+  constructor(regMaps: RegMap[], actualReg = 0) {
     super('map_add');
-    this.regMap = regMap;
+    // console.log(JSON.stringify(regMaps));
+    this.regMaps = regMaps;
+    this.actualReg = actualReg;
+    // console.log(JSON.stringify(this.regMaps));
   }
 
   async func() {
-    console.log(`map_add ${this.regMap.id},${this.regMap.Time},${this.regMap.EncMedia},${this.regMap.EncLeft},${this.regMap.EncRight},${this.regMap.Status}`);
-    await BLE.send(`map_add ${this.regMap.id},${this.regMap.Time},${this.regMap.EncMedia},${this.regMap.EncLeft},${this.regMap.EncRight},${this.regMap.Status}`);
+    // console.log(JSON.stringify(this.regMaps));
+    // console.log(this.regMaps[this.actualReg].id);
+    // console.log(`Enviando mapeamento: ${this.actualReg}`);
+    console.log(`map_add ${this.regMaps[this.actualReg].id},${this.regMaps[this.actualReg].Time},${this.regMaps[this.actualReg].EncMedia},${this.regMaps[this.actualReg].EncLeft},${this.regMaps[this.actualReg].EncRight},${this.regMaps[this.actualReg].Status}`);
+    await BLE.send(`map_add ${this.regMaps[this.actualReg].id},${this.regMaps[this.actualReg].Time},${this.regMaps[this.actualReg].EncMedia},${this.regMaps[this.actualReg].EncLeft},${this.regMaps[this.actualReg].EncRight},${this.regMaps[this.actualReg].Status}`);
   }
 
   async rspInterpreter(rsp: RobotResponse) {
     if (rsp.data === 'OK') {
-      if (mappingStore.TotalRegs > mappingStore.getRegToSend + 1) {
-        mappingStore.resendTries = 3;
-        let RegsString = '';
-        while (mappingStore.TotalRegs > mappingStore.getRegToSend + 1) {
-          if ((RegsString + mappingStore.getRegString(mappingStore.getRegToSend + 1) + ';').length <= 90) {
-            RegsString += mappingStore.getRegString(mappingStore.getRegToSend + 1) + ';';
-            mappingStore.setRegToSend(mappingStore.getRegToSend + 1);
-          } else break;
-        }
-        BLE.send(`map_add ${RegsString}`);
+
+      this.actualReg++;
+
+      if (this.actualReg < this.regMaps.length) {
+        RobotHandler.queueCommand(new map_add(this.regMaps, this.actualReg));
       } else {
-        console.log('Mapeamento enviado');
-        mappingStore.MapStringDialog = 'Mapeamento enviado com sucesso.';
         mappingStore.MapSending = false;
+        mappingStore.MapStringDialog = 'Mapeamento enviado com sucesso.';
         mappingStore.MapSent = true;
+        console.log('Mapeamento enviado');
       }
-    } else if (mappingStore.resendTries > 0) {
-      mappingStore.resendTries = mappingStore.resendTries - 1;
-      BLE.send(`map_add ${mappingStore.getRegString(mappingStore.getRegToSend)}`);
-    } else {
+
+      // if (mappingStore.TotalRegs > mappingStore.getRegToSend + 1) {
+      //   mappingStore.resendTries = 3;
+      //   let RegsString = '';
+      //   while (mappingStore.TotalRegs > mappingStore.getRegToSend + 1) {
+      //     if ((RegsString + mappingStore.getRegString(mappingStore.getRegToSend + 1) + ';').length <= 90) {
+      //       RegsString += mappingStore.getRegString(mappingStore.getRegToSend + 1) + ';';
+      //       mappingStore.setRegToSend(mappingStore.getRegToSend + 1);
+      //     } else break;
+      //   }
+      //   BLE.send(`map_add ${RegsString}`);
+      // } else {
+      //   console.log('Mapeamento enviado');
+      //   mappingStore.MapStringDialog = 'Mapeamento enviado com sucesso.';
+      //   mappingStore.MapSending = false;
+      //   mappingStore.MapSent = true;
+      // }
+      // } else if (mappingStore.resendTries > 0) {
+      //   mappingStore.resendTries = mappingStore.resendTries - 1;
+      //   BLE.send(`map_add ${mappingStore.getRegString(mappingStore.getRegToSend)}`);
+      //
+    }
+    else {
       mappingStore.MapStringDialog = 'Falha ao enviar o mapeamento.';
       mappingStore.MapSent = true;
       mappingStore.MapSending = false;
     }
+
   }
 }

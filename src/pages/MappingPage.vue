@@ -112,6 +112,7 @@ import { RegMap, useMappingStore } from 'src/stores/MappingData';
 import { map_add, map_clear, map_get, map_SaveRuntime } from './../utils/robot/commands/cmd_param';
 import { ref } from 'vue';
 import { RobotHandler } from 'src/utils/robot/handler';
+import { Console } from 'console';
 
 const columns = [
   {
@@ -208,8 +209,10 @@ export default {
       tempMap.sort((d1, d2) => d1.EncMedia - d2.EncMedia);
       console.log(MapStore.getRegString(0));
       MapStore.MapSending = true;
+      console.log(JSON.stringify(MapStore.Mapregs));
+      console.log(JSON.stringify(tempMap));
       RobotHandler.queueCommand(new map_clear());
-      RobotHandler.queueCommand(new map_add(MapStore.getRegByPosition(0)));
+      RobotHandler.queueCommand(new map_add(tempMap));
       MapStore.setRegToSend(0);
     },
 

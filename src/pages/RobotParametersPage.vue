@@ -136,6 +136,10 @@ export default defineComponent({
       console.log('Conectado, buscando parâmetros...');
       ws.send('rmt param_list -w');
     };
+    if(ws.readyState == WebSocket.OPEN)
+    {
+      ws.send('rmt param_list -w');
+    }
 
     ws.onmessage = (event) => {
       const received = JSON.parse(event.data) as { cmdExecd: string, data: string }

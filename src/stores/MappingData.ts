@@ -7,6 +7,7 @@ export type RegMap = {
     EncRight:number;
     EncLeft: number;
     Status: number;
+    TrackStatus: number;
 };
 
 export const mappingStore = defineStore('mapping',{
@@ -25,7 +26,7 @@ export const mappingStore = defineStore('mapping',{
             return (sep: string) => {
                 let stringReg = "";
                 state.Mapregs.forEach((reg) => {
-                    stringReg += reg.id.toString() + "," + reg.Time.toString() + "," + reg.EncMedia.toString() + "," + reg.EncLeft.toString() + "," + reg.EncRight.toString() + "," + reg.Status.toString();
+                    stringReg += reg.id.toString() + "," + reg.Time.toString() + "," + reg.EncMedia.toString() + "," + reg.EncLeft.toString() + "," + reg.EncRight.toString() + "," + reg.Status.toString() + "," + reg.TrackStatus.toString();
                     stringReg += sep;
                 });
                 stringReg = stringReg.substring(0,stringReg.length-1);
@@ -39,7 +40,7 @@ export const mappingStore = defineStore('mapping',{
                 let reg = undefined;
                 if(state.Mapregs.length > pos) reg = state.Mapregs.at(pos);
                 if(reg !== undefined)  {
-                    stringReg += reg.id.toString() + "," + reg.Time.toString() + "," + reg.EncMedia.toString() + "," + reg.EncLeft.toString() + "," + reg.EncRight.toString() + "," + reg.Status.toString();
+                    stringReg += reg.id.toString() + "," + reg.Time.toString() + "," + reg.EncMedia.toString() + "," + reg.EncLeft.toString() + "," + reg.EncRight.toString() + "," + reg.Status.toString() + "," + reg.TrackStatus.toString();
                 }
                 return stringReg;
             };
@@ -49,7 +50,7 @@ export const mappingStore = defineStore('mapping',{
                 let stringReg = "";
                 const reg = state.Mapregs.find((r) => r.id === id);
                 if(reg !== undefined)  {
-                    stringReg += reg.id.toString() + "," + reg.Time.toString() + "," + reg.EncMedia.toString() + "," + reg.EncLeft.toString() + "," + reg.EncRight.toString() + "," + reg.Status.toString();
+                    stringReg += reg.id.toString() + "," + reg.Time.toString() + "," + reg.EncMedia.toString() + "," + reg.EncLeft.toString() + "," + reg.EncRight.toString() + "," + reg.Status.toString() + "," + reg.TrackStatus.toString();
                 }
                 return stringReg;
             };
@@ -73,7 +74,8 @@ export const mappingStore = defineStore('mapping',{
             newReg.Time = parseInt(mapData[1]);
             newReg.Status = parseInt(mapData[5]);
             newReg.EncLeft = parseInt(mapData[3]);
-            newReg.EncRight = parseInt(mapData[4]); 
+            newReg.EncRight = parseInt(mapData[4]);
+            newReg.TrackStatus = parseInt(mapData[6]);
             this.Mapregs.push(newReg);
         },
         addRegObj(Reg:RegMap){

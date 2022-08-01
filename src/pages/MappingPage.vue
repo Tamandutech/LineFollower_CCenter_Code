@@ -42,6 +42,12 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="TrackStatus" :props="props">
+            {{ props.row.TrackStatus }}
+            <q-popup-edit v-model="props.row.TrackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
         </q-tr>
       </template>
     </q-table>
@@ -112,6 +118,12 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="TrackStatus" :props="props">
+            {{ props.row.TrackStatus }}
+            <q-popup-edit v-model="props.row.TrackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
         </q-tr>
       </template>
     </q-table>
@@ -142,6 +154,7 @@ const columns = [
     { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
     { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
     { name: 'Status', label: 'Status', field: 'Status' },
+    { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ]
 const Newcolumns = [
     { name: 'EncMedia', align: 'center', label: 'Média dos encoders (pulsos)', field: 'EncMedia'},
@@ -149,6 +162,7 @@ const Newcolumns = [
     { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
     { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
     { name: 'Status', label: 'Status', field: 'Status' },
+    { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ]
 const NewReg = [{
   id:1,
@@ -156,7 +170,8 @@ const NewReg = [{
   Time: 45,
   EncRight:566,
   EncLeft: 123,
-  Status: 345
+  Status: 345,
+  TrackStatus: 1,
 }]
 const MapStore = mappingStore();
 const MapRows = MapStore.Mapregs;
@@ -231,7 +246,7 @@ let MapStringDialog = ref("");
                   ReSendTries = 3;
                   let RegsString = "";
                   while(MapStore.TotalRegs > MapStore.getRegToSend + 1){
-                    if((RegsString + MapStore.getRegString(MapStore.getRegToSend + 1) + ";").length <= 90)
+                    if((RegsString + MapStore.getRegString(MapStore.getRegToSend + 1) + ";").length <= 150)
                     {
                       RegsString +=  MapStore.getRegString(MapStore.getRegToSend + 1) + ";";
                       MapStore.setRegToSend(MapStore.getRegToSend + 1);
@@ -303,6 +318,7 @@ let MapStringDialog = ref("");
             NewMapReg.EncMedia = NewReg[0].EncMedia;
             NewMapReg.EncLeft = NewReg[0].EncLeft;
             NewMapReg.EncRight = NewReg[0].EncRight;
+            NewMapReg.TrackStatus = NewReg[0].TrackStatus;
             MapStore.addRegObj(NewMapReg);
           },
         },

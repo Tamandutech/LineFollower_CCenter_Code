@@ -26,6 +26,8 @@ export const useMappingStore = defineStore('mapping', {
       MapStringDialog: '',
       MapSent: false,
       resendTries: 3,
+      RegsString: '',
+      Regs_sent: true,
     };
   },
   getters: {

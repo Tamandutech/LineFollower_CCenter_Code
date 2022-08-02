@@ -211,9 +211,12 @@ export default {
       MapStore.MapSending = true;
       console.log(JSON.stringify(MapStore.Mapregs));
       console.log(JSON.stringify(tempMap));
+      MapStore.setRegToSend(0);
+      MapStore.resendTries = 4;
+      MapStore.Regs_sent = true;
+      MapStore.RegsString = '';
       RobotHandler.queueCommand(new map_clear());
       RobotHandler.queueCommand(new map_add(tempMap));
-      MapStore.setRegToSend(0);
     },
 
     SaveMap() {

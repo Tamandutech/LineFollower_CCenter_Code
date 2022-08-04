@@ -4,26 +4,34 @@
 name: Deploy to Firebase Hosting on PR
 on: pull_request
 jobs:
-  build_and_preview:
+  build:
     if: "${{ github.event.pull_request.head.repo.full_name == github.repository }}"
     runs-on: ubuntu-latest
     steps:
-      - name: "Deploy em Produção"
-        if: "${{env.GITHUB_REF_NAME == 'master'}}"
       - uses: actions/checkout@v2
       - run: npm ci && npx quasar build -m pwa
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
-          projectId: tt-linefollower
 
-      - name: "Deploy em Desenvolvimento"
-        if: "${{env.GITHUB_REF_NAME != 'master'}}"
-      - uses: actions/checkout@v2
-      - run: npm ci && npx quasar build -m pwa
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
-          projectId: tt-linefollower-dev
+
+  deploy-production:
+    if: "${{env.GITHUB_REF_NAME == 'master'}}"
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: "${{ secrets.GITHUB_TOKEN }}"
+        firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
+        projectId: tt-linefollower
+
+  deploy-development:
+    if: "${{env.GITHUB_REF_NAME != 'master'}}"
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: npm ci && npx quasar build -m pwa
+    - uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: "${{ secrets.GITHUB_TOKEN }}"
+        firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
+        projectId: tt-linefollower-dev

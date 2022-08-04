@@ -16,6 +16,7 @@ jobs:
       - run: npm ci && npx quasar build -m pwa
 
   deploy-production:
+    name: "Deploy em Produção"
     if: "${{github.ref_name == 'master'}}"
     needs: build
     runs-on: ubuntu-latest
@@ -28,12 +29,11 @@ jobs:
         channelId: live
 
   deploy-development:
+    name: "Deploy em Desenvolvimento"
     if: "${{github.ref_name != 'master'}}"
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: npm ci && npx quasar build -m pwa
     - uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: "${{ secrets.GITHUB_TOKEN }}"

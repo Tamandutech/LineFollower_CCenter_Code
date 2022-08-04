@@ -14,8 +14,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: "Compilando PWA"
-        uses: actions/checkout@v2
         run: npm ci && npx quasar build -m pwa
       - name: "Realizando Deploy"
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -31,8 +32,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: "Compilando PWA"
-        uses: actions/checkout@v2
         run: npm ci && npx quasar build -m pwa
       - name: "Realizando Deploy"
         uses: FirebaseExtended/action-hosting-deploy@v0

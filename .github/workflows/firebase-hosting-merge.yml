@@ -8,25 +8,22 @@ on:
       - master
       - develop
 jobs:
-  build:
-    if: "${{ github.event.pull_request.head.repo.full_name == github.repository }}"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm ci && npx quasar build -m pwa
-
   deploy-production:
     name: "Deploy em Produção"
     if: "${{github.ref_name == 'master'}}"
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: FirebaseExtended/action-hosting-deploy@v0
-      with:
-        repoToken: "${{ secrets.GITHUB_TOKEN }}"
-        firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
-        projectId: tt-linefollower
-        channelId: live
+      - name: "Compilando PWA"
+        uses: actions/checkout@v2
+        run: npm ci && npx quasar build -m pwa
+      - name: "Realizando Deploy"
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
+          projectId: tt-linefollower
+          channelId: live
 
   deploy-development:
     name: "Deploy em Desenvolvimento"
@@ -34,9 +31,13 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: FirebaseExtended/action-hosting-deploy@v0
-      with:
-        repoToken: "${{ secrets.GITHUB_TOKEN }}"
-        firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
-        projectId: tt-linefollower-dev
-        channelId: live
+      - name: "Compilando PWA"
+        uses: actions/checkout@v2
+        run: npm ci && npx quasar build -m pwa
+      - name: "Realizando Deploy"
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
+          projectId: tt-linefollower-dev
+          channelId: live

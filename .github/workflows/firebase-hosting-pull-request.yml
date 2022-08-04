@@ -8,17 +8,21 @@ jobs:
     if: "${{ github.event.pull_request.head.repo.full_name == github.repository }}"
     runs-on: ubuntu-latest
     steps:
+      - name: "Deploy em Produção"
+        if: "${{env.GITHUB_REF_NAME == 'master'}}"
       - uses: actions/checkout@v2
       - run: npm ci && npx quasar build -m pwa
       - uses: FirebaseExtended/action-hosting-deploy@v0
-      - name: "Deploy em Produção"
-        if: "${{env.GITHUB_REF_NAME == 'master'}}"
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
           projectId: tt-linefollower
+
       - name: "Deploy em Desenvolvimento"
         if: "${{env.GITHUB_REF_NAME != 'master'}}"
+      - uses: actions/checkout@v2
+      - run: npm ci && npx quasar build -m pwa
+      - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"

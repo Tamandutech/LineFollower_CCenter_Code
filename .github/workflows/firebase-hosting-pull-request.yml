@@ -13,7 +13,7 @@ jobs:
 
 
   deploy-production:
-    if: "${{env.GITHUB_REF_NAME == 'master'}}"
+    if: "${{github.ref_name == 'master'}}"
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -24,7 +24,7 @@ jobs:
         projectId: tt-linefollower
 
   deploy-development:
-    if: "${{env.GITHUB_REF_NAME != 'master'}}"
+    if: "${{github.ref_name != 'master'}}"
     needs: build
     runs-on: ubuntu-latest
     steps:

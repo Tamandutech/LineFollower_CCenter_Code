@@ -16,7 +16,7 @@ jobs:
       - run: npm ci && npx quasar build -m pwa
 
   deploy-production:
-    if: "${{env.GITHUB_REF_NAME == 'master'}}"
+    if: "${{github.ref_name == 'master'}}"
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +28,7 @@ jobs:
         channelId: live
 
   deploy-development:
-    if: "${{env.GITHUB_REF_NAME != 'master'}}"
+    if: "${{github.ref_name != 'master'}}"
     needs: build
     runs-on: ubuntu-latest
     steps:

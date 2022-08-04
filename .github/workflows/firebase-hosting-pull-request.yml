@@ -23,7 +23,6 @@ jobs:
   deploy-development:
     name: "Deploy de Teste em Desenvolvimento"
     if: "${{github.ref_name != 'master'}}"
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

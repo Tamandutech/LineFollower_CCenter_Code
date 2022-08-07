@@ -6,6 +6,8 @@
   "author": "Raphael Henrique Nunes de Freitas <raphaeldefreitas2009@gmail.com>",
   "private": true,
   "scripts": {
+    "dev": "QENV=DEV quasar dev",
+    "dev:win": "cross-env QENV=DEV quasar dev",
     "lint": "eslint --ext .js,.ts,.vue ./",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0"
@@ -19,7 +21,6 @@
     "mitt": "^3.0.0",
     "pinia": "^2.0.13",
     "quasar": "^2.6.0",
-    "vite-plugin-css-injected-by-js": "^1.5.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0"
   },
@@ -30,6 +31,8 @@
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
     "autoprefixer": "^10.4.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^8.2.0",
     "eslint": "^8.10.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-vue": "^8.5.0",

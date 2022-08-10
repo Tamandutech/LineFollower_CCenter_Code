@@ -246,7 +246,7 @@ let MapStringDialog = ref("");
                   ReSendTries = 3;
                   let RegsString = "";
                   while(MapStore.TotalRegs > MapStore.getRegToSend + 1){
-                    if((RegsString + MapStore.getRegString(MapStore.getRegToSend + 1) + ";").length <= 150)
+                    if((RegsString + MapStore.getRegString(MapStore.getRegToSend + 1) + ";").length <= 100)
                     {
                       RegsString +=  MapStore.getRegString(MapStore.getRegToSend + 1) + ";";
                       MapStore.setRegToSend(MapStore.getRegToSend + 1);

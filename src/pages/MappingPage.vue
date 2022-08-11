@@ -36,6 +36,12 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="TrackStatus" :props="props">
+            {{ props.row.TrackStatus }}
+            <q-popup-edit v-model="props.row.TrackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
         </q-tr>
       </template>
     </q-table>
@@ -98,6 +104,12 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="TrackStatus" :props="props">
+            {{ props.row.TrackStatus }}
+            <q-popup-edit v-model="props.row.TrackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
         </q-tr>
       </template>
     </q-table>
@@ -135,6 +147,7 @@ const columns = [
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Status', label: 'Status', field: 'Status' },
+  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 
 const Newcolumns = [
@@ -148,6 +161,7 @@ const Newcolumns = [
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Status', label: 'Status', field: 'Status' },
+  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 
 const NewReg = [
@@ -158,6 +172,7 @@ const NewReg = [
     EncRight: 566,
     EncLeft: 123,
     Status: 345,
+    TrackStatus: 1,
   },
 ];
 
@@ -232,6 +247,7 @@ export default {
       NewMapReg.EncMedia = NewReg[0].EncMedia;
       NewMapReg.EncLeft = NewReg[0].EncLeft;
       NewMapReg.EncRight = NewReg[0].EncRight;
+      NewMapReg.TrackStatus = NewReg[0].TrackStatus;
       MapStore.addRegObj(NewMapReg);
     },
   },

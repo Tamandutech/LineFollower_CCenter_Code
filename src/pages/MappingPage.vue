@@ -209,7 +209,7 @@ export default {
 
     function DeleteAllMapRegs() {
       MapStore.clearMap();
-      RobotHandler.queueCommands([new map_clear(true), new map_clear()]);
+      RobotHandler.queueCommands([new map_clear(false)]);
     }
   },
 

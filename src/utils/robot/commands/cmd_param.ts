@@ -1,5 +1,5 @@
 import { Parameter, useRobotParameters } from 'src/stores/robotParameters';
-import { useMappingStore, RobotStatus, RegMap } from 'src/stores/MappingData';
+import { useMappingStore, RobotStatus, RegMap } from 'src/stores/mappingData';
 import { useRobotQueueStore, Command } from 'src/stores/robotQueue';
 import { RobotResponse } from '../types';
 
@@ -197,8 +197,7 @@ export class map_add extends Command {
   }
 
   async func() {
-    if(mappingStore.Regs_sent)
-    {
+    if (mappingStore.Regs_sent) {
       mappingStore.RegsString = '';
       while (mappingStore.TotalRegs > mappingStore.getRegToSend) {
         if ((mappingStore.RegsString + mappingStore.getRegString(mappingStore.getRegToSend) + ';').length <= 90) {
@@ -215,25 +214,20 @@ export class map_add extends Command {
       mappingStore.Regs_sent = true;
       if (mappingStore.TotalRegs > mappingStore.getRegToSend) {
         RobotHandler.queueCommand(new map_add(this.regMaps, mappingStore.getRegToSend));
-      } 
-      else {
+      } else {
         mappingStore.MapSending = false;
         mappingStore.MapStringDialog = 'Mapeamento enviado com sucesso.';
         mappingStore.MapSent = true;
         console.log('Mapeamento enviado');
       }
-    }
-    else if (mappingStore.resendTries > 0) {
+    } else if (mappingStore.resendTries > 0) {
       mappingStore.resendTries = mappingStore.resendTries - 1;
       mappingStore.Regs_sent = false;
       RobotHandler.queueCommand(new map_add(this.regMaps, mappingStore.getRegToSend));
-    }
-    else 
-    {
+    } else {
       mappingStore.MapStringDialog = 'Falha ao enviar o mapeamento.';
       mappingStore.MapSent = true;
       mappingStore.MapSending = false;
     }
-
   }
 }

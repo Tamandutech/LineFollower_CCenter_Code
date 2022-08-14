@@ -120,7 +120,7 @@
 </template>
 
 <script lang="ts">
-import { RegMap, useMappingStore } from 'src/stores/MappingData';
+import { RegMap, useMappingStore } from 'src/stores/mappingData';
 import { map_add, map_clear, map_get, map_SaveRuntime } from './../utils/robot/commands/cmd_param';
 import { ref } from 'vue';
 import { RobotHandler } from 'src/utils/robot/handler';

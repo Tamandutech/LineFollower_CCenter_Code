@@ -1,12 +1,6 @@
 <template>
   <div class="q-pa-md">
-    <q-table
-      title="Mapeamento"
-      :rows="MapRows"
-      :columns="columns"
-      row-key="id"
-      binary-state-sort
-    >
+    <q-table title="Mapeamento" :rows="MapRows" :columns="columns" row-key="id" binary-state-sort>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="id" :props="props">
@@ -14,56 +8,31 @@
           </q-td>
           <q-td key="EncMedia" :props="props">
             {{ props.row.EncMedia }}
-            <q-popup-edit
-              v-model="props.row.EncMedia"
-              title="Atualizar Média dos encoders"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncMedia" title="Atualizar Média dos encoders" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Time" :props="props">
             {{ props.row.Time }}
-            <q-popup-edit
-              v-model="props.row.Time"
-              title="Atualizar o tempo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Time" title="Atualizar o tempo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncRight" :props="props">
             {{ props.row.EncRight }}
-            <q-popup-edit
-              v-model="props.row.EncRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncRight" title="Atualizar Encoder direito" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncLeft" :props="props">
             {{ props.row.EncLeft }}
-            <q-popup-edit
-              v-model="props.row.EncLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncLeft" title="Atualizar Encoder esquerdo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.Status }}
-            <q-popup-edit
-              v-model="props.row.Status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Status" title="Atualizar o status" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
@@ -71,32 +40,18 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn
-        @click="SendMap"
-        color="primary"
-        label="Enviar mapeamento"
-        :disable="MapSending"
-      />
-      <q-btn @click="ReceiveMap" color="primary" label="Ler mapeamento" />
-      <q-btn
-        @click="ReceiveMapRam"
-        color="primary"
-        label="Ler mapeamento na Ram"
-      />
-      <q-btn
-        @click="SaveMap"
-        color="primary"
-        label="Salvar mapeamento"
-        :disable="MapSaving"
-      />
-      <q-dialog v-model="MapSendDialog">
+      <q-btn @click="SendMap" color="primary" label="Enviar mapeamento" :disable="MapStore.MapSending || MapStore.Mapregs.length === 0" />
+      <q-btn @click="RobotHandler.queueCommand(new map_get())" color="primary" label="Ler mapeamento" />
+      <q-btn @click="RobotHandler.queueCommand(new map_get(true))" color="primary" label="Ler mapeamento na Ram" />
+      <q-btn @click="SaveMap" color="primary" label="Salvar mapeamento" :disable="MapStore.MapSaving" />
+      <q-dialog v-model="MapStore.MapSent">
         <q-card style="width: 300px">
           <q-card-section>
             <div class="text-h6">Mapeamento</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            {{ MapStringDialog }}
+            {{ MapStore.MapStringDialog }}
           </q-card-section>
 
           <q-card-actions align="right" class="bg-white text-teal">
@@ -107,78 +62,39 @@
     </div>
     <div class="q-pa-md q-gutter-sm">
       <q-btn @click="DeleteMapReg" color="primary" label="Deletar Registro" />
-      <q-btn
-        @click="DeleteAllMapRegs"
-        color="primary"
-        label="Deletar todos os registros"
-      />
-      <q-select
-        v-model="DeleteRegID"
-        :options="options"
-        label="Selecione o ID do registro que será deletado"
-      />
+      <q-btn @click="DeleteAllMapRegs" color="primary" label="Deletar todos os registros" />
+      <q-select v-model="DeleteRegID" :options="MapStore.options" label="Selecione o ID do registro que será deletado" />
     </div>
-    <q-table
-      title="Adicionar Registro"
-      :rows="NewReg"
-      :columns="Newcolumns"
-      row-key="id"
-      binary-state-sort
-    >
+    <q-table title="Adicionar Registro" :rows="NewReg" :columns="Newcolumns" row-key="id" binary-state-sort>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="EncMedia" :props="props">
             {{ props.row.EncMedia }}
-            <q-popup-edit
-              v-model="props.row.EncMedia"
-              title="Atualizar Média dos encoders"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncMedia" title="Atualizar Média dos encoders" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Time" :props="props">
             {{ props.row.Time }}
-            <q-popup-edit
-              v-model="props.row.Time"
-              title="Atualizar o tempo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Time" title="Atualizar o tempo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncRight" :props="props">
             {{ props.row.EncRight }}
-            <q-popup-edit
-              v-model="props.row.EncRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncRight" title="Atualizar Encoder direito" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncLeft" :props="props">
             {{ props.row.EncLeft }}
-            <q-popup-edit
-              v-model="props.row.EncLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.EncLeft" title="Atualizar Encoder esquerdo" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.Status }}
-            <q-popup-edit
-              v-model="props.row.Status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
+            <q-popup-edit v-model="props.row.Status" title="Atualizar o status" buttons v-slot="scope">
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
@@ -192,9 +108,10 @@
 </template>
 
 <script lang="ts">
-import { RegMap, mappingStore } from 'src/stores/mappingData';
+import { useMapping } from 'src/stores/mapping';
+import { map_add, map_clear, map_get, map_SaveRuntime } from '../utils/robot/commands/cmdParam';
 import { ref } from 'vue';
-import ws from './../ws';
+import { RobotHandler } from 'src/utils/robot/handler';
 
 const columns = [
   {
@@ -218,7 +135,7 @@ const columns = [
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Status', label: 'Status', field: 'Status' },
 ];
-const Newcolumns = [
+const newColumns = [
   {
     name: 'EncMedia',
     align: 'center',
@@ -230,7 +147,7 @@ const Newcolumns = [
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Status', label: 'Status', field: 'Status' },
 ];
-const NewReg = [
+const newReg = [
   {
     id: 1,
     EncMedia: 100,
@@ -240,147 +157,79 @@ const NewReg = [
     Status: 345,
   },
 ];
-const MapStore = mappingStore();
-const MapRows = MapStore.Mapregs;
-let ReSendTries = 3;
-let options = ref([1]);
-let MapSending = ref(false);
-let MapSaving = ref(false);
-let MapSendDialog = ref(false);
-let MapStringDialog = ref('');
+
+const mapping = useMapping();
+const mapRows = mapping.Mapregs;
+
 export default {
   setup() {
     let DeleteRegID = ref(0);
+
     return {
       columns,
-      Newcolumns,
-      MapRows: ref(MapRows),
-      NewReg: ref(NewReg),
-      options,
+      Newcolumns: newColumns,
+      MapRows: ref(mapRows),
+      NewReg: ref(newReg),
       DeleteRegID,
-      MapSending,
-      MapSaving,
-      MapSendDialog,
-      MapStringDialog,
       DeleteMapReg,
       DeleteAllMapRegs,
-    };
-    function DeleteMapReg() {
-      MapStore.deleteReg(DeleteRegID.value);
-      MapStore.Mapregs.forEach((map) => options.value.push(map.id));
-      DeleteRegID.value = MapStore.Mapregs.at(0)?.id ?? 0;
-    }
-    function DeleteAllMapRegs() {
-      MapStore.clearMap();
-      ws.send('rmt map_clear -w');
-      ws.send('rmt map_clearFlash -w');
-    }
-  },
-  created() {
-    while (options.value.length !== 0) options.value.pop();
-    MapStore.Mapregs.forEach((map) => options.value.push(map.id));
-    ws.onopen = () => {
-      console.log('Conectado, buscando parâmetros...');
-      ws.send('rmt param_list -w');
+      MapStore: mapping,
+      RobotHandler,
+      map_add,
+      map_clear,
+      map_get,
+      map_SaveRuntime,
     };
 
-    ws.onmessage = (event) => {
-      const received = JSON.parse(
-        event.data
-      ) as LineFollowerCommandCenter.Message;
-      console.log('Recebido:', received);
-      console.log('Mensagem Recebida');
-      if (received.cmdExecd.includes('map_SaveRuntime')) {
-        MapSaving.value = false;
-        if (received.data === 'OK') {
-          MapStringDialog.value = 'Mapeamento salvo na flash com sucesso.';
-          MapSendDialog.value = true;
-        } else {
-          MapStringDialog.value = 'Falha ao salvar mapeamento na flash.';
-          MapSendDialog.value = true;
-        }
-      }
-      if (received.cmdExecd.includes('map_add')) {
-        if (received.data === 'OK') {
-          if (MapStore.TotalRegs > MapStore.getRegToSend + 1) {
-            ReSendTries = 3;
-            let RegsString = '';
-            while (MapStore.TotalRegs > MapStore.getRegToSend + 1) {
-              if (
-                (
-                  RegsString +
-                  MapStore.getRegString(MapStore.getRegToSend + 1) +
-                  ';'
-                ).length <= 90
-              ) {
-                RegsString +=
-                  MapStore.getRegString(MapStore.getRegToSend + 1) + ';';
-                MapStore.setRegToSend(MapStore.getRegToSend + 1);
-              } else break;
-            }
-            ws.send('rmt "map_add ' + RegsString + '" -w');
-          } else {
-            console.log('Mapeamento enviado');
-            MapStringDialog.value = 'Mapeamento enviado com sucesso.';
-            MapSending.value = false;
-            MapSendDialog.value = true;
-          }
-        } else if (ReSendTries > 0) {
-          ReSendTries = ReSendTries - 1;
-          ws.send(
-            'rmt "map_add ' +
-              MapStore.getRegString(MapStore.getRegToSend) +
-              '" -w'
-          );
-        } else {
-          MapStringDialog.value = 'Falha ao enviar o mapeamento.';
-          MapSendDialog.value = true;
-          MapSending.value = false;
-        }
-      }
-      if (received.cmdExecd.includes('map_get')) {
-        console.log('Mapeamento recebido');
-        MapStore.clearMap();
-        let Regs: string[] = received.data.split('\n');
-        Regs.pop();
-        console.log(Regs);
-        Regs.forEach((reg) => MapStore.addReg(reg));
-        while (options.value.length !== 0) options.value.pop();
-        MapStore.Mapregs.forEach((map) => options.value.push(map.id));
-        console.log(JSON.stringify(MapRows));
-      }
-    };
+    function DeleteMapReg() {
+      mapping.deleteReg(DeleteRegID.value);
+      while (mapping.options.length !== 0) mapping.options.pop();
+      for (var i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.Mapregs.at(i).id);
+      if (mapping.TotalRegs > 0) DeleteRegID.value = mapping.Mapregs.at(0).id;
+      else DeleteRegID.value = 1;
+    }
+
+    function DeleteAllMapRegs() {
+      mapping.clearMap();
+      RobotHandler.queueCommands([new map_clear(true), new map_clear()]);
+    }
   },
+
+  created() {
+    while (mapping.options.length !== 0) mapping.options.pop();
+    for (var i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.Mapregs.at(i).id);
+  },
+
   methods: {
     SendMap() {
-      let tempMap = MapStore.Mapregs;
+      let tempMap = mapping.Mapregs;
       tempMap.sort((d1, d2) => d1.EncMedia - d2.EncMedia);
-      console.log(MapStore.getRegString(0));
-      MapSending.value = true;
-      ws.send('rmt map_clear -w');
-      ws.send('rmt "map_add ' + MapStore.getRegString(0) + '" -w');
-      MapStore.setRegToSend(0);
-      //ws.send('rmt "map_set ' + MapStore.getMapRegsString(;) +'" -w');
+      console.log(mapping.getRegString(0));
+      mapping.MapSending = true;
+      console.log(JSON.stringify(mapping.Mapregs));
+      console.log(JSON.stringify(tempMap));
+      mapping.setRegToSend(0);
+      mapping.resendTries = 4;
+      mapping.Regs_sent = true;
+      mapping.RegsString = '';
+      RobotHandler.queueCommand(new map_clear());
+      RobotHandler.queueCommand(new map_add(tempMap));
     },
-    ReceiveMapRam() {
-      ws.send('rmt map_getRuntime -w');
-    },
-    ReceiveMap() {
-      ws.send('rmt map_get -w');
-    },
+
     SaveMap() {
-      ws.send('rmt map_SaveRuntime -w');
-      MapSaving.value = true;
+      RobotHandler.queueCommand(new map_SaveRuntime());
+      mapping.MapSaving = true;
     },
+
     AddMapReg() {
-      let NewMapReg = {} as RegMap;
+      let NewMapReg = {} as LFCommandCenter.RegMap;
       NewMapReg.id = 0;
-      NewMapReg.Time = NewReg[0].Time;
-      NewMapReg.Status = NewReg[0].Status;
-      NewMapReg.EncMedia = NewReg[0].EncMedia;
-      NewMapReg.EncLeft = NewReg[0].EncLeft;
-      NewMapReg.EncRight = NewReg[0].EncRight;
-      MapStore.addRegObj(NewMapReg);
+      NewMapReg.Time = newReg[0].Time;
+      NewMapReg.Status = newReg[0].Status;
+      NewMapReg.EncMedia = newReg[0].EncMedia;
+      NewMapReg.EncLeft = newReg[0].EncLeft;
+      NewMapReg.EncRight = newReg[0].EncRight;
+      mapping.addRegObj(NewMapReg);
     },
   },
 };

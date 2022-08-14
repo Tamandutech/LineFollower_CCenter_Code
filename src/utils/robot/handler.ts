@@ -1,13 +1,13 @@
 import { useRobotQueue, Command } from 'src/stores/robotQueue';
 
-const robotQueueStore = useRobotQueue();
+const robotQueue = useRobotQueue();
 
 export class RobotHandler {
   static queueCommand(command: Command) {
-    robotQueueStore.addCommand(command);
+    robotQueue.addCommand(command);
   }
 
   static queueCommands(commands: Command[]) {
-    robotQueueStore.addCommands(commands);
+    robotQueue.addCommands(commands);
   }
 }

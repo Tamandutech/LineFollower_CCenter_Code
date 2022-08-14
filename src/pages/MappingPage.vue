@@ -36,14 +36,20 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="TrackStatus" :props="props">
+            {{ props.row.TrackStatus }}
+            <q-popup-edit v-model="props.row.TrackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
         </q-tr>
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="SendMap" color="primary" label="Enviar mapeamento" :disable="MapStore.MapSending || MapStore.Mapregs.length === 0" />
+      <q-btn @click="SendMap" color="primary" label="Enviar mapeamento" :disable="MapStore.mapSending || MapStore.Mapregs.length === 0" />
       <q-btn @click="RobotHandler.queueCommand(new map_get())" color="primary" label="Ler mapeamento" />
       <q-btn @click="RobotHandler.queueCommand(new map_get(true))" color="primary" label="Ler mapeamento na Ram" />
-      <q-btn @click="SaveMap" color="primary" label="Salvar mapeamento" :disable="MapStore.MapSaving" />
+      <q-btn @click="SaveMap" color="primary" label="Salvar mapeamento" :disable="MapStore.mapSaving" />
       <q-dialog v-model="MapStore.MapSent">
         <q-card style="width: 300px">
           <q-card-section>
@@ -98,6 +104,12 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="TrackStatus" :props="props">
+            {{ props.row.TrackStatus }}
+            <q-popup-edit v-model="props.row.TrackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
         </q-tr>
       </template>
     </q-table>
@@ -109,17 +121,16 @@
 
 <script lang="ts">
 import { useMapping } from 'src/stores/mapping';
-import { map_add, map_clear, map_get, map_SaveRuntime } from '../utils/robot/commands/cmdParam';
+import { map_add, map_clear, map_get, map_SaveRuntime } from './../utils/robot/commands/cmdParam';
 import { ref } from 'vue';
 import { RobotHandler } from 'src/utils/robot/handler';
-
 const columns = [
   {
     name: 'id',
     required: true,
     label: 'ID',
     align: 'left',
-    field: (row: { name: string; label: string; field: string }) => row.name,
+    field: (row: { name: string; label: string }) => row.name,
     format: (val: number) => `${val}`,
     sortable: true,
   },
@@ -134,6 +145,7 @@ const columns = [
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Status', label: 'Status', field: 'Status' },
+  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 const newColumns = [
   {
@@ -146,8 +158,9 @@ const newColumns = [
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Status', label: 'Status', field: 'Status' },
+  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
-const newReg = [
+const NewReg = [
   {
     id: 1,
     EncMedia: 100,
@@ -155,21 +168,19 @@ const newReg = [
     EncRight: 566,
     EncLeft: 123,
     Status: 345,
+    TrackStatus: 1,
   },
 ];
-
 const mapping = useMapping();
-const mapRows = mapping.Mapregs;
-
+const mapRows = mapping.mapRegs;
 export default {
   setup() {
     let DeleteRegID = ref(0);
-
     return {
       columns,
       Newcolumns: newColumns,
       MapRows: ref(mapRows),
-      NewReg: ref(newReg),
+      NewReg: ref(NewReg),
       DeleteRegID,
       DeleteMapReg,
       DeleteAllMapRegs,
@@ -180,56 +191,51 @@ export default {
       map_get,
       map_SaveRuntime,
     };
-
     function DeleteMapReg() {
       mapping.deleteReg(DeleteRegID.value);
       while (mapping.options.length !== 0) mapping.options.pop();
-      for (var i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.Mapregs.at(i).id);
-      if (mapping.TotalRegs > 0) DeleteRegID.value = mapping.Mapregs.at(0).id;
+      for (var i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
+      if (mapping.TotalRegs > 0) DeleteRegID.value = mapping.mapRegs.at(0).id;
       else DeleteRegID.value = 1;
     }
-
     function DeleteAllMapRegs() {
       mapping.clearMap();
-      RobotHandler.queueCommands([new map_clear(true), new map_clear()]);
+      RobotHandler.queueCommands([new map_clear(false)]);
     }
   },
-
   created() {
     while (mapping.options.length !== 0) mapping.options.pop();
-    for (var i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.Mapregs.at(i).id);
+    for (var i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
   },
-
   methods: {
     SendMap() {
-      let tempMap = mapping.Mapregs;
-      tempMap.sort((d1, d2) => d1.EncMedia - d2.EncMedia);
+      let tempMap = mapping.mapRegs;
+      tempMap.sort((d1, d2) => d1.encMedia - d2.encMedia);
       console.log(mapping.getRegString(0));
-      mapping.MapSending = true;
-      console.log(JSON.stringify(mapping.Mapregs));
+      mapping.mapSending = true;
+      console.log(JSON.stringify(mapping.mapRegs));
       console.log(JSON.stringify(tempMap));
       mapping.setRegToSend(0);
       mapping.resendTries = 4;
-      mapping.Regs_sent = true;
-      mapping.RegsString = '';
+      mapping.regsSent = true;
+      mapping.regsString = '';
       RobotHandler.queueCommand(new map_clear());
       RobotHandler.queueCommand(new map_add(tempMap));
     },
-
     SaveMap() {
       RobotHandler.queueCommand(new map_SaveRuntime());
-      mapping.MapSaving = true;
+      mapping.mapSaving = true;
     },
-
     AddMapReg() {
-      let NewMapReg = {} as LFCommandCenter.RegMap;
-      NewMapReg.id = 0;
-      NewMapReg.Time = newReg[0].Time;
-      NewMapReg.Status = newReg[0].Status;
-      NewMapReg.EncMedia = newReg[0].EncMedia;
-      NewMapReg.EncLeft = newReg[0].EncLeft;
-      NewMapReg.EncRight = newReg[0].EncRight;
-      mapping.addRegObj(NewMapReg);
+      let newMapReg = {} as LFCommandCenter.RegMap;
+      newMapReg.id = 0;
+      newMapReg.time = NewReg[0].Time;
+      newMapReg.status = NewReg[0].Status;
+      newMapReg.encMedia = NewReg[0].EncMedia;
+      newMapReg.encLeft = NewReg[0].EncLeft;
+      newMapReg.encRight = NewReg[0].EncRight;
+      newMapReg.trackStatus = NewReg[0].TrackStatus;
+      mapping.addRegObj(newMapReg);
     },
   },
 };

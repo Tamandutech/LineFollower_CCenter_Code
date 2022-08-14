@@ -10,11 +10,12 @@ declare namespace LFCommandCenter {
   }
   export type RegMap = {
     id: number;
-    EncMedia: number;
-    Time: number;
-    EncRight: number;
-    EncLeft: number;
-    Status: RobotStatus;
+    encMedia: number;
+    time: number;
+    encRight: number;
+    encLeft: number;
+    status: RobotStatus;
+    trackStatus: number;
   };
   export type DataClass = {
     name: string;

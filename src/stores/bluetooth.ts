@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-export const useBluetoothStore = defineStore('bluetooth', {
+export const useBluetooth = defineStore('bluetooth', {
   state: () => ({
     connected: false as boolean,
     connecting: false as boolean,

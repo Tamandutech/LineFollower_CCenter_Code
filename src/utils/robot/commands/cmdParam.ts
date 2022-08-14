@@ -1,21 +1,19 @@
-import { Parameter, useRobotParameters } from 'src/stores/robotParameters';
-import { useMappingStore, RobotStatus, RegMap } from 'src/stores/MappingData';
-import { useRobotQueueStore, Command } from 'src/stores/robotQueue';
-import { RobotResponse } from '../types';
+import { useRobotParameters } from 'src/stores/robotParameters';
+import { useMapping } from 'src/stores/mapping';
+import { Command } from 'src/stores/robotQueue';
 
 import BLE from '../../ble';
 import { RobotHandler } from '../handler';
 
-const queue = useRobotQueueStore();
-const mappingStore = useMappingStore();
+const mapping = useMapping();
 const robotParameters = useRobotParameters();
 
 export class param_set extends Command {
-  row: Parameter;
+  row: LFCommandCenter.RobotParameter;
   value: undefined;
   initialValue: undefined;
 
-  constructor(row: Parameter, value: undefined, initialValue: undefined) {
+  constructor(row: LFCommandCenter.RobotParameter, value: undefined, initialValue: undefined) {
     super('param_set');
 
     this.row = row;
@@ -27,8 +25,6 @@ export class param_set extends Command {
     if (this.value !== this.initialValue) {
       try {
         await BLE.send('param_set ' + this.row.class.name + '.' + this.row.name + ' ' + this.value);
-        // RobotHandler.queueCommand(new param_get(this.row.class.name, this.row.name));
-        // await BLE.send('param_get ' + this.row.class.name + '.' + this.row.name);
       } catch (error) {
         Promise.reject(error);
       }
@@ -37,7 +33,7 @@ export class param_set extends Command {
     }
   }
 
-  async rspInterpreter(rsp: RobotResponse) {
+  async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
     if (rsp.data.match('OK')) console.log('Parâmetro alterado');
     else console.log('Erro ao alterar parâmetro');
   }
@@ -62,7 +58,7 @@ export class param_get extends Command {
     }
   }
 
-  async rspInterpreter(rsp: RobotResponse) {
+  async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
     console.log('Parâmetro recebido');
     const match = rsp.cmdExecd.match('param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)');
     console.log(match);
@@ -85,7 +81,7 @@ export class param_list extends Command {
     }
   }
 
-  async rspInterpreter(rsp: RobotResponse) {
+  async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
     console.log('Parâmetros recebidos');
 
     const lines: string[] = rsp.data.split('\n');
@@ -123,7 +119,7 @@ export class map_clear extends Command {
     }
   }
 
-  async rspInterpreter(response: RobotResponse) {
+  async rspInterpreter(response: LFCommandCenter.RobotResponse) {
     if (response.data.match('OK')) console.log('Dados de mapeamento deletados');
     else console.log('Erro ao limpar mapeamento.');
   }
@@ -145,16 +141,16 @@ export class map_get extends Command {
     }
   }
 
-  async rspInterpreter(response: RobotResponse) {
+  async rspInterpreter(response: LFCommandCenter.RobotResponse) {
     console.log('Mapeamento recebido');
-    mappingStore.clearMap();
+    mapping.clearMap();
     const Regs: string[] = response.data.split('\n');
     Regs.pop();
     console.log(Regs);
-    Regs.forEach((reg) => mappingStore.addReg(reg));
-    while (mappingStore.options.length !== 0) mappingStore.options.pop();
-    for (let i = 0; i < mappingStore.TotalRegs; i++) mappingStore.options.push(mappingStore.Mapregs.at(i).id);
-    console.log(JSON.stringify(mappingStore.Mapregs));
+    Regs.forEach((reg) => mapping.addReg(reg));
+    while (mapping.options.length !== 0) mapping.options.pop();
+    for (let i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
+    console.log(JSON.stringify(mapping.mapRegs));
   }
 }
 
@@ -171,69 +167,63 @@ export class map_SaveRuntime extends Command {
     }
   }
 
-  async rspInterpreter(response: RobotResponse) {
-    mappingStore.MapSaving = false;
+  async rspInterpreter(response: LFCommandCenter.RobotResponse) {
+    mapping.mapSaving = false;
     if (response.data === 'OK') {
-      mappingStore.MapStringDialog = 'Mapeamento salvo na flash com sucesso.';
-      mappingStore.MapSent = true;
+      mapping.mapStringDialog = 'Mapeamento salvo na flash com sucesso.';
+      mapping.mapSent = true;
     } else {
-      mappingStore.MapStringDialog = 'Falha ao salvar mapeamento na flash.';
-      mappingStore.MapSent = true;
+      mapping.mapStringDialog = 'Falha ao salvar mapeamento na flash.';
+      mapping.mapSent = true;
     }
   }
 }
 
 export class map_add extends Command {
-  regMaps: RegMap[];
+  regMaps: LFCommandCenter.RegMap[];
   actualReg: number;
 
-  constructor(regMaps: RegMap[], actualReg = 0) {
+  constructor(regMaps: LFCommandCenter.RegMap[], actualReg = 0) {
     super('map_add');
     // console.log(JSON.stringify(regMaps));
-    mappingStore.setRegToSend(actualReg);
+    mapping.setRegToSend(actualReg);
     this.regMaps = regMaps;
     this.actualReg = actualReg;
     // console.log(JSON.stringify(this.regMaps));
   }
 
   async func() {
-    if(mappingStore.Regs_sent)
-    {
-      mappingStore.RegsString = '';
-      while (mappingStore.TotalRegs > mappingStore.getRegToSend) {
-        if ((mappingStore.RegsString + mappingStore.getRegString(mappingStore.getRegToSend) + ';').length <= 90) {
-          mappingStore.RegsString += mappingStore.getRegString(mappingStore.getRegToSend) + ';';
-          mappingStore.setRegToSend(mappingStore.getRegToSend + 1);
+    if (mapping.regsSent) {
+      mapping.regsString = '';
+      while (mapping.TotalRegs > mapping.getRegToSend) {
+        if ((mapping.regsString + mapping.getRegString(mapping.getRegToSend) + ';').length <= 90) {
+          mapping.regsString += mapping.getRegString(mapping.getRegToSend) + ';';
+          mapping.setRegToSend(mapping.getRegToSend + 1);
         } else break;
       }
     }
-    await BLE.send(`map_add ${mappingStore.RegsString}`);
+    await BLE.send(`map_add ${mapping.regsString}`);
   }
 
-  async rspInterpreter(rsp: RobotResponse) {
+  async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
     if (rsp.data === 'OK') {
-      mappingStore.Regs_sent = true;
-      if (mappingStore.TotalRegs > mappingStore.getRegToSend) {
-        RobotHandler.queueCommand(new map_add(this.regMaps, mappingStore.getRegToSend));
-      } 
-      else {
-        mappingStore.MapSending = false;
-        mappingStore.MapStringDialog = 'Mapeamento enviado com sucesso.';
-        mappingStore.MapSent = true;
+      mapping.regsSent = true;
+      if (mapping.TotalRegs > mapping.getRegToSend) {
+        RobotHandler.queueCommand(new map_add(this.regMaps, mapping.getRegToSend));
+      } else {
+        mapping.mapSending = false;
+        mapping.mapStringDialog = 'Mapeamento enviado com sucesso.';
+        mapping.mapSent = true;
         console.log('Mapeamento enviado');
       }
+    } else if (mapping.resendTries > 0) {
+      mapping.resendTries = mapping.resendTries - 1;
+      mapping.regsSent = false;
+      RobotHandler.queueCommand(new map_add(this.regMaps, mapping.getRegToSend));
+    } else {
+      mapping.mapStringDialog = 'Falha ao enviar o mapeamento.';
+      mapping.mapSent = true;
+      mapping.mapSending = false;
     }
-    else if (mappingStore.resendTries > 0) {
-      mappingStore.resendTries = mappingStore.resendTries - 1;
-      mappingStore.Regs_sent = false;
-      RobotHandler.queueCommand(new map_add(this.regMaps, mappingStore.getRegToSend));
-    }
-    else 
-    {
-      mappingStore.MapStringDialog = 'Falha ao enviar o mapeamento.';
-      mappingStore.MapSent = true;
-      mappingStore.MapSending = false;
-    }
-
   }
 }

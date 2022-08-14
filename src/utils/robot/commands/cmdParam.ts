@@ -149,7 +149,7 @@ export class map_get extends Command {
     console.log(Regs);
     Regs.forEach((reg) => mapping.addReg(reg));
     while (mapping.options.length !== 0) mapping.options.pop();
-    for (let i = 0; i < mapping.TotalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
+    for (let i = 0; i < mapping.totalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
     console.log(JSON.stringify(mapping.mapRegs));
   }
 }
@@ -195,7 +195,7 @@ export class map_add extends Command {
   async func() {
     if (mapping.regsSent) {
       mapping.regsString = '';
-      while (mapping.TotalRegs > mapping.getRegToSend) {
+      while (mapping.totalRegs > mapping.getRegToSend) {
         if ((mapping.regsString + mapping.getRegString(mapping.getRegToSend) + ';').length <= 90) {
           mapping.regsString += mapping.getRegString(mapping.getRegToSend) + ';';
           mapping.setRegToSend(mapping.getRegToSend + 1);
@@ -208,7 +208,7 @@ export class map_add extends Command {
   async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
     if (rsp.data === 'OK') {
       mapping.regsSent = true;
-      if (mapping.TotalRegs > mapping.getRegToSend) {
+      if (mapping.totalRegs > mapping.getRegToSend) {
         RobotHandler.queueCommand(new map_add(this.regMaps, mapping.getRegToSend));
       } else {
         mapping.mapSending = false;

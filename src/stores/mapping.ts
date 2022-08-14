@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 export const useMapping = defineStore('mapping', {
   state: () => {
     return {
-      RegToSend: 0,
+      regToSend: 0,
       options: [1],
       mapSending: false,
       mapSaving: false,
@@ -17,13 +17,13 @@ export const useMapping = defineStore('mapping', {
   },
   getters: {
     getRegToSend: (state) => {
-      return state.RegToSend;
+      return state.regToSend;
     },
     getMapRegsString: (state) => {
       return (sep: string) => {
         let stringReg = '';
         state.mapRegs.forEach((reg) => {
-          stringReg += reg.id.toString() + ',' + reg.time.toString() + ',' + reg.encMedia.toString() + ',' + reg.encLeft.toString() + ',' + reg.encRight.toString() + ',' + reg.status.toString();
+          stringReg += reg.id.toString() + ',' + reg.time.toString() + ',' + reg.encMedia.toString() + ',' + reg.encLeft.toString() + ',' + reg.encRight.toString() + ',' + reg.status.toString() + ',' + reg.trackStatus.toString();
           stringReg += sep;
         });
         stringReg = stringReg.substring(0, stringReg.length - 1);
@@ -36,7 +36,7 @@ export const useMapping = defineStore('mapping', {
         let reg = undefined;
         if (state.mapRegs.length > pos) reg = state.mapRegs.at(pos);
         if (reg !== undefined) {
-          stringReg += reg.id.toString() + ',' + reg.time.toString() + ',' + reg.encMedia.toString() + ',' + reg.encLeft.toString() + ',' + reg.encRight.toString() + ',' + reg.status.toString();
+          stringReg += reg.id.toString() + ',' + reg.time.toString() + ',' + reg.encMedia.toString() + ',' + reg.encLeft.toString() + ',' + reg.encRight.toString() + ',' + reg.status.toString() + ',' + reg.trackStatus.toString();
         }
         return stringReg;
       };
@@ -46,7 +46,7 @@ export const useMapping = defineStore('mapping', {
         let stringReg = '';
         const reg = state.mapRegs.find((r) => r.id === id);
         if (reg !== undefined) {
-          stringReg += reg.id.toString() + ',' + reg.time.toString() + ',' + reg.encMedia.toString() + ',' + reg.encLeft.toString() + ',' + reg.encRight.toString() + ',' + reg.status.toString();
+          stringReg += reg.id.toString() + ',' + reg.time.toString() + ',' + reg.encMedia.toString() + ',' + reg.encLeft.toString() + ',' + reg.encRight.toString() + ',' + reg.status.toString() + ',' + reg.trackStatus.toString();
         }
         return stringReg;
       };
@@ -54,13 +54,13 @@ export const useMapping = defineStore('mapping', {
     getReg: (state) => {
       return (id: number) => state.mapRegs.find((r) => r.id === id);
     },
-    TotalRegs: (state) => {
+    totalRegs: (state) => {
       return state.mapRegs.length;
     },
   },
   actions: {
-    setRegToSend(RegPos: number) {
-      this.RegToSend = RegPos;
+    setRegToSend(regPos: number) {
+      this.regToSend = regPos;
     },
     addReg(Reg: string) {
       const mapData = Reg.split(',');
@@ -71,6 +71,7 @@ export const useMapping = defineStore('mapping', {
       newReg.status = parseInt(mapData[5]);
       newReg.encLeft = parseInt(mapData[3]);
       newReg.encRight = parseInt(mapData[4]);
+      newReg.trackStatus = parseInt(mapData[6]);
       this.mapRegs.push(newReg);
     },
     addRegObj(Reg: LFCommandCenter.RegMap) {

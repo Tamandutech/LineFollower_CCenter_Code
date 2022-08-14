@@ -1,4 +1,4 @@
-import { useRobotQueue, Command } from 'src/stores/robotQueue';
+import { useRobotQueue, Command } from 'stores/robotQueue';
 
 const robotQueue = useRobotQueue();
 

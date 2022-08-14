@@ -120,10 +120,10 @@
 </template>
 
 <script lang="ts">
-import { useMapping } from 'src/stores/mapping';
-import { map_add, map_clear, map_get, map_SaveRuntime } from './../utils/robot/commands/cmdParam';
+import { useMapping } from 'stores/mapping';
+import { map_add, map_clear, map_get, map_SaveRuntime } from 'utils/robot/commands/cmdParam';
 import { ref } from 'vue';
-import { RobotHandler } from 'src/utils/robot/handler';
+import { RobotHandler } from 'utils/robot/handler';
 const columns = [
   {
     name: 'id',

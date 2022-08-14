@@ -1,9 +1,9 @@
-import { useRobotParameters } from 'src/stores/robotParameters';
-import { useMapping } from 'src/stores/mapping';
-import { Command } from 'src/stores/robotQueue';
+import { useRobotParameters } from 'stores/robotParameters';
+import { useMapping } from 'stores/mapping';
+import { Command } from 'stores/robotQueue';
 
-import BLE from '../../ble';
-import { RobotHandler } from '../handler';
+import BLE from 'utils/ble';
+import { RobotHandler } from 'utils/robot/handler';
 
 const mapping = useMapping();
 const robotParameters = useRobotParameters();

@@ -52,9 +52,9 @@
 </template>
 
 <script lang="ts">
-import { useRobotParameters } from 'src/stores/robotParameters';
-import { param_set, param_get, param_list } from '../utils/robot/commands/cmdParam';
-import { RobotHandler } from './../utils/robot/handler';
+import { useRobotParameters } from 'stores/robotParameters';
+import { param_set, param_get, param_list } from 'utils/robot/commands/cmdParam';
+import { RobotHandler } from 'utils/robot/handler';
 import { ref, computed, defineComponent } from 'vue';
 import { useQuasar } from 'quasar';
 import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';

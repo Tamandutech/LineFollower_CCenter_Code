@@ -3,36 +3,20 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "src/*": [
-        "src/*"
-      ],
-      "app/*": [
-        "*"
-      ],
-      "components/*": [
-        "src/components/*"
-      ],
-      "layouts/*": [
-        "src/layouts/*"
-      ],
-      "pages/*": [
-        "src/pages/*"
-      ],
-      "assets/*": [
-        "src/assets/*"
-      ],
-      "boot/*": [
-        "src/boot/*"
-      ],
-      "stores/*": [
-        "src/stores/*"
-      ]
-    }
+      "src/*": ["src/*"],
+      "app/*": ["*"],
+      "components/*": ["src/components/*"],
+      "layouts/*": ["src/layouts/*"],
+      "pages/*": ["src/pages/*"],
+      "assets/*": ["src/assets/*"],
+      "boot/*": ["src/boot/*"],
+      "stores/*": ["src/stores/*"],
+      "utils/*": ["src/utils/*"]
+    },
+    "strictNullChecks": false,
+    "typeRoots": ["./@types", "./node_modules/@types"],
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es6", "dom"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

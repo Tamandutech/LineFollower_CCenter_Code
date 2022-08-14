@@ -70,26 +70,23 @@ module.exports = configure(function (/* ctx */) {
       // distDir
 
       extendViteConf(viteConf) {
-        console.log(viteConf);
-
-        viteConf.build.sourcemap = false;
-        viteConf.build.assetsInlineLimit = 2000000000;
-        viteConf.build.cssCodeSplit = false;
-
-        viteConf.build.rollupOptions = {
-          output: {
-            inlineDynamicImports: true,
-            entryFileNames: 'assets/[name].js',
-            chunkFileNames: 'assets/[name].js',
-            assetFileNames: 'assets/[name].[ext]',
-            // format: 'iife',
-          },
-        };
-
-        console.log(viteConf);
+        // console.log(viteConf);
+        // viteConf.build.sourcemap = false;
+        // viteConf.build.assetsInlineLimit = 2000000000;
+        // viteConf.build.cssCodeSplit = false;
+        // // viteConf.build.rollupOptions = {
+        // //   output: {
+        // //     inlineDynamicImports: true,
+        // //     entryFileNames: 'assets/[name].js',
+        // //     chunkFileNames: 'assets/[name].js',
+        // //     assetFileNames: 'assets/[name].[ext]',
+        // //     // format: 'iife',
+        // //   },
+        // // };
+        // console.log(viteConf);
       },
       // viteVuePluginOptions: {},
-      vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
+      // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer

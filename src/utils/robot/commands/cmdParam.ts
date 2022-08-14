@@ -2,8 +2,8 @@ import { useRobotParameters } from 'stores/robotParameters';
 import { useMapping } from 'stores/mapping';
 import { Command } from 'stores/robotQueue';
 
-import BLE from 'utils/ble';
-import { RobotHandler } from 'utils/robot/handler';
+import BLE from 'src/utils/ble';
+import { RobotHandler } from 'src/utils/robot/handler';
 
 const mapping = useMapping();
 const robotParameters = useRobotParameters();

@@ -10,8 +10,7 @@
       "pages/*": ["src/pages/*"],
       "assets/*": ["src/assets/*"],
       "boot/*": ["src/boot/*"],
-      "stores/*": ["src/stores/*"],
-      "utils/*": ["src/utils/*"]
+      "stores/*": ["src/stores/*"]
     },
     "strictNullChecks": false,
     "typeRoots": ["./@types", "./node_modules/@types"],

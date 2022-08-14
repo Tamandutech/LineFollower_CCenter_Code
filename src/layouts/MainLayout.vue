@@ -61,7 +61,7 @@
 
 <script lang="ts">
 import { ref } from 'vue';
-import BLE from 'utils/ble';
+import BLE from 'src/utils/ble';
 import { useBluetooth } from 'stores/bluetooth';
 
 import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit, mdiBluetoothConnect, mdiBluetoothOff } from '@quasar/extras/mdi-v6';

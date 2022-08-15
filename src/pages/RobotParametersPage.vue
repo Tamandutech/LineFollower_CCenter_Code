@@ -1,8 +1,7 @@
 <template>
   <q-page>
     <div class="q-pa-md">
-      <q-table grid card-container-class="row wrap justify-start items-baseline" title="Classes"
-        :rows="classes.dataClasses" :columns="columns" row-key="name" :filter="filter" hide-header hide-bottom>
+      <q-table grid card-container-class="row wrap justify-start items-baseline" title="Classes" :rows="classes.dataClasses" :columns="columns" row-key="name" :filter="filter" hide-header hide-bottom>
         <template v-slot:top-left>
           <q-btn :loading="loadingParameters" :icon="mdiRefreshCircle" @click="loadParameters" color="primary">
             <template v-slot:loading>
@@ -36,10 +35,7 @@
 
                       <q-td key="value" :props="props">
                         {{ props.row.value }}
-                        <q-popup-edit :model-value="props.row.value" @save="(val, initialValue) => RobotHandler.queueCommands([
-                          new param_set(props.row, val, initialValue),
-                          new param_get(props.row.class.name, props.row.name)
-                        ])" :title="props.row.name" buttons v-slot="scope">
+                        <q-popup-edit :model-value="props.row.value" @save="(val, initialValue) => RobotHandler.queueCommands([new param_set(props.row, val, initialValue), new param_get(props.row.class.name, props.row.name)])" :title="props.row.name" buttons v-slot="scope">
                           <q-input type="number" v-model="scope.value" dense autofocus />
                         </q-popup-edit>
                       </q-td>
@@ -56,9 +52,9 @@
 </template>
 
 <script lang="ts">
-import { useRobotParameters } from 'src/stores/robotParameters';
-import { param_set, param_get, param_list } from './../utils/robot/commands/cmd_param';
-import { RobotHandler } from './../utils/robot/handler';
+import { useRobotParameters } from 'stores/robotParameters';
+import { param_set, param_get, param_list } from 'src/utils/robot/commands/cmdParam';
+import { RobotHandler } from 'src/utils/robot/handler';
 import { ref, computed, defineComponent } from 'vue';
 import { useQuasar } from 'quasar';
 import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';

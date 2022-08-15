@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import('src/pages/RobotParametersPage.vue'),
+        component: () => import('pages/RobotParametersPage.vue'),
       },
     ],
   },
@@ -24,7 +24,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import('src/pages/MappingPage.vue'),
+        component: () => import('pages/MappingPage.vue'),
       },
     ],
   },

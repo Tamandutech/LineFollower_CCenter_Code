@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { defineStore } from 'pinia';
-import { RobotResponse } from '../utils/robot/types';
 
 export abstract class Command {
   id: number;
@@ -12,23 +11,22 @@ export abstract class Command {
   }
 
   abstract func(): Promise<void>;
-  abstract rspInterpreter(rsp: RobotResponse): Promise<void>;
+  abstract rspInterpreter(rsp: LFCommandCenter.RobotResponse): Promise<void>;
 
   async execute() {
-    this.func().catch(error => {
+    this.func().catch((error) => {
       console.error(error);
-      useRobotQueueStore().startNextCommand();
+      useRobotQueue().startNextCommand();
     });
   }
 
-  async setResponse(rsp: RobotResponse) {
+  async setResponse(rsp: LFCommandCenter.RobotResponse) {
     await this.rspInterpreter(rsp);
-    useRobotQueueStore().startNextCommand();
+    useRobotQueue().startNextCommand();
   }
-};
+}
 
-
-export const useRobotQueueStore = defineStore('queue', {
+export const useRobotQueue = defineStore('queue', {
   state: () => ({
     pending: [] as Command[],
     completed: [] as Command[],
@@ -63,7 +61,10 @@ export const useRobotQueueStore = defineStore('queue', {
     },
 
     addCommands(Commands: Command[]) {
-      console.log('> addCommands', Commands.map(c => c.id));
+      console.log(
+        '> addCommands',
+        Commands.map((c) => c.id)
+      );
 
       this.$patch(() => {
         this.pending.push(...Commands);

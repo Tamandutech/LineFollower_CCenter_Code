@@ -1,6 +1,7 @@
 <template>
-  <q-page class="row items-center justify-evenly">
-    <parameters-component :dataClass="pidVel"></parameters-component>
+  <q-page class="q-pa-md">
+    <line-follower-cli robotName="Braia" />
+    <message-feedback-dialog></message-feedback-dialog>
   </q-page>
 </template>
 

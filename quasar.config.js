@@ -86,7 +86,7 @@ module.exports = configure(function (/* ctx */) {
         // console.log(viteConf);
       },
       // viteVuePluginOptions: {},
-      // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
+      // // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer

@@ -1,16 +1,15 @@
-import { useBluetoothStore } from '../stores/bluetooth';
-import { useRobotQueueStore } from 'src/stores/robotQueue';
-
+import { useBluetooth } from 'stores/bluetooth';
+import { useRobotQueue } from 'stores/robotQueue';
 
 const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 
 const UART_RX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const UART_TX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
-const bluetoothStore = useBluetoothStore();
-const robotQueueStore = useRobotQueueStore();
+const bluetooth = useBluetooth();
+const robotQueue = useRobotQueue();
 
-bluetoothStore.setDisconnected();
+bluetooth.setDisconnected();
 
 let robotDevice: BluetoothDevice;
 let rxCharacteristic: BluetoothRemoteGATTCharacteristic;
@@ -33,7 +32,7 @@ export default class BLE {
           return device.gatt.connect();
         })
         .then((server) => {
-          bluetoothStore.setConnecting();
+          bluetooth.setConnecting();
           console.log('Obtendo serviço UART...');
           return server.getPrimaryService(UART_SERVICE_UUID);
         })
@@ -52,17 +51,17 @@ export default class BLE {
           });
         })
         .then(() => {
-          bluetoothStore.setConnected();
+          bluetooth.setConnected();
         });
     } catch (error) {
       console.log(error);
-      bluetoothStore.setDisconnected();
+      bluetooth.setDisconnected();
     }
   }
 
   static onDisconnected() {
     console.log('> Bluetooth Device disconnected');
-    bluetoothStore.setDisconnected();
+    bluetooth.setDisconnected();
     tempMsg = '';
   }
 
@@ -117,7 +116,7 @@ export default class BLE {
       const received = JSON.parse(tempMsg.substring(0, tempMsg.length - 1));
       // RobotCommandsMap.get(received.cmdExecd.split(' ')[0])(received);
 
-      robotQueueStore.active.setResponse(received);
+      robotQueue.active.setResponse(received);
 
       tempMsg = '';
     }

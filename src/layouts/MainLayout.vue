@@ -6,11 +6,11 @@
         <q-toolbar-title>BraiaDash</q-toolbar-title>
         <q-space></q-space>
         <div class="q-px-md q-gutter-sm">
-          <q-btn color="secondary" @click="BluetoothStore.isConnected ? BLE.disconnect() : BLE.connect()" :icon="BluetoothStore.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="BluetoothStore.isConnecting">
+          <q-btn color="secondary" @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()" :icon="bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="bluetooth.isConnecting">
             <template v-slot:loading> <q-spinner-radio class="on-center" /> </template
           ></q-btn>
-
           <q-btn color="secondary" @click="$q.fullscreen.toggle()" :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
+          <UserChip class="q-px-md" v-if="auth.user" :user="auth.user"></UserChip>
         </div>
       </q-toolbar>
     </q-header>
@@ -59,33 +59,17 @@
   </q-layout>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue';
+import { useQuasar } from 'quasar';
+import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit, mdiBluetoothConnect, mdiBluetoothOff } from '@quasar/extras/mdi-v6';
 import BLE from 'src/utils/ble';
 import { useBluetooth } from 'stores/bluetooth';
+import UserChip from 'src/components/UserChip.vue';
+import { useAuth } from 'src/stores/auth';
 
-import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit, mdiBluetoothConnect, mdiBluetoothOff } from '@quasar/extras/mdi-v6';
-
-export default {
-  setup() {
-    const bluetooth = useBluetooth();
-
-    return {
-      mdiTune,
-      mdiMenu,
-      mdiHome,
-      mdiRobotMowerOutline,
-      mdiFullscreen,
-      mdiFullscreenExit,
-      mdiTableLarge,
-      mdiBluetoothConnect,
-      mdiBluetoothOff,
-
-      drawer: ref(false),
-
-      BLE,
-      BluetoothStore: bluetooth,
-    };
-  },
-};
+const $q = useQuasar();
+const bluetooth = useBluetooth();
+const drawer = ref(false);
+const auth = useAuth();
 </script>

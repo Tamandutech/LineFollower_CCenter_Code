@@ -39,7 +39,6 @@ auth.$onAction(({ name, after, onError }) => {
     if (name === 'logoutUser') {
       $q.notify({
         message: 'Acesso as funcionalidades permitido somente a usuários autenticados',
-        color: 'info',
       });
       router.push({ path: '/login' });
     }

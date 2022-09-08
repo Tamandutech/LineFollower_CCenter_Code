@@ -15,7 +15,7 @@ export const useAuth = defineStore('auth', {
     async loginUser(auth: LFCommandCenter.AuthService): Promise<User | Error> {
       try {
         const result = await signInWithPopup(auth.service, auth.provider);
-        const token = GithubAuthProvider.credentialFromResult(result);
+        const token = GithubAuthProvider.credentialFromResult(result).accessToken;
 
         const response = await fetch('https://api.github.com/user/memberships/orgs/Tamandutech', {
           method: 'GET',

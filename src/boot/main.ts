@@ -13,6 +13,7 @@ export default boot(async ({ app, router }) => {
   auth.user = service.currentUser;
   service.onAuthStateChanged(async (user: User | null) => {
     await auth.handleOnAuthStateChanged(user);
+    if (user) await router.push({ path: '/' });
   });
 
   router.beforeEach((to) => {

@@ -7,12 +7,12 @@
 <script lang="ts" setup>
 import { useAuth } from 'stores/auth';
 import useFirebase from 'src/services/firebase';
-import { useDebounceFn } from '@vueuse/core';
+import { useThrottleFn } from '@vueuse/core';
 
 const auth = useAuth();
 const {
   auth: { service, provider },
 } = useFirebase();
 
-const login = useDebounceFn(() => auth.loginUser({ service, provider }), 5000);
+const login = useThrottleFn(() => auth.loginUser({ service, provider }), 5000);
 </script>

@@ -24,7 +24,7 @@ jobs:
     name: 'Deploy de Teste em Desenvolvimento'
     if: "${{github.ref_name != 'master'}}"
     runs-on: ubuntu-latest
-    enviroment: DEV
+    environment: DEV
     env:
       QENV: ${{ secrets.QENV }}
       DEV_API_KEY: ${{ secrets.DEV_API_KEY }}

@@ -19,7 +19,7 @@ export default boot(async ({ app, router }) => {
   });
 
   router.beforeEach((to) => {
-    if (!auth.user && to.meta.requiresAuth) {
+    if (!auth.user && to.meta.requiresAuth && to.name !== 'login') {
       Notify.create({
         message: 'Acesso as funcionalidades permitido somente a usuários autenticados',
         icon: mdiAlertOctagon,

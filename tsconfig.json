@@ -10,12 +10,14 @@
       "pages/*": ["src/pages/*"],
       "assets/*": ["src/assets/*"],
       "boot/*": ["src/boot/*"],
-      "stores/*": ["src/stores/*"]
+      "stores/*": ["src/stores/*"],
+      "utils/*": ["src/utils/*"],
+      "services/*": ["src/services/*"]
     },
     "strictNullChecks": false,
     "typeRoots": ["./@types", "./node_modules/@types"],
     "forceConsistentCasingInFileNames": true,
     "lib": ["es6", "dom"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/types/*"]
+  "include": ["src/**/*.ts", "src/types/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

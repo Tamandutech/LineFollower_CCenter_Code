@@ -5,33 +5,47 @@ name: Deploy to Firebase Hosting on PR
 on: pull_request
 jobs:
   deploy-production:
-    name: "Deploy de Teste em Produção"
+    name: 'Deploy de Teste em Produção'
     if: "${{github.ref_name == 'master'}}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: "Compilando PWA"
+      - name: 'Compilando PWA'
         run: npm ci && npx quasar build -m pwa
-      - name: "Realizando Deploy de Teste"
+      - name: 'Realizando Deploy de Teste'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}'
           projectId: tt-linefollower
 
   deploy-development:
-    name: "Deploy de Teste em Desenvolvimento"
+    name: 'Deploy de Teste em Desenvolvimento'
     if: "${{github.ref_name != 'master'}}"
     runs-on: ubuntu-latest
+    environment: DEV
+    env:
+      QENV: ${{ secrets.QENV }}
+      DEV_API_KEY: ${{ secrets.DEV_API_KEY }}
+      DEV_AUTH_DOMAIN: ${{ secrets.DEV_AUTH_DOMAIN }}
+      DEV_DATA_BASE_URL: ${{ secrets.DEV_DATA_BASE_URL }}
+      DEV_PROJECT_ID: ${{ secrets.DEV_PROJECT_ID }}
+      DEV_STORAGE_BUCKET: ${{ secrets.DEV_STORAGE_BUCKET }}
+      DEV_MESSAGING_SENDER_ID: ${{ secrets.DEV_MESSAGING_SENDER_ID }}
+      DEV_APP_ID: ${{ secrets.DEV_APP_ID }}
+      DEV_MEASUREMENT_ID: ${{ secrets.DEV_MEASUREMENT_ID }}
+      DEV_GITHUB_CLIENT_SECRET: ${{ secrets.DEV_GITHUB_CLIENT_SECRET }}
+      DEV_GITHUB_CLIENT_ID: ${{ secrets.DEV_GITHUB_CLIENT_ID }}
+      DEV_BASE_URL: ${{ secrets.DEV_BASE_URL }}
+
     steps:
       - uses: actions/checkout@v2
-
-      - name: "Compilando PWA"
+      - name: 'Compilando PWA'
         run: npm ci && npx quasar build -m pwa
-      - name: "Realizando Deploy de Teste"
+      - name: 'Realizando Deploy de Teste'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}"
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TT_LINEFOLLOWER }}'
           projectId: tt-linefollower-dev

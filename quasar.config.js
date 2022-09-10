@@ -8,6 +8,7 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
+const config = require('dotenv').config;
 const { configure } = require('quasar/wrappers');
 
 module.exports = configure(function (/* ctx */) {
@@ -27,7 +28,7 @@ module.exports = configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [],
+    boot: ['main'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ['app.scss'],
@@ -53,7 +54,7 @@ module.exports = configure(function (/* ctx */) {
       },
 
       devtool: 'source-map',
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      vueRouterMode: 'history', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -62,7 +63,7 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
-      // env: {},
+      env: { ...config().parsed, QENV: process.env.QENV },
       // rawDefine: {}
       // ignorePublicFolder: true,
       minify: 'terser',
@@ -74,19 +75,19 @@ module.exports = configure(function (/* ctx */) {
         // viteConf.build.sourcemap = false;
         // viteConf.build.assetsInlineLimit = 2000000000;
         // viteConf.build.cssCodeSplit = false;
-        // // viteConf.build.rollupOptions = {
-        // //   output: {
-        // //     inlineDynamicImports: true,
-        // //     entryFileNames: 'assets/[name].js',
-        // //     chunkFileNames: 'assets/[name].js',
-        // //     assetFileNames: 'assets/[name].[ext]',
-        // //     // format: 'iife',
-        // //   },
-        // // };
+        // viteConf.build.rollupOptions = {
+        //   output: {
+        //     inlineDynamicImports: true,
+        //     entryFileNames: 'assets/[name].js',
+        //     chunkFileNames: 'assets/[name].js',
+        //     assetFileNames: 'assets/[name].[ext]',
+        //     // format: 'iife',
+        //   },
+        // };
         // console.log(viteConf);
       },
       // viteVuePluginOptions: {},
-      // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
+      // // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -123,7 +124,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ['AppFullscreen'],
+      plugins: ['AppFullscreen', 'Loading', 'Notify'],
     },
 
     // animations: 'all', // --- includes all animations

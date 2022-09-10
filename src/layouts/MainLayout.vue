@@ -1,16 +1,16 @@
 <template>
   <q-layout view="hHh LpR fFf">
-    <q-header elevated>
+    <q-header elevated class="q-py-sm">
       <q-toolbar>
         <q-btn flat @click="drawer = !drawer" round dense :icon="mdiMenu" />
         <q-toolbar-title>BraiaDash</q-toolbar-title>
         <q-space></q-space>
-        <div class="q-px-md q-gutter-sm">
-          <q-btn color="secondary" @click="BluetoothStore.isConnected ? BLE.disconnect() : BLE.connect()" :icon="BluetoothStore.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="BluetoothStore.isConnecting">
+        <div class="q-px-md q-gutter-md">
+          <q-btn color="secondary" round @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()" :icon="bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="bluetooth.isConnecting">
             <template v-slot:loading> <q-spinner-radio class="on-center" /> </template
           ></q-btn>
-
-          <q-btn color="secondary" @click="$q.fullscreen.toggle()" :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
+          <q-btn color="secondary" round @click="$q.fullscreen.toggle()" :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
+          <UserChip class="q-px-md" round dense v-if="auth.user" :user="auth.user" @logout="logout"></UserChip>
         </div>
       </q-toolbar>
     </q-header>
@@ -59,33 +59,83 @@
   </q-layout>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar, QSpinnerGears } from 'quasar';
+import { FirebaseError } from '@firebase/util';
+import useFirebase from 'src/services/firebase';
+import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit, mdiBluetoothConnect, mdiBluetoothOff, mdiAlertOctagon, mdiAlertCircle, mdiAccountCheck } from '@quasar/extras/mdi-v6';
 import BLE from 'src/utils/ble';
 import { useBluetooth } from 'stores/bluetooth';
+import UserChip from 'src/components/UserChip.vue';
+import { useAuth } from 'src/stores/auth';
 
-import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit, mdiBluetoothConnect, mdiBluetoothOff } from '@quasar/extras/mdi-v6';
+const bluetooth = useBluetooth();
+const drawer = ref(false);
 
-export default {
-  setup() {
-    const bluetooth = useBluetooth();
+const router = useRouter();
+const $q = useQuasar();
+const auth = useAuth();
+auth.$onAction(({ name, store, after, onError }) => {
+  if (name === 'loginUser') {
+    $q.loading.show({
+      message: 'Esperando autenticação via provedor...',
+      backgroundColor: 'black',
+      spinner: QSpinnerGears,
+    });
+  }
 
-    return {
-      mdiTune,
-      mdiMenu,
-      mdiHome,
-      mdiRobotMowerOutline,
-      mdiFullscreen,
-      mdiFullscreenExit,
-      mdiTableLarge,
-      mdiBluetoothConnect,
-      mdiBluetoothOff,
+  after(() => {
+    $q.loading.hide();
 
-      drawer: ref(false),
+    if (name === 'logoutUser') {
+      $q.notify({
+        message: 'Acesso as funcionalidades permitido somente a usuários autenticados',
+        icon: mdiAlertOctagon,
+      });
 
-      BLE,
-      BluetoothStore: bluetooth,
-    };
-  },
-};
+      router.push({ path: '/login' });
+    }
+
+    if (name === 'loginUser') {
+      $q.notify({
+        message: `Bem-vind@ ${store.getCurrentUser.displayName.split(' ').at(0)}!`,
+        color: 'positive',
+        icon: mdiAccountCheck,
+      });
+    }
+  });
+
+  onError((error) => {
+    $q.loading.hide();
+
+    let message;
+    if (error instanceof FirebaseError) {
+      switch (error.code) {
+        case 'auth/popup-blocked':
+          message = 'O pop-up para autenticação via provedor foi bloqueada pelo navegador.';
+          break;
+        case 'auth/popup-closed-by-user':
+          message = 'A autenticação é cancelada ao fechar o pop-up do provedor.';
+          break;
+        default:
+          message = 'Um erro inesperado ocorreu no provedor de autenticação.';
+      }
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+
+    $q.notify({
+      message: message,
+      color: 'negative',
+      icon: mdiAlertCircle,
+    });
+  });
+});
+
+const {
+  auth: { service },
+} = useFirebase();
+const logout = () => auth.logoutUser(service);
 </script>

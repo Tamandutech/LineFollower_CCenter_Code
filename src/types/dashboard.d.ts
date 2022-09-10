@@ -1,14 +1,14 @@
 declare namespace LFCommandCenter {
-  export interface RobotResponse {
+  interface RobotResponse {
     cmdExecd: string;
     data: string;
   }
-  export enum RobotStatus {
+  enum RobotStatus {
     CAR_IN_CURVE = 0,
     CAR_IN_LINE = 1,
     CAR_STOPPED = 2,
   }
-  export type RegMap = {
+  type RegMap = {
     id: number;
     encMedia: number;
     time: number;
@@ -17,13 +17,21 @@ declare namespace LFCommandCenter {
     status: RobotStatus;
     trackStatus: number;
   };
-  export type DataClass = {
+  type DataClass = {
     name: string;
-    parameters: LFCommandCenter.RobotParameter[];
+    parameters: RobotParameter[];
   };
-  export type RobotParameter = {
+  type RobotParameter = {
     class: DataClass;
     name: string;
     value: unknown;
+  };
+  type AuthService = {
+    service: import('firebase/auth').Auth;
+    provider: import('firebase/auth').GithubAuthProvider;
+  };
+  type FirebaseBackend = {
+    app: import('firebase/app').FirebaseApp;
+    auth: AuthService;
   };
 }

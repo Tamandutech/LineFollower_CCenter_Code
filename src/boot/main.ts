@@ -15,17 +15,17 @@ export default boot(async ({ app, router }) => {
   auth.user = service.currentUser;
   service.onAuthStateChanged(async (user: User | null) => {
     await auth.handleOnAuthStateChanged(user);
-    if (user) await router.push({ path: '/' });
+    if (user) await router.push({ name: 'index' });
   });
 
   router.beforeEach((to) => {
-    if (!auth.user && to.path !== '/login') {
+    if (!auth.user && to.meta.requiresAuth) {
       Notify.create({
         message: 'Acesso as funcionalidades permitido somente a usuários autenticados',
         icon: mdiAlertOctagon,
       });
 
-      return { path: '/login' };
+      return { name: 'login' };
     }
   });
 });

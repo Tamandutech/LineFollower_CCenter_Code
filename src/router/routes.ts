@@ -3,26 +3,40 @@ import { RouteRecordRaw } from 'vue-router';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'index',
     component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    children: [
+      {
+        path: '',
+        component: () => import('pages/IndexPage.vue'),
+        name: 'index',
+        meta: { requiresAuth: true },
+      },
+    ],
   },
 
   {
     path: '/login',
-    name: 'login',
     component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/AuthPage.vue') }],
+    children: [
+      {
+        path: '',
+        component: () => import('pages/AuthPage.vue'),
+        name: 'login',
+        meta: { requiresAuth: true },
+      },
+    ],
   },
 
   {
     path: '/robot/parameters',
-    name: 'parameters',
+    meta: { requiresAuth: true },
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
         path: '',
         component: () => import('pages/RobotParametersPage.vue'),
+        name: 'parameters',
+        meta: { requiresAuth: true },
       },
     ],
   },
@@ -35,6 +49,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         component: () => import('pages/MappingPage.vue'),
+        name: 'mapping',
+        meta: { requiresAuth: true },
       },
     ],
   },

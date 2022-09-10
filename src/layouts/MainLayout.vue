@@ -100,7 +100,7 @@ auth.$onAction(({ name, store, after, onError }) => {
 
     if (name === 'loginUser') {
       $q.notify({
-        message: `Bem-vindo ${store.getCurrentUser.displayName.split(' ').at(0)}!`,
+        message: `Bem-vind@ ${store.getCurrentUser.displayName.split(' ').at(0)}!`,
         color: 'positive',
         icon: mdiAccountCheck,
       });

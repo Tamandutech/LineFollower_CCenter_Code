@@ -34,3 +34,9 @@ yarn-error.log*
 *.ntvs*
 *.njsproj
 *.sln
+
+# Enviroment files
+.env*
+
+# Firebase Cache
+.firebase

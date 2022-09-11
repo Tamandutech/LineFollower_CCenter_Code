@@ -8,8 +8,17 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
-const config = require('dotenv').config;
 const { configure } = require('quasar/wrappers');
+
+try {
+  require('dotenv').config({ path: `.env.${process.env.QENV}` });
+} catch (error) {
+  // ...
+}
+
+if (!process.env.API_KEY) {
+  throw new Error('Environment not defined.');
+}
 
 module.exports = configure(function (/* ctx */) {
   return {
@@ -63,7 +72,19 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
-      env: { ...config().parsed, QENV: process.env.QENV },
+      env: {
+        API_KEY: process.env.API_KEY,
+        AUTH_DOMAIN: process.env.AUTH_DOMAIN,
+        DATA_BASE_URL: process.env.DATA_BASE_URL,
+        PROJECT_ID: process.env.PROJECT_ID,
+        STORAGE_BUCKET: process.env.STORAGE_BUCKET,
+        MESSAGING_SENDER_ID: process.env.MESSAGING_SENDER_ID,
+        APP_ID: process.env.APP_ID,
+        MEASUREMENT_ID: process.env.MEASUREMENT_ID,
+        GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
+        GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
+        OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
+      },
       // rawDefine: {}
       // ignorePublicFolder: true,
       minify: 'terser',
@@ -71,20 +92,7 @@ module.exports = configure(function (/* ctx */) {
       // distDir
 
       extendViteConf(viteConf) {
-        // console.log(viteConf);
-        // viteConf.build.sourcemap = false;
-        // viteConf.build.assetsInlineLimit = 2000000000;
-        // viteConf.build.cssCodeSplit = false;
-        // viteConf.build.rollupOptions = {
-        //   output: {
-        //     inlineDynamicImports: true,
-        //     entryFileNames: 'assets/[name].js',
-        //     chunkFileNames: 'assets/[name].js',
-        //     assetFileNames: 'assets/[name].[ext]',
-        //     // format: 'iife',
-        //   },
-        // };
-        // console.log(viteConf);
+        viteConf.mode = process.env.QENV;
       },
       // viteVuePluginOptions: {},
       // // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],

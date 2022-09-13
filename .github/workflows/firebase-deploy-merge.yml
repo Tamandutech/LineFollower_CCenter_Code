@@ -60,15 +60,25 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+
       - name: Download Artifact
         uses: actions/download-artifact@master
         with:
           name: dist
           path: dist
+
+      # - name: Deploy to Firebase
+      #   uses: w9jds/firebase-action@master
+      #   with:
+      #     args: deploy
+      #   env:
+      #     GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      #     PROJECT_ID: ${{ secrets.PROJECT_ID}}
+
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          args: deploy
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          PROJECT_ID: ${{ secrets.PROJECT_ID}}
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.GCP_SA_KEY }}"
+          projectId: ${{ secrets.PROJECT_ID }}
+          channelId: live

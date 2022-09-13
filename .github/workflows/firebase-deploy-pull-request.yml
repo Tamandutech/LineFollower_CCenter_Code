@@ -1,9 +1,5 @@
 name: Build and Deploy Dashboard
-on:
-  push:
-    branches:
-      - master
-      - develop
+on: pull_request
 
 jobs:
   setup:
@@ -16,7 +12,7 @@ jobs:
           echo "Running on branch ${{ github.ref }}"
           if [ "${{ github.ref_name }}" = "master" ]; then
             echo "::set-output name=env_name::PROD"
-          elif [ "${{ github.ref_name }}" = "develop" ]; then
+          elif [ "${{ github.ref_name }}" != "master" ]; then
             echo "::set-output name=env_name::STAGE"
           fi
     outputs:
@@ -53,7 +49,7 @@ jobs:
           path: dist
 
   deploy:
-    name: 'Deploy em ${{ needs.setup.outputs.env_name }}'
+    name: "Deploy em Canal de ${{ needs.setup.outputs.env_name }}"
     needs: [setup, build]
     runs-on: ubuntu-latest
     environment: ${{ needs.setup.outputs.env_name }}
@@ -70,7 +66,7 @@ jobs:
       # - name: Deploy to Firebase
       #   uses: w9jds/firebase-action@master
       #   with:
-      #     args: deploy
+      #     args: hosting:channel:deploy pr${{ github.event.pull_request.number}}-${{ github.head_ref}}
       #   env:
       #     GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       #     PROJECT_ID: ${{ secrets.PROJECT_ID}}
@@ -80,5 +76,5 @@ jobs:
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.GCP_SA_KEY }}"
-          projectId: ${{ secrets.PROJECT_ID }}
-          channelId: live
+          expires: 30d
+          projectId: ${{ secrets.PROJECT_ID}}

@@ -81,8 +81,8 @@ module.exports = configure(function (/* ctx */) {
         MESSAGING_SENDER_ID: process.env.MESSAGING_SENDER_ID,
         APP_ID: process.env.APP_ID,
         MEASUREMENT_ID: process.env.MEASUREMENT_ID,
-        GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
-        GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
+        GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET,
+        GH_CLIENT_ID: process.env.GH_CLIENT_ID,
         OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
       },
       // rawDefine: {}

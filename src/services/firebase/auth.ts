@@ -5,8 +5,8 @@ const provider = new GithubAuthProvider();
 provider.addScope('repo');
 provider.setCustomParameters({
   allow_signup: 'false',
-  client_id: process.env.GITHUB_CLIENT_ID,
-  client_secret: process.env.GITHUB_CLIENT_SECRET,
+  client_id: process.env.GH_CLIENT_ID,
+  client_secret: process.env.GH_CLIENT_SECRET,
   redirect_uri: process.env.OAUTH_REDIRECT_URI,
 });
 

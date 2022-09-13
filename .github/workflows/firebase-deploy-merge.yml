@@ -53,7 +53,7 @@ jobs:
           path: dist
 
   deploy:
-    name: 'Deploy de Teste em Desenvolvimento'
+    name: 'Deploy em ${{ needs.setup.outputs.env_name }}'
     needs: [setup, build]
     runs-on: ubuntu-latest
     environment: ${{ needs.setup.outputs.env_name }}

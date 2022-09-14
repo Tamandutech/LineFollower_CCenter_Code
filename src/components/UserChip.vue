@@ -59,4 +59,6 @@ import GitHubLoginButton from 'components/GitHubLoginButton.vue';
 
 const emit = defineEmits(['logout']);
 const props = defineProps<{ user: User }>();
+
+console.debug(props.user);
 </script>

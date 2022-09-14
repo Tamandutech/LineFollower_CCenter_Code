@@ -4,25 +4,42 @@
       <img :src="props.user.photoURL" />
     </q-avatar>
     <q-menu fit transition-show="jump-down" transition-hide="jump-up">
-      <q-list>
-        <q-item clickable v-close-popup>
-          <q-item-section>
-            <q-item-label>{{ user.displayName }}</q-item-label>
-            <q-item-label caption>{{ user.email }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item clickable @click="emit('logout')">
-          <q-item-section avatar>
-            <q-avatar :icon="mdiExport"></q-avatar>
-          </q-item-section>
-          <q-item-section>Logout</q-item-section>
-        </q-item>
-      </q-list>
+      <div class="row no-wrap q-pa-md">
+        <q-list>
+          <q-item v-close-popup>
+            <q-item-section>
+              <q-item-label>Nome</q-item-label>
+              <q-item-label caption>{{ user.displayName }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item v-close-popup>
+            <q-item-section>
+              <q-item-label>E-mail</q-item-label>
+              <q-item-label caption>{{ user.email }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item v-close-popup>
+            <q-item-section>
+              <q-item-label>Autenticador</q-item-label>
+              <q-item-label caption>{{ user.providerData[0].providerId }}</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator inset spaced />
+
+          <q-item clickable @click="emit('logout')">
+            <q-item-section avatar>
+              <q-avatar :icon="mdiExport"></q-avatar>
+            </q-item-section>
+            <q-item-section>Logout</q-item-section>
+          </q-item>
+        </q-list>
+      </div>
     </q-menu>
   </q-btn>
 
   <q-btn :icon="mdiAccountOff" v-else>
-    <q-menu transition-show="jump-down" transition-hide="jump-up">
+    <q-menu fit transition-show="jump-down" transition-hide="jump-up">
       <div class="row no-wrap q-pa-md">
         <div class="column items-center">
           <div class="text-subtitle1 q-mb-md">Login</div>

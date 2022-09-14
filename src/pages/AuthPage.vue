@@ -6,7 +6,7 @@
       </q-card-section>
       <q-card-section class="text-grey-7"> Faça login via Github para usar as funcionalidades da dashboard </q-card-section>
       <q-card-actions vertical>
-        <LoginButton flat></LoginButton>
+        <GitHubLoginButton></GitHubLoginButton>
       </q-card-actions>
     </q-card>
   </q-page>
@@ -14,5 +14,5 @@
 
 <script lang="ts" setup>
 import { mdiBadgeAccountOutline } from '@quasar/extras/mdi-v6';
-import LoginButton from 'components/LoginButton.vue';
+import GitHubLoginButton from 'components/GitHubLoginButton.vue';
 </script>

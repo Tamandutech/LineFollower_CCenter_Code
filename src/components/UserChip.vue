@@ -1,6 +1,6 @@
 <template>
   <q-btn>
-    <q-avatar>
+    <q-avatar style="font-size: 42px;">
       <img :src="props.user.photoURL" />
     </q-avatar>
     <q-menu transition-show="jump-down" transition-hide="jump-up">

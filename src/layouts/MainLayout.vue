@@ -6,11 +6,15 @@
         <q-toolbar-title>BraiaDash</q-toolbar-title>
         <q-space></q-space>
         <div class="q-px-md q-gutter-md">
-          <q-btn color="secondary" round @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()" :icon="bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="bluetooth.isConnecting">
-            <template v-slot:loading> <q-spinner-radio class="on-center" /> </template
-          ></q-btn>
-          <q-btn color="secondary" round @click="$q.fullscreen.toggle()" :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
-          <UserChip class="q-px-md" round dense v-if="auth.user" :user="auth.user" @logout="logout"></UserChip>
+          <q-btn color="secondary" round @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()"
+            :icon="bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="bluetooth.isConnecting">
+            <template v-slot:loading>
+              <q-spinner-radio class="on-center" />
+            </template>
+          </q-btn>
+          <q-btn color="secondary" round @click="$q.fullscreen.toggle()"
+            :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
+          <UserChip color="secondary" round v-if="auth.user" :user="auth.user" @logout="logout"></UserChip>
         </div>
       </q-toolbar>
     </q-header>
@@ -35,7 +39,8 @@
 
           <q-separator />
 
-          <q-expansion-item :content-inset-level="0.5" expand-separator :icon="mdiRobotMowerOutline" label="Robô" default-opened>
+          <q-expansion-item :content-inset-level="0.5" expand-separator :icon="mdiRobotMowerOutline" label="Robô"
+            default-opened>
             <q-item clickable :to="'/robot/parameters'" exact>
               <q-item-section avatar>
                 <q-icon :name="mdiTune" />

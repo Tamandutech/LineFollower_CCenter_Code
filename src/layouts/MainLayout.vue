@@ -14,7 +14,7 @@
           </q-btn>
           <q-btn color="secondary" round @click="$q.fullscreen.toggle()"
             :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
-          <UserChip color="secondary" round v-if="auth.user" :user="auth.user" @logout="logout"></UserChip>
+          <UserChip color="secondary" round :user="auth.user" @logout="logout"></UserChip>
         </div>
       </q-toolbar>
     </q-header>

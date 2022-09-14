@@ -12,5 +12,5 @@ provider.setCustomParameters({
 
 export default (app: FirebaseApp): LFCommandCenter.AuthService => ({
   service: getAuth(app),
-  provider: provider,
+  github_provider: provider,
 });

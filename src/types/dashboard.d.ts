@@ -28,7 +28,7 @@ declare namespace LFCommandCenter {
   };
   type AuthService = {
     service: import('firebase/auth').Auth;
-    provider: import('firebase/auth').GithubAuthProvider;
+    github_provider: import('firebase/auth').GithubAuthProvider;
   };
   type FirebaseBackend = {
     app: import('firebase/app').FirebaseApp;

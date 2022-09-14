@@ -14,8 +14,8 @@ export const useAuth = defineStore('auth', {
   actions: {
     async loginUser(auth: LFCommandCenter.AuthService): Promise<User | Error> {
       try {
-        await signInWithRedirect(auth.service, auth.provider);
-        const result = await getRedirectResult(auth);
+        await signInWithRedirect(auth.service, auth.github_provider);
+        const result = await getRedirectResult(auth.service);
 
         if (result) {
           const token = GithubAuthProvider.credentialFromResult(result).accessToken;

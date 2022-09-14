@@ -1,9 +1,9 @@
 <template>
-  <q-btn>
+  <q-btn v-if="props.user">
     <q-avatar style="font-size: 42px;">
       <img :src="props.user.photoURL" />
     </q-avatar>
-    <q-menu transition-show="jump-down" transition-hide="jump-up">
+    <q-menu fit transition-show="jump-down" transition-hide="jump-up">
       <q-list>
         <q-item clickable v-close-popup>
           <q-item-section>
@@ -20,11 +20,25 @@
       </q-list>
     </q-menu>
   </q-btn>
+
+  <q-btn :icon="mdiAccountOff" v-else>
+    <q-menu transition-show="jump-down" transition-hide="jump-up">
+      <div class="row no-wrap q-pa-md">
+        <div class="column items-center">
+          <div class="text-subtitle1 q-mb-md">Login</div>
+
+          <GitHubLoginButton></GitHubLoginButton>
+          <!-- <q-btn color="primary" label="Logout" push size="sm" v-close-popup /> -->
+        </div>
+      </div>
+    </q-menu>
+  </q-btn>
 </template>
 
 <script lang="ts" setup>
 import type { User } from 'firebase/auth';
-import { mdiExport } from '@quasar/extras/mdi-v6';
+import { mdiExport, mdiAccountOff } from '@quasar/extras/mdi-v6';
+import GitHubLoginButton from 'components/GitHubLoginButton.vue';
 
 const emit = defineEmits(['logout']);
 const props = defineProps<{ user: User }>();

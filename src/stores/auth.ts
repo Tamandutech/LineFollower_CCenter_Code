@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { signInWithPopup, signOut, GithubAuthProvider } from 'firebase/auth';
+import { signInWithRedirect, signOut, GithubAuthProvider } from 'firebase/auth';
 import type { User, Auth } from 'firebase/auth';
 
 export const useAuth = defineStore('auth', {
@@ -14,13 +14,14 @@ export const useAuth = defineStore('auth', {
   actions: {
     async loginUser(auth: LFCommandCenter.AuthService): Promise<User | Error> {
       try {
-        const result = await signInWithPopup(auth.service, auth.provider);
+        const result = await signInWithRedirect(auth.service, auth.provider);
         const token = GithubAuthProvider.credentialFromResult(result).accessToken;
 
         const response = await fetch('https://api.github.com/user/memberships/orgs/Tamandutech', {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
         });
+
         const membership = (await response.json()) as { state: string };
         if (membership.state !== 'active') {
           this.logoutUser(auth.service);

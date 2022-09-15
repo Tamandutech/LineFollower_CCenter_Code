@@ -33,12 +33,12 @@ register(process.env.SERVICE_WORKER_FILE, {
     // console.log('New content is available; please refresh.')
     Notify.create({
       message: 'Novo conteúdo disponível!',
+      color: 'info',
       icon: mdiCloudDownload,
-      closeBtn: 'Atualizar',
-      timeout: 10000,
-      onDismiss() {
-        location.reload(true)
-      }
+      actions: [
+        { label: 'Atualizar', color: 'white', handler: () => { location.reload(true) } }
+      ],
+      timeout: 10000
     })
   },
 

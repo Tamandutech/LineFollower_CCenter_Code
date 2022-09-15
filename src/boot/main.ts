@@ -4,13 +4,6 @@ import { Notify } from 'quasar';
 import { plugin } from 'src/services/firebase';
 import type { User } from 'firebase/auth';
 import { useAuth } from 'stores/auth';
-import {
-  Loading,
-
-  // optional!, for example below
-  // with custom spinner
-  QSpinnerGears
-} from 'quasar'
 
 export default boot(async ({ app, router }) => {
   app.use(plugin);
@@ -29,16 +22,7 @@ export default boot(async ({ app, router }) => {
       const userCredential = await auth.getRedirectResult(service);
 
       if (userCredential) {
-
-        Loading.show({
-          message: 'Verificando membro da Tamandutech...',
-          backgroundColor: 'black',
-          spinner: QSpinnerGears,
-        });
-
         const isMemberTTGihub = await auth.isMemberTTGihub(userCredential);
-
-        Loading.hide();
 
         if (!isMemberTTGihub) {
           auth.logoutUser(service);

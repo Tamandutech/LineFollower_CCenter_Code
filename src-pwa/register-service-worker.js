@@ -1,6 +1,6 @@
 import { Notify } from 'quasar'
 import { register } from 'register-service-worker'
-import { mdiCloudDownload } from '@mdi/js';
+import { mdiCloudDownload } from '@quasar/extras/mdi-v6';
 
 // The ready(), registered(), cached(), updatefound() and updated()
 // events passes a ServiceWorkerRegistration instance in their arguments.
@@ -29,7 +29,7 @@ register(process.env.SERVICE_WORKER_FILE, {
     // console.log('New content is downloading.')
   },
 
-  updated(registration) {
+  updated(/* registration */) {
     // console.log('New content is available; please refresh.')
     Notify.create({
       message: 'Novo conteúdo disponível!',

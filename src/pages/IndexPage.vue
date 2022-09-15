@@ -1,5 +1,7 @@
 <template>
   <q-page class="q-pa-md">
+
+
     <line-follower-cli robotName="Braia" />
     <message-feedback-dialog></message-feedback-dialog>
   </q-page>

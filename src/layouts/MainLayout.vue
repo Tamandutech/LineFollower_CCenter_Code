@@ -3,7 +3,7 @@
     <q-header elevated class="q-py-sm">
       <q-toolbar>
         <q-btn flat @click="drawer = !drawer" round dense :icon="mdiMenu" />
-        <q-toolbar-title>BraiaDash</q-toolbar-title>
+        <q-toolbar-title>LF Dash</q-toolbar-title>
         <q-space></q-space>
         <div class="q-px-md q-gutter-md">
           <q-btn color="secondary" round @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()"

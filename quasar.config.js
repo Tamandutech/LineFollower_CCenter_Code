@@ -108,7 +108,7 @@ module.exports = configure(function (/* ctx */) {
     framework: {
       config: {
         brand: {
-          primary: '#191919',
+          primary: '#080f08',
           secondary: '#26A69A',
           accent: '#9C27B0',
 
@@ -175,6 +175,7 @@ module.exports = configure(function (/* ctx */) {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'generateSW', // or 'injectManifest'
+      workboxOptions: { skipWaiting: true },
       injectPwaMetaTags: true,
       swFilename: 'sw.js',
       manifestFilename: 'manifest.json',
@@ -218,7 +219,7 @@ module.exports = configure(function (/* ctx */) {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: 'braiadash',
+        appId: 'lf-dash',
       },
     },
 

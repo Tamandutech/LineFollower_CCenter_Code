@@ -1,8 +1,8 @@
 {
-  "name": "braiadash",
+  "name": "lf-dash",
   "version": "0.0.1",
   "description": "Dashboard para família Braia de robôs seguidores de linha.",
-  "productName": "Braia Dashboard",
+  "productName": "LF Dash",
   "author": "Raphael Henrique Nunes de Freitas <raphaeldefreitas2009@gmail.com>",
   "private": true,
   "scripts": {

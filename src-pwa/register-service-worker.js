@@ -27,6 +27,13 @@ register(process.env.SERVICE_WORKER_FILE, {
 
   updatefound(/* registration */) {
     // console.log('New content is downloading.')
+    Notify.create({
+      message: 'Instalando versão...',
+      color: 'info',
+      icon: mdiCloudDownload,
+      timeout: 5,
+      spinner: true
+    })
   },
 
   updated(/* registration */) {
@@ -38,7 +45,7 @@ register(process.env.SERVICE_WORKER_FILE, {
       actions: [
         { label: 'Atualizar', color: 'white', handler: () => { location.reload(true) } }
       ],
-      timeout: 10000
+      timeout: 0
     })
   },
 

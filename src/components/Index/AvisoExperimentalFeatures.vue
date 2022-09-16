@@ -14,7 +14,7 @@
     </q-card-section>
     <q-separator />
     <q-card-actions>
-      <q-btn flat :icon="mdiApple" label="Acessar" href="about://flags/#enable-experimental-web-platform-features"
+      <q-btn flat :icon="mdiTestTube" label="Acessar" href="about://flags/#enable-experimental-web-platform-features"
         target="_blank" />
     </q-card-actions>
   </q-card>
@@ -22,7 +22,7 @@
 
 <script lang="ts" setup>
 import { useQuasar } from 'quasar';
-import { mdiAlert, mdiApple } from '@quasar/extras/mdi-v6'
+import { mdiAlert, mdiTestTube  } from '@quasar/extras/mdi-v6'
 
 const $q = useQuasar()
 </script>

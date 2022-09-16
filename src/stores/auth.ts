@@ -4,7 +4,7 @@ import type { User, Auth } from 'firebase/auth';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
-    user: null,
+    user: null as User,
   }),
   getters: {
     getCurrentUser(state) {

@@ -4,8 +4,8 @@
       <q-toolbar>
         <q-btn flat @click="drawer = !drawer" round dense :icon="mdiMenu" />
         <q-toolbar-title>LF Dash</q-toolbar-title>
-        <q-space></q-space>
-        <div class="q-px-md q-gutter-md">
+        <!-- <q-space></q-space> -->
+        <div class="q-px-md q-gutter-sm">
           <q-btn color="secondary" round @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()"
             :icon="bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="bluetooth.isConnecting">
             <template v-slot:loading>

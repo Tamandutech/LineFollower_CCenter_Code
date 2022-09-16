@@ -45,7 +45,6 @@
           <div class="text-subtitle1 q-mb-md">Login</div>
 
           <GitHubLoginButton></GitHubLoginButton>
-          <!-- <q-btn color="primary" label="Logout" push size="sm" v-close-popup /> -->
         </div>
       </div>
     </q-menu>

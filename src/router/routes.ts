@@ -15,19 +15,6 @@ const routes: RouteRecordRaw[] = [
   },
 
   {
-    path: '/login',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      {
-        path: '',
-        component: () => import('pages/AuthPage.vue'),
-        name: 'login',
-        meta: { requiresAuth: true },
-      },
-    ],
-  },
-
-  {
     path: '/robot/parameters',
     meta: { requiresAuth: true },
     component: () => import('layouts/MainLayout.vue'),

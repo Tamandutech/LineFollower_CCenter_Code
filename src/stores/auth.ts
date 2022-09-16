@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
-import { signInWithRedirect, getRedirectResult, signOut, GithubAuthProvider } from 'firebase/auth';
+import { signInWithRedirect, getRedirectResult, signOut, GithubAuthProvider, UserCredential } from 'firebase/auth';
 import type { User, Auth } from 'firebase/auth';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
-    user: null,
+    user: null as User,
   }),
   getters: {
     getCurrentUser(state) {
@@ -12,37 +12,46 @@ export const useAuth = defineStore('auth', {
     },
   },
   actions: {
-    async loginUser(auth: LFCommandCenter.AuthService): Promise<User | Error> {
+    loginUser(auth: LFCommandCenter.AuthService): void {
+      signInWithRedirect(auth.service, auth.github_provider);
+    },
+
+    async isMemberTTGihub(userCredential: UserCredential): Promise<boolean> {
       try {
-        await signInWithRedirect(auth.service, auth.github_provider);
-        const result = await getRedirectResult(auth.service);
+        const token = GithubAuthProvider.credentialFromResult(userCredential).accessToken;
+        console.log('Token: ', token);
 
-        if (result) {
-          const token = GithubAuthProvider.credentialFromResult(result).accessToken;
+        const response = await fetch('https://api.github.com/user/memberships/orgs/Tamandutech', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+        });
 
-          const response = await fetch('https://api.github.com/user/memberships/orgs/Tamandutech', {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-          });
+        const membership = (await response.json()) as { state: string };
+        console.debug(membership);
 
-          const membership = (await response.json()) as { state: string };
-          if (membership.state !== 'active') {
-            this.logoutUser(auth.service);
-            throw new Error('Acesso negado. Permitido apenas para membros da Tamandutech.');
-          }
-
-          this.user = result.user;
-          return Promise.resolve<User>(this.user);
+        if (membership.state !== 'active') {
+          return Promise.resolve(false);
         } else {
-          return new Error('Erro ao fazer login com GitHub.');s
+          return Promise.resolve(true);
         }
       } catch (error) {
-        return Promise.reject<Error>(error);
+        console.error(error);
+        return Promise.reject(error);
       }
     },
+
+    async getRedirectResult(auth: Auth): Promise<UserCredential> {
+      try {
+        return Promise.resolve(await getRedirectResult(auth));
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
+
     async logoutUser(service: Auth): Promise<void> {
       return signOut(service);
     },
+
     async handleOnAuthStateChanged(currentUser: User | null) {
       this.$patch((state) => {
         state.user = currentUser;

@@ -37,7 +37,7 @@ module.exports = configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['main'],
+    boot: ['main', 'addressbar-color'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ['app.scss'],
@@ -108,7 +108,7 @@ module.exports = configure(function (/* ctx */) {
     framework: {
       config: {
         brand: {
-          primary: '#191919',
+          primary: '#080f08',
           secondary: '#26A69A',
           accent: '#9C27B0',
 
@@ -132,7 +132,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ['AppFullscreen', 'Loading', 'Notify'],
+      plugins: ['AppFullscreen', 'Loading', 'Notify', 'AddressbarColor'],
     },
 
     // animations: 'all', // --- includes all animations
@@ -175,6 +175,7 @@ module.exports = configure(function (/* ctx */) {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'generateSW', // or 'injectManifest'
+      // workboxOptions: { skipWaiting: true },
       injectPwaMetaTags: true,
       swFilename: 'sw.js',
       manifestFilename: 'manifest.json',
@@ -218,7 +219,7 @@ module.exports = configure(function (/* ctx */) {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: 'braiadash',
+        appId: 'lf-dash',
       },
     },
 

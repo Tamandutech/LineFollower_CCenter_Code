@@ -45,7 +45,6 @@
           <div class="text-subtitle1 q-mb-md">Login</div>
 
           <GitHubLoginButton></GitHubLoginButton>
-          <!-- <q-btn color="primary" label="Logout" push size="sm" v-close-popup /> -->
         </div>
       </div>
     </q-menu>
@@ -59,4 +58,6 @@ import GitHubLoginButton from 'components/GitHubLoginButton.vue';
 
 const emit = defineEmits(['logout']);
 const props = defineProps<{ user: User }>();
+
+console.debug(props.user);
 </script>

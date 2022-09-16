@@ -1,5 +1,5 @@
 import { boot } from 'quasar/wrappers';
-import { mdiAlertOctagon } from '@quasar/extras/mdi-v6';
+import { mdiAlertOctagon, mdiCloseOctagon, mdiAccountCheck } from '@quasar/extras/mdi-v6';
 import { Notify } from 'quasar';
 import { plugin } from 'src/services/firebase';
 import type { User } from 'firebase/auth';
@@ -11,21 +11,54 @@ export default boot(async ({ app, router }) => {
   const {
     auth: { service },
   } = app.config.globalProperties.$firebase;
+
   const auth = useAuth();
+
+
   auth.user = service.currentUser;
+
   service.onAuthStateChanged(async (user: User | null) => {
-    await auth.handleOnAuthStateChanged(user);
-    if (user) await router.push({ name: 'index' });
+    try {
+      const userCredential = await auth.getRedirectResult(service);
+
+      if (userCredential) {
+        const isMemberTTGihub = await auth.isMemberTTGihub(userCredential);
+
+        if (!isMemberTTGihub) {
+          auth.logoutUser(service);
+          Notify.create({
+            message: 'Você precisa ser membro da Tamandutech no Github para acessar a plataforma.',
+            icon: mdiCloseOctagon,
+            color: 'negative',
+          });
+          return;
+        }
+
+        Notify.create({
+          message: `Bem-vind@ ${user.displayName.split(' ').at(0)}!`,
+          color: 'positive',
+          icon: mdiAccountCheck,
+        });
+      }
+
+      auth.handleOnAuthStateChanged(user);
+      if (user) {
+        await router.push({ name: 'index' });
+      }
+    } catch (error) {
+      console.error('Erro ao tentar logar: ', error);
+    }
   });
 
   router.beforeEach((to) => {
-    if (!auth.user && to.meta.requiresAuth && to.name !== 'login') {
+    if (!auth.user && to.meta.requiresAuth && to.name !== 'index') {
+
       Notify.create({
         message: 'Acesso as funcionalidades permitido somente a usuários autenticados',
         icon: mdiAlertOctagon,
       });
 
-      return { name: 'login' };
+      return { name: 'index' };
     }
   });
 });

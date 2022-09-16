@@ -8,8 +8,10 @@
 
       <q-separator inset />
 
-      <q-card-section>
+      <q-card-section class="q-gutter-md">
         <!-- Avisos -->
+        <aviso-github></aviso-github>
+        <aviso-experimental-features></aviso-experimental-features>
         <aviso-navegador></aviso-navegador>
 
       </q-card-section>
@@ -24,12 +26,14 @@ import { useAuth } from 'src/stores/auth';
 import { defineComponent } from 'vue';
 import { useQuasar } from 'quasar'
 import AvisoNavegador from '../components/Index/AvisoNavegador.vue'
+import AvisoExperimentalFeatures from 'src/components/Index/AvisoExperimentalFeatures.vue';
+import AvisoGithub from 'src/components/Index/AvisoGithub.vue';
 
 const authStore = useAuth();
 
 export default defineComponent({
   name: 'IndexPage',
-  components: { AvisoNavegador },
+  components: { AvisoNavegador, AvisoExperimentalFeatures, AvisoGithub },
 
   setup() {
     const $q = useQuasar()

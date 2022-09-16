@@ -10,6 +10,16 @@
 
 const { configure } = require('quasar/wrappers');
 
+try {
+  require('dotenv').config({ path: `.env.${process.env.QENV}` });
+} catch (error) {
+  // ...
+}
+
+if (!process.env.API_KEY) {
+  throw new Error('Environment not defined.');
+}
+
 module.exports = configure(function (/* ctx */) {
   return {
     eslint: {
@@ -27,7 +37,7 @@ module.exports = configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [],
+    boot: ['main', 'addressbar-color'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ['app.scss'],
@@ -53,7 +63,7 @@ module.exports = configure(function (/* ctx */) {
       },
 
       devtool: 'source-map',
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      vueRouterMode: 'history', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -62,7 +72,19 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
-      // env: {},
+      env: {
+        API_KEY: process.env.API_KEY,
+        AUTH_DOMAIN: process.env.AUTH_DOMAIN,
+        DATA_BASE_URL: process.env.DATA_BASE_URL,
+        PROJECT_ID: process.env.PROJECT_ID,
+        STORAGE_BUCKET: process.env.STORAGE_BUCKET,
+        MESSAGING_SENDER_ID: process.env.MESSAGING_SENDER_ID,
+        APP_ID: process.env.APP_ID,
+        MEASUREMENT_ID: process.env.MEASUREMENT_ID,
+        GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET,
+        GH_CLIENT_ID: process.env.GH_CLIENT_ID,
+        OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
+      },
       // rawDefine: {}
       // ignorePublicFolder: true,
       minify: 'terser',
@@ -70,23 +92,10 @@ module.exports = configure(function (/* ctx */) {
       // distDir
 
       extendViteConf(viteConf) {
-        // console.log(viteConf);
-        // viteConf.build.sourcemap = false;
-        // viteConf.build.assetsInlineLimit = 2000000000;
-        // viteConf.build.cssCodeSplit = false;
-        // // viteConf.build.rollupOptions = {
-        // //   output: {
-        // //     inlineDynamicImports: true,
-        // //     entryFileNames: 'assets/[name].js',
-        // //     chunkFileNames: 'assets/[name].js',
-        // //     assetFileNames: 'assets/[name].[ext]',
-        // //     // format: 'iife',
-        // //   },
-        // // };
-        // console.log(viteConf);
+        viteConf.mode = process.env.QENV;
       },
       // viteVuePluginOptions: {},
-      // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
+      // // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -99,7 +108,7 @@ module.exports = configure(function (/* ctx */) {
     framework: {
       config: {
         brand: {
-          primary: '#191919',
+          primary: '#080f08',
           secondary: '#26A69A',
           accent: '#9C27B0',
 
@@ -123,7 +132,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ['AppFullscreen'],
+      plugins: ['AppFullscreen', 'Loading', 'Notify', 'AddressbarColor'],
     },
 
     // animations: 'all', // --- includes all animations
@@ -166,6 +175,13 @@ module.exports = configure(function (/* ctx */) {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'generateSW', // or 'injectManifest'
+      extendWorkboxGenerateSWOptions(cfg) {
+        Object.assign(cfg, {
+          cleanupOutdatedCaches: true,
+          skipWaiting: true,
+          clientsClaim: true,
+        })
+      },
       injectPwaMetaTags: true,
       swFilename: 'sw.js',
       manifestFilename: 'manifest.json',
@@ -209,7 +225,7 @@ module.exports = configure(function (/* ctx */) {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: 'braiadash',
+        appId: 'lf-dash',
       },
     },
 

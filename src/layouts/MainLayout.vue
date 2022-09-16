@@ -1,50 +1,25 @@
 <template>
   <q-layout view="hHh LpR fFf">
-    <q-header elevated>
+    <q-header elevated class="q-py-sm">
       <q-toolbar>
         <q-btn flat @click="drawer = !drawer" round dense :icon="mdiMenu" />
-        <q-toolbar-title>BraiaDash</q-toolbar-title>
-        <q-space></q-space>
+        <q-toolbar-title>LF Dash</q-toolbar-title>
+        <!-- <q-space></q-space> -->
         <div class="q-px-md q-gutter-sm">
-          <q-btn
-            color="secondary"
-            @click="
-              BluetoothStore.isConnected ? BLE.disconnect() : BLE.connect()
-            "
-            :icon="
-              BluetoothStore.isConnected ? mdiBluetoothOff : mdiBluetoothConnect
-            "
-            :loading="BluetoothStore.isConnecting"
-          >
+          <q-btn color="secondary" round @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()"
+            :icon="bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect" :loading="bluetooth.isConnecting">
             <template v-slot:loading>
-              <q-spinner-radio class="on-center" /> </template
-          ></q-btn>
-
-          <q-btn
-            color="secondary"
-            @click="$q.fullscreen.toggle()"
-            :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen"
-          />
+              <q-spinner-radio class="on-center" />
+            </template>
+          </q-btn>
+          <q-btn color="secondary" round @click="$q.fullscreen.toggle()"
+            :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen" />
+          <UserChip color="secondary" round :user="auth.user" @logout="logout"></UserChip>
         </div>
       </q-toolbar>
     </q-header>
 
-    <!-- <q-footer elevated>
-      <q-toolbar>
-        <q-toolbar>
-          <div class="absolute-center">Teste</div>
-        </q-toolbar>
-      </q-toolbar>
-    </q-footer> -->
-
-    <q-drawer
-      v-model="drawer"
-      show-if-above
-      :width="300"
-      :breakpoint="500"
-      bordered
-      class="bg-grey-3"
-    >
+    <q-drawer v-model="drawer" show-if-above :width="300" :breakpoint="500" bordered class="bg-grey-3">
       <q-scroll-area class="fit">
         <q-list>
           <q-item clickable :to="'/'" exact>
@@ -56,13 +31,8 @@
 
           <q-separator />
 
-          <q-expansion-item
-            :content-inset-level="0.5"
-            expand-separator
-            :icon="mdiRobotMowerOutline"
-            label="Robô"
-            default-opened
-          >
+          <q-expansion-item :content-inset-level="0.5" expand-separator :icon="mdiRobotMowerOutline" label="Robô"
+            default-opened>
             <q-item clickable :to="'/robot/parameters'" exact>
               <q-item-section avatar>
                 <q-icon :name="mdiTune" />
@@ -86,44 +56,23 @@
   </q-layout>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue';
-// import { Bluetooth, connect } from './../ble';
-import BLE from '../utils/ble';
-import { useBluetoothStore } from './../stores/bluetooth';
+import useFirebase from 'src/services/firebase';
+import { mdiTableLarge, mdiTune, mdiMenu, mdiHome, mdiRobotMowerOutline, mdiFullscreen, mdiFullscreenExit, mdiBluetoothConnect, mdiBluetoothOff } from '@quasar/extras/mdi-v6';
+import BLE from 'src/utils/ble';
+import { useBluetooth } from 'stores/bluetooth';
+import UserChip from 'src/components/UserChip.vue';
+import { useAuth } from 'src/stores/auth';
 
-import {
-  mdiTableLarge,
-  mdiTune,
-  mdiMenu,
-  mdiHome,
-  mdiRobotMowerOutline,
-  mdiFullscreen,
-  mdiFullscreenExit,
-  mdiBluetoothConnect,
-  mdiBluetoothOff,
-} from '@quasar/extras/mdi-v6';
+const bluetooth = useBluetooth();
+const drawer = ref(false);
 
-export default {
-  setup() {
-    const BluetoothStore = useBluetoothStore();
+const auth = useAuth();
 
-    return {
-      mdiTune,
-      mdiMenu,
-      mdiHome,
-      mdiRobotMowerOutline,
-      mdiFullscreen,
-      mdiFullscreenExit,
-      mdiTableLarge,
-      mdiBluetoothConnect,
-      mdiBluetoothOff,
+const {
+  auth: { service },
+} = useFirebase();
 
-      drawer: ref(false),
-
-      BLE,
-      BluetoothStore,
-    };
-  },
-};
+const logout = () => auth.logoutUser(service);
 </script>

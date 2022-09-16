@@ -1,11 +1,14 @@
 {
-  "name": "braiadash",
+  "name": "lf-dash",
   "version": "0.0.1",
   "description": "Dashboard para família Braia de robôs seguidores de linha.",
-  "productName": "Braia Dashboard",
+  "productName": "LF Dash",
   "author": "Raphael Henrique Nunes de Freitas <raphaeldefreitas2009@gmail.com>",
   "private": true,
   "scripts": {
+    "dev": "QENV=development quasar dev",
+    "build:stage": "QENV=staging quasar build -m pwa && firebase deploy -P tt-linefollower-dev",
+    "build:prod": "QENV=production quasar build -m pwa && firebase deploy -P tt-linefollower",
     "lint": "eslint --ext .js,.ts,.vue ./",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0"
@@ -16,10 +19,11 @@
     "@types/web-bluetooth": "^0.0.14",
     "@vueuse/core": "^8.8.1",
     "brotli": "^1.3.2",
+    "dotenv": "^16.0.2",
+    "firebase": "^9.9.3",
     "mitt": "^3.0.0",
     "pinia": "^2.0.13",
     "quasar": "^2.6.0",
-    "vite-plugin-css-injected-by-js": "^1.5.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0"
   },

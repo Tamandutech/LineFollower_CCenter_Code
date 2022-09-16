@@ -12,7 +12,7 @@ export default defineComponent({
   components: { QueueController },
 
   mounted() {
-    console.log('Aplicação montada...');
+    // console.log('Aplicação montada...');
   },
 });
 </script>

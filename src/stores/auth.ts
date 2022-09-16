@@ -19,7 +19,6 @@ export const useAuth = defineStore('auth', {
     async isMemberTTGihub(userCredential: UserCredential): Promise<boolean> {
       try {
         const token = GithubAuthProvider.credentialFromResult(userCredential).accessToken;
-        console.log('Token: ', token);
 
         const response = await fetch('https://api.github.com/user/memberships/orgs/Tamandutech', {
           method: 'GET',
@@ -27,16 +26,14 @@ export const useAuth = defineStore('auth', {
         });
 
         const membership = (await response.json()) as { state: string };
-        console.debug(membership);
 
-        if (membership.state !== 'active') {
-          return Promise.resolve(false);
-        } else {
+        if (membership.state === 'active')
           return Promise.resolve(true);
-        }
+
+        return Promise.resolve(false);
       } catch (error) {
         console.error(error);
-        return Promise.reject(error);
+        return Promise.resolve(false);
       }
     },
 

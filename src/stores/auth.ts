@@ -58,7 +58,9 @@ export const useAuth = defineStore('auth', {
     ) {
       try {
         const userCredential = await getRedirectResult(this.service);
-        if (userCredential && (await this.isMemberTTGithub(userCredential))) {
+        if (!userCredential) return Promise.resolve();
+
+        if (await this.isMemberTTGithub(userCredential)) {
           this.setUser(user);
           router.push({ name: successRouteName });
           return Promise.resolve(this.getCurrentUser);

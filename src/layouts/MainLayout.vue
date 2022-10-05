@@ -9,11 +9,9 @@
           <q-btn
             color="secondary"
             round
-            @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()"
-            :icon="
-              bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect
-            "
-            :loading="bluetooth.isConnecting"
+            @click="connected ? disconnect() : connect()"
+            :icon="connected ? mdiBluetoothOff : mdiBluetoothConnect"
+            :loading="connecting"
           >
             <template v-slot:loading>
               <q-spinner-radio class="on-center" />
@@ -86,7 +84,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import {
   mdiTableLarge,
   mdiTune,
@@ -101,16 +99,25 @@ import {
   mdiCloseOctagon,
   mdiAlertCircle,
   mdiAlertOctagon,
+  mdiAlertBox,
 } from '@quasar/extras/mdi-v6';
 import { useQuasar } from 'quasar';
-import BLE from 'src/utils/ble';
-import { useBluetooth } from 'stores/bluetooth';
+import useBluetooth from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
 import type { User, AuthError } from 'firebase/auth';
 
-const bluetooth = useBluetooth();
 const drawer = ref(false);
 const $q = useQuasar();
+
+const { connected, connecting, error, connect, disconnect } = useBluetooth();
+
+watch(error, () =>
+  $q.notify({
+    message: 'Ocorreu um erro durante a conexão com o robô. Tente novamente.',
+    color: 'negative',
+    icon: mdiAlertBox,
+  })
+);
 
 function welcomeUser(user: User) {
   return $q.notify({

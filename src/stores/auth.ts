@@ -49,6 +49,7 @@ export const useAuth = defineStore('auth', {
       }
     },
     logoutUser(): Promise<void> {
+      this.setUser(null);
       return signOut(this.service);
     },
     async handleAuthStateChange(

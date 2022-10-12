@@ -1,10 +1,12 @@
 import { useRobotParameters } from 'stores/robotParameters';
 import { useMapping } from 'stores/mapping';
+import { useBattery } from 'stores/battery';
 import { Command } from 'stores/robotQueue';
 
 import BLE from 'src/utils/ble';
 import { RobotHandler } from 'src/utils/robot/handler';
 
+const battery = useBattery();
 const mapping = useMapping();
 const robotParameters = useRobotParameters();
 
@@ -13,7 +15,11 @@ export class param_set extends Command {
   value: undefined;
   initialValue: undefined;
 
-  constructor(row: LFCommandCenter.RobotParameter, value: undefined, initialValue: undefined) {
+  constructor(
+    row: LFCommandCenter.RobotParameter,
+    value: undefined,
+    initialValue: undefined
+  ) {
     super('param_set');
 
     this.row = row;
@@ -24,7 +30,14 @@ export class param_set extends Command {
   async func() {
     if (this.value !== this.initialValue) {
       try {
-        await BLE.send('param_set ' + this.row.class.name + '.' + this.row.name + ' ' + this.value);
+        await BLE.send(
+          'param_set ' +
+            this.row.class.name +
+            '.' +
+            this.row.name +
+            ' ' +
+            this.value
+        );
       } catch (error) {
         Promise.reject(error);
       }
@@ -60,11 +73,28 @@ export class param_get extends Command {
 
   async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
     console.log('Parâmetro recebido');
-    const match = rsp.cmdExecd.match('param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)');
+    const match = rsp.cmdExecd.match(
+      'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
+    );
     console.log(match);
-    console.log('Classe: ' + match?.groups?.classe + ', Param: ' + match?.groups?.parametro + ', Value: ' + rsp.data);
-    if (match?.groups?.classe === undefined || match?.groups?.parametro === undefined) return;
-    robotParameters.addParameter(match?.groups?.classe, match?.groups?.parametro, rsp.data);
+    console.log(
+      'Classe: ' +
+        match?.groups?.classe +
+        ', Param: ' +
+        match?.groups?.parametro +
+        ', Value: ' +
+        rsp.data
+    );
+    if (
+      match?.groups?.classe === undefined ||
+      match?.groups?.parametro === undefined
+    )
+      return;
+    robotParameters.addParameter(
+      match?.groups?.classe,
+      match?.groups?.parametro,
+      rsp.data
+    );
   }
 }
 
@@ -90,13 +120,28 @@ export class param_list extends Command {
     console.log('Qtd de parâmetros: ' + qtdParams);
 
     for (let index = 0; index < qtdParams; index++) {
-      const className: string = lines[index + 1].substring(lines[index + 1].indexOf('-') + 2, lines[index + 1].indexOf('.'));
-      const paramName: string = lines[index + 1].substring(lines[index + 1].indexOf('.') + 1, lines[index + 1].indexOf(':'));
-      const paramValue: string = lines[index + 1].substring(lines[index + 1].indexOf(':') + 2);
+      const className: string = lines[index + 1].substring(
+        lines[index + 1].indexOf('-') + 2,
+        lines[index + 1].indexOf('.')
+      );
+      const paramName: string = lines[index + 1].substring(
+        lines[index + 1].indexOf('.') + 1,
+        lines[index + 1].indexOf(':')
+      );
+      const paramValue: string = lines[index + 1].substring(
+        lines[index + 1].indexOf(':') + 2
+      );
 
       robotParameters.addParameter(className, paramName, paramValue);
 
-      console.log('ClassName: ' + className + ', ParamName: ' + paramName + ', ParamValue: ' + paramValue);
+      console.log(
+        'ClassName: ' +
+          className +
+          ', ParamName: ' +
+          paramName +
+          ', ParamValue: ' +
+          paramValue
+      );
     }
   }
 }
@@ -149,7 +194,8 @@ export class map_get extends Command {
     console.log(Regs);
     Regs.forEach((reg) => mapping.addReg(reg));
     while (mapping.options.length !== 0) mapping.options.pop();
-    for (let i = 0; i < mapping.totalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
+    for (let i = 0; i < mapping.totalRegs; i++)
+      mapping.options.push(mapping.mapRegs.at(i).id);
     console.log(JSON.stringify(mapping.mapRegs));
   }
 }
@@ -196,8 +242,15 @@ export class map_add extends Command {
     if (mapping.regsSent) {
       mapping.regsString = '';
       while (mapping.totalRegs > mapping.getRegToSend) {
-        if ((mapping.regsString + mapping.getRegString(mapping.getRegToSend) + ';').length <= 90) {
-          mapping.regsString += mapping.getRegString(mapping.getRegToSend) + ';';
+        if (
+          (
+            mapping.regsString +
+            mapping.getRegString(mapping.getRegToSend) +
+            ';'
+          ).length <= 90
+        ) {
+          mapping.regsString +=
+            mapping.getRegString(mapping.getRegToSend) + ';';
           mapping.setRegToSend(mapping.getRegToSend + 1);
         } else break;
       }
@@ -209,7 +262,9 @@ export class map_add extends Command {
     if (rsp.data === 'OK') {
       mapping.regsSent = true;
       if (mapping.totalRegs > mapping.getRegToSend) {
-        RobotHandler.queueCommand(new map_add(this.regMaps, mapping.getRegToSend));
+        RobotHandler.queueCommand(
+          new map_add(this.regMaps, mapping.getRegToSend)
+        );
       } else {
         mapping.mapSending = false;
         mapping.mapStringDialog = 'Mapeamento enviado com sucesso.';
@@ -219,11 +274,27 @@ export class map_add extends Command {
     } else if (mapping.resendTries > 0) {
       mapping.resendTries = mapping.resendTries - 1;
       mapping.regsSent = false;
-      RobotHandler.queueCommand(new map_add(this.regMaps, mapping.getRegToSend));
+      RobotHandler.queueCommand(
+        new map_add(this.regMaps, mapping.getRegToSend)
+      );
     } else {
       mapping.mapStringDialog = 'Falha ao enviar o mapeamento.';
       mapping.mapSent = true;
       mapping.mapSending = false;
     }
+  }
+}
+
+export class battery_voltage extends Command {
+  constructor() {
+    super('battery_voltage');
+  }
+
+  async func() {
+    await BLE.send('bat_voltage');
+  }
+
+  async rspInterpreter(rsp: LFCommandCenter.RobotResponse) {
+    battery.updateVoltage(rsp.data);
   }
 }

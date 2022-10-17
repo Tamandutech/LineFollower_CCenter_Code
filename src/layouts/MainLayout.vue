@@ -17,12 +17,7 @@
               <q-spinner-radio class="on-center" />
             </template>
           </q-btn>
-          <q-btn
-            color="secondary"
-            round
-            @click="$q.fullscreen.toggle()"
-            :icon="$q.fullscreen.isActive ? mdiFullscreenExit : mdiFullscreen"
-          />
+          <RobotChip></RobotChip>
           <UserChip
             color="secondary"
             round
@@ -91,8 +86,6 @@ import {
   mdiMenu,
   mdiHome,
   mdiRobotMowerOutline,
-  mdiFullscreen,
-  mdiFullscreenExit,
   mdiBluetoothConnect,
   mdiBluetoothOff,
   mdiAccountCheck,

@@ -1,8 +1,10 @@
 import { useRobotParameters } from 'stores/robotParameters';
 import { useRobotQueue } from 'stores/robotQueue';
 import { useMapping } from 'stores/mapping';
+import { useBattery } from 'stores/battery';
 import { Task } from 'src/services/queue';
 
+const battery = useBattery();
 const commandQueue = useRobotQueue();
 const mapping = useMapping();
 const robotParameters = useRobotParameters();
@@ -176,10 +178,12 @@ export class param_list extends Command {
     for (let index = 0; index < qtdParams; index++) {
       const className: string = lines[index + 1].substring(
         lines[index + 1].indexOf('-') + 2,
+
         lines[index + 1].indexOf('.')
       );
       const paramName: string = lines[index + 1].substring(
         lines[index + 1].indexOf('.') + 1,
+
         lines[index + 1].indexOf(':')
       );
       const paramValue: string = lines[index + 1].substring(
@@ -189,12 +193,7 @@ export class param_list extends Command {
       robotParameters.addParameter(className, paramName, paramValue);
 
       console.log(
-        'ClassName: ' +
-          className +
-          ', ParamName: ' +
-          paramName +
-          ', ParamValue: ' +
-          paramValue
+        `ClassName: ${className}, ParamName: ${paramName}, ParamValue: ${paramValue}`
       );
     }
   }
@@ -396,5 +395,37 @@ export class map_add extends Command {
       mapping.mapSent = true;
       mapping.mapSending = false;
     }
+  }
+}
+
+export class battery_voltage extends Command {
+  constructor() {
+    super('battery_voltage', { characteristicId: 'UART_TX' });
+  }
+
+  async execute() {
+    try {
+      await battery.ble.send(
+        this.options.characteristicId.toString(),
+        'bat_voltage',
+        this.characteristicObserver.bind(this),
+        this.id
+      );
+    } catch (error) {
+      battery.ble.removeTxObserver(
+        this.id,
+        this.options.characteristicId.toString()
+      );
+      this.error = error;
+    }
+  }
+
+  async resultHandler(response: LFCommandCenter.RobotResponse) {
+    battery.ble.removeTxObserver(
+      this.id,
+      this.options.characteristicId.toString()
+    );
+    battery.ble.clearData();
+    battery.updateVoltage(response.data);
   }
 }

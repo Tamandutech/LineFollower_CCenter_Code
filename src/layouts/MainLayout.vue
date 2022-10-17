@@ -97,6 +97,7 @@ import {
 import { useQuasar } from 'quasar';
 import useBluetooth from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
+import RobotChip from 'src/components/RobotChip.vue';
 import type { User, AuthError } from 'firebase/auth';
 
 const drawer = ref(false);

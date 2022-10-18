@@ -9,11 +9,9 @@
           <q-btn
             color="secondary"
             round
-            @click="bluetooth.isConnected ? BLE.disconnect() : BLE.connect()"
-            :icon="
-              bluetooth.isConnected ? mdiBluetoothOff : mdiBluetoothConnect
-            "
-            :loading="bluetooth.isConnecting"
+            @click="connected ? disconnect() : connect()"
+            :icon="connected ? mdiBluetoothOff : mdiBluetoothConnect"
+            :loading="connecting"
           >
             <template v-slot:loading>
               <q-spinner-radio class="on-center" />
@@ -23,8 +21,9 @@
           <UserChip
             color="secondary"
             round
-            :user="auth.user"
-            @logout="logout"
+            @login="welcomeUser"
+            @block="notifyBlock"
+            @error="notifyError"
           ></UserChip>
         </div>
       </q-toolbar>
@@ -74,14 +73,13 @@
     </q-drawer>
 
     <q-page-container>
-      <router-view />
+      <router-view @navigation-guard="notifyAuthenticationRequired" />
     </q-page-container>
   </q-layout>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
-import useFirebase from 'src/services/firebase';
+import { ref, watch } from 'vue';
 import {
   mdiTableLarge,
   mdiTune,
@@ -90,21 +88,68 @@ import {
   mdiRobotMowerOutline,
   mdiBluetoothConnect,
   mdiBluetoothOff,
+  mdiAccountCheck,
+  mdiCloseOctagon,
+  mdiAlertCircle,
+  mdiAlertOctagon,
+  mdiAlertBox,
 } from '@quasar/extras/mdi-v6';
-import BLE from 'src/utils/ble';
-import { useBluetooth } from 'stores/bluetooth';
-import RobotChip from 'components/RobotChip.vue';
+import { useQuasar } from 'quasar';
+import useBluetooth from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
-import { useAuth } from 'src/stores/auth';
+import RobotChip from 'src/components/RobotChip.vue';
+import type { User, AuthError } from 'firebase/auth';
 
-const bluetooth = useBluetooth();
 const drawer = ref(false);
+const $q = useQuasar();
 
-const auth = useAuth();
+const { connected, connecting, error, connect, disconnect } = useBluetooth();
 
-const {
-  auth: { service },
-} = useFirebase();
+watch(error, () =>
+  $q.notify({
+    message: 'Ocorreu um erro durante a conexão com o robô. Tente novamente.',
+    color: 'negative',
+    icon: mdiAlertBox,
+  })
+);
 
-const logout = () => auth.logoutUser(service);
+function welcomeUser(user: User) {
+  return $q.notify({
+    message: `Bem-vind@ ${user.displayName.split(' ').at(0)}!`,
+    color: 'positive',
+    icon: mdiAccountCheck,
+  });
+}
+function notifyBlock() {
+  return $q.notify({
+    message:
+      'Você precisa ser membro da Tamandutech no Github para acessar a plataforma.',
+    icon: mdiCloseOctagon,
+    color: 'negative',
+  });
+}
+function notifyError(error: AuthError) {
+  let message: string;
+  if (error.hasOwnProperty('code')) {
+    switch (error.code) {
+      case 'auth/user-cancelled':
+        message = 'A autenticação é cancelada ao sair da página do provedor.';
+        break;
+      default:
+        message = 'Um erro inesperado ocorreu durante a autenticação.';
+    }
+  }
+  return $q.notify({
+    message: message,
+    color: 'negative',
+    icon: mdiAlertCircle,
+  });
+}
+function notifyAuthenticationRequired() {
+  return $q.notify({
+    message:
+      'Acesso as funcionalidades permitido somente a usuários autenticados',
+    icon: mdiAlertOctagon,
+  });
+}
 </script>

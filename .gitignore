@@ -38,5 +38,6 @@ yarn-error.log*
 # Enviroment files
 .env*
 
-# Firebase Cache
+# Firebase Stuff
 .firebase
+ui-debug.log

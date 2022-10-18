@@ -22,7 +22,6 @@ export const useAuth = defineStore('auth', {
       try {
         const token =
           GithubAuthProvider.credentialFromResult(userCredential).accessToken;
-
         const response = await fetch(
           'https://api.github.com/user/memberships/orgs/Tamandutech',
           {
@@ -58,10 +57,15 @@ export const useAuth = defineStore('auth', {
       successRouteName: string
     ) {
       try {
-        const userCredential = await getRedirectResult(this.service);
-        if (!userCredential) return Promise.resolve();
+        const result = await getRedirectResult(this.service);
 
-        if (await this.isMemberTTGithub(userCredential)) {
+        if (!result) {
+          if (user) this.setUser(user);
+
+          return Promise.resolve()
+        };
+
+        if (await this.isMemberTTGithub(result)) {
           this.setUser(user);
           router.push({ name: successRouteName });
           return Promise.resolve(this.getCurrentUser);
@@ -77,6 +81,7 @@ export const useAuth = defineStore('auth', {
     },
     blockUser() {
       this.$patch({ user: null, blocked: true });
+      return signOut(this.service);
     },
   },
 });

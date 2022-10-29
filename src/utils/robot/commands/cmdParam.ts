@@ -10,25 +10,14 @@ const mapping = useMapping();
 const robotParameters = useRobotParameters();
 
 export abstract class Command extends Task {
-  sanitizeData(data: string): LFCommandCenter.RobotResponse | null {
-    console.log(data);
-
-    if (!data.endsWith('\0')) return null;
-
-    return JSON.parse(data.substring(0, data.length - 1));
+  characteristicObserver(response: LFCommandCenter.RobotResponse): void {
+    if (!response.cmdExecd.startsWith(this.name)) {
+      return;
+    }
+    return this.resultHandler(response);
   }
 
-  characteristicObserver(data: string): Promise<void> | null {
-    const result = this.sanitizeData(data);
-    if (!result) return null;
-
-    this.resultHandler(result);
-    commandQueue.startNextCommand();
-  }
-
-  abstract resultHandler(
-    data: Record<string, unknown> | string | null
-  ): Promise<void>;
+  abstract resultHandler(data: Record<string, unknown> | string | null): void;
 }
 
 export class param_set extends Command {
@@ -67,14 +56,13 @@ export class param_set extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    commandQueue.ble.clearData();
 
-    if (response.data.match('OK')) console.log('Parâmetro alterado');
+    if (response.data.toString().match('OK')) console.log('Parâmetro alterado');
     else console.error('Erro ao alterar parâmetro');
   }
 }
@@ -107,12 +95,11 @@ export class param_get extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    robotParameters.ble.clearData();
 
     const match = response.cmdExecd.match(
       'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
@@ -162,15 +149,14 @@ export class param_list extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    robotParameters.ble.clearData();
     console.log('Parâmetros recebidos');
 
-    const lines: string[] = response.data.split('\n');
+    const lines: string[] = response.data.toString().split('\n');
 
     const qtdParams = Number(lines[0].substring(lines[0].indexOf(':') + 2));
     console.log('Qtd de parâmetros: ' + qtdParams);
@@ -225,14 +211,14 @@ export class map_clear extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
-    if (response.data.match('OK')) console.log('Dados de mapeamento deletados');
+    if (response.data.toString().match('OK'))
+      console.log('Dados de mapeamento deletados');
     else console.log('Erro ao limpar mapeamento.');
   }
 }
@@ -262,16 +248,15 @@ export class map_get extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
     mapping.clearMap();
 
-    const regs: string[] = response.data.split('\n');
+    const regs: string[] = response.data.toString().split('\n');
     regs.pop();
 
     regs.forEach((reg) => mapping.addReg(reg));
@@ -304,15 +289,14 @@ export class map_SaveRuntime extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
     mapping.mapSaving = false;
-    if (response.data === 'OK') {
+    if (response.data.toString() === 'OK') {
       mapping.mapStringDialog = 'Mapeamento salvo na flash com sucesso.';
       mapping.mapSent = true;
     } else {
@@ -366,14 +350,13 @@ export class map_add extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: LFCommandCenter.RobotResponse) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
-    if (response.data === 'OK') {
+    if (response.data.toString() === 'OK') {
       mapping.regsSent = true;
 
       if (mapping.totalRegs > mapping.getRegToSend) {
@@ -425,7 +408,6 @@ export class battery_voltage extends Command {
       this.id,
       this.options.characteristicId.toString()
     );
-    battery.ble.clearData();
-    battery.updateVoltage(response.data);
+    battery.updateVoltage(response.data.toString());
   }
 }

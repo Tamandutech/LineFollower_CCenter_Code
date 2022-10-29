@@ -26,14 +26,18 @@ const ROBOTS: LFCommandCenter.RobotBluetoothId[] = [
 
 export class BLE {
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic>;
-  _data = '';
+  _cache: string;
   _txObservers: LFCommandCenter.TxObservers;
   _robot: LFCommandCenter.RobotBluetoothId;
+  _decoder = new TextDecoder();
+  _encoder = new TextEncoder();
+  _messages: Map<string, Map<string, string[]>>;
 
   constructor() {
     this._characteristics = new Map();
-    this._data = '';
+    this._cache = '';
     this._txObservers = new Map();
+    this._messages = new Map();
   }
 
   async connect(robot: LFCommandCenter.RobotBluetoothId = ROBOTS[0]) {
@@ -59,16 +63,17 @@ export class BLE {
         characteristics.forEach(async (uuid, id) => {
           const characteristic = await uartService.getCharacteristic(uuid);
           this._characteristics.set(id, characteristic);
+          this._messages.set(id, new Map());
 
           if (id.endsWith('TX')) {
-            await characteristic.startNotifications();
-
             characteristic.addEventListener(
               'characteristicvaluechanged',
-              this._onTxCharacteristicValueChanged.bind(this)
+              this._handleChunck.bind(this)
             );
 
             this._txObservers.set(id, new Map());
+
+            await characteristic.startNotifications();
           }
         });
       });
@@ -85,6 +90,14 @@ export class BLE {
     if (!this._robot.device.gatt.connected) return;
 
     this._robot.device.gatt.disconnect();
+  }
+
+  decode(buffer: ArrayBufferLike) {
+    return this._decoder.decode(buffer);
+  }
+
+  encode(message: string) {
+    return this._encoder.encode(message);
   }
 
   /**
@@ -109,7 +122,7 @@ export class BLE {
 
       await this._characteristics
         .get('UART_RX')
-        .writeValueWithoutResponse(new TextEncoder().encode(message));
+        .writeValueWithoutResponse(this.encode(message));
 
       if (observer) {
         this.addTxObserver(id, observer, uuid);
@@ -121,21 +134,20 @@ export class BLE {
     }
   }
 
-  messageFinished() {
-    return this._data.slice(-1) === '\0';
+  _clearCache() {
+    this._cache = '';
   }
 
-  get data() {
-    return this._data;
-  }
-
-  clearData() {
-    this._data = '';
+  _cacheData(value: string) {
+    this._cache += value;
   }
 
   _onDisconnect() {
-    this._data = '';
+    this._cache = '';
     if (this._txObservers) {
+      this._txObservers.clear();
+    }
+    if (this._messages) {
       this._txObservers.clear();
     }
     if (this._characteristics) {
@@ -145,14 +157,40 @@ export class BLE {
     this._robot = null;
   }
 
-  _handleChunck(characteristicValue: DataView): string {
-    const receivedData = [];
-    for (let i = 0; i < characteristicValue.byteLength; i++) {
-      receivedData.push(characteristicValue.getUint8(i));
+  _pushMessage(characteristicId: string) {
+    this._messages.get(characteristicId).forEach((messageQueue) => {
+      messageQueue.push(this._cache);
+    });
+    return this._clearCache();
+  }
+
+  _sendMessages(characteristicId: string) {
+    this._txObservers.get(characteristicId).forEach((observer, uuid) => {
+      this._messages
+        .get(characteristicId)
+        .get(uuid)
+        .forEach((rawMessage) => {
+          observer(JSON.parse(rawMessage));
+        });
+    });
+  }
+
+  _handleChunck(event: Event) {
+    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
+
+    const data = this.decode(new Uint8Array(characteristic.value.buffer));
+    if (data.indexOf('\0') === -1) {
+      return this._cacheData(data);
     }
 
-    this._data += String.fromCharCode.apply(null, receivedData);
-    return this._data;
+    this._cacheData(data.split('\0').at(0));
+    const [id] = [...this._characteristics.entries()].find(([, tx]) => {
+      return tx.uuid === characteristic.uuid;
+    });
+    this._pushMessage(id);
+    this._cacheData(data.slice(data.indexOf('\0') + 1));
+
+    return this._sendMessages(id);
   }
 
   addTxObserver(
@@ -165,6 +203,7 @@ export class BLE {
     }
 
     this._txObservers.get(txCharacteristicId).set(uuid, observer);
+    this._messages.get(txCharacteristicId).set(uuid, []);
 
     return this.removeTxObserver.bind(this, uuid, txCharacteristicId);
   }
@@ -177,22 +216,8 @@ export class BLE {
    * @returns `true` caso o observer tenha sido removido, `false` caso contrário
    */
   removeTxObserver(observerUuid: string, txCharacteristicId: string) {
-    console.log('removed');
-
+    this._messages.get(txCharacteristicId).delete(observerUuid);
     return this._txObservers.get(txCharacteristicId).delete(observerUuid);
-  }
-
-  _onTxCharacteristicValueChanged(event: Event) {
-    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
-    const data = this._handleChunck(characteristic.value);
-
-    console.log(this._txObservers.get('UART_TX'));
-
-    const [id] = [...this._characteristics.entries()].find(([, tx]) => {
-      return tx.uuid === characteristic.uuid;
-    });
-
-    this._txObservers.get(id).forEach((observer) => observer(data));
   }
 }
 

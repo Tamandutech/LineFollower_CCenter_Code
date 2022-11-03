@@ -62,8 +62,8 @@ export const useAuth = defineStore('auth', {
         if (!result) {
           if (user) this.setUser(user);
 
-          return Promise.resolve()
-        };
+          return Promise.resolve();
+        }
 
         if (await this.isMemberTTGithub(result)) {
           this.setUser(user);

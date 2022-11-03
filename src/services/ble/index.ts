@@ -7,7 +7,7 @@ import type { App } from 'vue';
  * Hardcodado pois os serviços para o envio de comandos via
  * bluetooth foram implementados apenas no Braia
  */
-const ROBOTS: LFCommandCenter.RobotBluetoothId[] = [
+const ROBOTS: Robot.BluetoothConnectionConfig[] = [
   {
     name: 'Braia Pro',
     services: new Map([
@@ -16,22 +16,25 @@ const ROBOTS: LFCommandCenter.RobotBluetoothId[] = [
         new Map([
           ['UART_RX', '6e400002-b5a3-f393-e0a9-e50e24dcca9e'],
           ['UART_TX', '6e400003-b5a3-f393-e0a9-e50e24dcca9e'],
-          // ['STREAM_TX', '3A8328FC-3768-46D2-B371-B34864CE8025'],
         ]),
       ],
+      [
+        '3a8328fb-3768-46d2-b371-b34864ce8025',
+        new Map([['STREAM_TX', '3a8328fc-3768-46d2-b371-b34864ce8025']]),
+      ],
     ]),
-    device: null,
   },
 ];
 
-export class BLE {
-  _characteristics: Map<string, BluetoothRemoteGATTCharacteristic>;
-  _cache: string;
-  _txObservers: LFCommandCenter.TxObservers;
-  _robot: LFCommandCenter.RobotBluetoothId;
-  _decoder = new TextDecoder();
-  _encoder = new TextEncoder();
-  _messages: Map<string, Map<string, string[]>>;
+export class BLE implements Bluetooth.BLEInterface {
+  private _characteristics: Map<string, BluetoothRemoteGATTCharacteristic>;
+  private _cache: string;
+  private _txObservers: Bluetooth.TxObserverMap;
+  private _config: Robot.BluetoothConnectionConfig;
+  private _decoder = new TextDecoder();
+  private _encoder = new TextEncoder();
+  private _messages: Map<string, Map<string, string[]>>;
+  private _device: BluetoothDevice;
 
   constructor() {
     this._characteristics = new Map();
@@ -40,25 +43,18 @@ export class BLE {
     this._messages = new Map();
   }
 
-  async connect(robot: LFCommandCenter.RobotBluetoothId = ROBOTS[0]) {
-    this._robot = robot;
+  async connect(
+    device: BluetoothDevice,
+    config: Required<Robot.BluetoothConnectionConfig> = ROBOTS[0]
+  ) {
+    this._device = device;
+    this._config = config;
 
     try {
-      this._robot.device = await navigator.bluetooth.requestDevice({
-        filters: [{ namePrefix: 'TT_' }],
-        optionalServices: [...robot.services.keys()],
-      });
-      if (!this._robot.device) {
-        throw new Error('Seguidor de Linha não encontrado.');
-      }
+      device.addEventListener('gattserverdisconnected', this._onDisconnect);
+      const robotGattServer = await device.gatt.connect();
 
-      this._robot.device.addEventListener(
-        'gattserverdisconnected',
-        this._onDisconnect
-      );
-      const robotGattServer = await this._robot.device.gatt.connect();
-
-      robot.services.forEach(async (characteristics, uuid) => {
+      config.services.forEach(async (characteristics, uuid) => {
         const uartService = await robotGattServer.getPrimaryService(uuid);
         characteristics.forEach(async (uuid, id) => {
           const characteristic = await uartService.getCharacteristic(uuid);
@@ -83,13 +79,13 @@ export class BLE {
   }
 
   get connected() {
-    return this._robot?.device?.gatt.connected;
+    return this._device?.gatt.connected;
   }
 
   disconnect() {
-    if (!this._robot.device.gatt.connected) return;
+    if (!this._device.gatt.connected) return;
 
-    this._robot.device.gatt.disconnect();
+    this._device.gatt.disconnect();
   }
 
   decode(buffer: ArrayBufferLike) {
@@ -107,12 +103,12 @@ export class BLE {
    * @param message Mensagem a ser enviada.
    * @param observer Caso fornecido, será adicionado como observer da característica .
    * @param uuid Caso fornecido, será usado como uuid do observer.
-   * @returns `Promise<BLE>`
+   * @returns `Promise<(observerUuid: string, txCharacteristicId: string) => void>`
    */
   async send(
     id: string,
     message: string,
-    observer: LFCommandCenter.CharacteristicObserver = undefined,
+    observer: Bluetooth.CharacteristicObserver = undefined,
     uuid: string = undefined
   ) {
     try {
@@ -125,10 +121,8 @@ export class BLE {
         .writeValueWithoutResponse(this.encode(message));
 
       if (observer) {
-        this.addTxObserver(id, observer, uuid);
+        Promise.resolve(this.addTxObserver(id, observer, uuid));
       }
-
-      Promise.resolve(this);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -154,7 +148,7 @@ export class BLE {
       this._characteristics.clear();
     }
 
-    this._robot = null;
+    this._config = null;
   }
 
   _pushMessage(characteristicId: string) {
@@ -195,7 +189,7 @@ export class BLE {
 
   addTxObserver(
     txCharacteristicId: string,
-    observer: LFCommandCenter.CharacteristicObserver,
+    observer: Bluetooth.CharacteristicObserver,
     uuid: string = undefined
   ) {
     if (!uuid) {
@@ -225,18 +219,28 @@ export const plugin = {
   install(app: App) {
     const ble = new BLE();
     app.config.globalProperties.$ble = ble;
+
     const connected = ref(false);
     const connecting = ref(false);
     const error = ref('');
-    app.provide<LFCommandCenter.UseBLE>(key, {
+    app.provide<Bluetooth.UseBLE>(key, {
       ble,
       connected: connected,
       connecting: connecting,
       error: error,
-      connect: async () => {
+      connect: async (config: Robot.BluetoothConnectionConfig = ROBOTS[0]) => {
         connecting.value = true;
+
         try {
-          await ble.connect();
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: 'TT_' }],
+            optionalServices: [...config.services.keys()],
+          });
+          if (!device) {
+            throw new Error('Seguidor de Linha não encontrado.');
+          }
+
+          await ble.connect(device, config);
           connected.value = true;
         } catch (e) {
           connected.value = false;
@@ -259,4 +263,4 @@ export const piniaPlugin = (service: BLE): PiniaPlugin => {
 };
 
 const key = Symbol('ble');
-export default () => inject<LFCommandCenter.UseBLE>(key);
+export default () => inject<Bluetooth.UseBLE>(key);

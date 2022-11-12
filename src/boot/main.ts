@@ -1,63 +1,22 @@
 import { boot } from 'quasar/wrappers';
-import { mdiAlertOctagon, mdiCloseOctagon, mdiAccountCheck } from '@quasar/extras/mdi-v6';
-import { Notify } from 'quasar';
-import { plugin } from 'src/services/firebase';
-import type { User } from 'firebase/auth';
-import { useAuth } from 'stores/auth';
+import { plugin as firebase } from 'src/services/firebase';
+import { plugin as ble, piniaPlugin as blePiniaPlugin } from 'src/services/ble';
+import { piniaPlugin as authStorePlugin } from 'src/services/firebase/auth';
+import { piniaPlugin as queuePlugin } from 'src/services/queue';
 
-export default boot(async ({ app, router }) => {
-  app.use(plugin);
+export default boot(async ({ app, router, store }) => {
+  app.use(firebase);
+  app.use(ble);
 
   const {
-    auth: { service },
+    auth: { service, github_provider },
   } = app.config.globalProperties.$firebase;
+  store.use(authStorePlugin(service, github_provider, 'auth', router, 'index'));
+  store.use(blePiniaPlugin(app.config.globalProperties.$ble));
+  store.use(queuePlugin('queue'));
 
-  const auth = useAuth();
-
-
-  auth.user = service.currentUser;
-
-  service.onAuthStateChanged(async (user: User | null) => {
-    try {
-      const userCredential = await auth.getRedirectResult(service);
-
-      if (userCredential) {
-        const isMemberTTGihub = await auth.isMemberTTGihub(userCredential);
-
-        if (!isMemberTTGihub) {
-          auth.logoutUser(service);
-          Notify.create({
-            message: 'Você precisa ser membro da Tamandutech no Github para acessar a plataforma.',
-            icon: mdiCloseOctagon,
-            color: 'negative',
-          });
-          return;
-        }
-
-        Notify.create({
-          message: `Bem-vind@ ${user.displayName.split(' ').at(0)}!`,
-          color: 'positive',
-          icon: mdiAccountCheck,
-        });
-      }
-
-      auth.handleOnAuthStateChanged(user);
-      if (user) {
-        await router.push({ name: 'index' });
-      }
-    } catch (error) {
-      console.error('Erro ao tentar logar: ', error);
-    }
-  });
-
-  router.beforeEach((to) => {
-    if (!auth.user && to.meta.requiresAuth && to.name !== 'index') {
-
-      Notify.create({
-        message: 'Acesso as funcionalidades permitido somente a usuários autenticados',
-        icon: mdiAlertOctagon,
-      });
-
+  router.beforeResolve((to) => {
+    if (!service.currentUser && to.meta.requiresAuth) {
       return { name: 'index' };
     }
   });

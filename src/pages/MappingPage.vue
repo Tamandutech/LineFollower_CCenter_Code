@@ -1,6 +1,12 @@
 <template>
   <div class="q-pa-md">
-    <q-table title="Mapeamento" :rows="mapping.mapRegs" :columns="columns" row-key="id" binary-state-sort>
+    <q-table
+      title="Mapeamento"
+      :rows="mapping.mapRegs"
+      :columns="columns"
+      row-key="id"
+      binary-state-sort
+    >
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="id" :props="props">
@@ -8,37 +14,67 @@
           </q-td>
           <q-td key="EncMedia" :props="props">
             {{ props.row.encMedia }}
-            <q-popup-edit v-model="props.row.encMedia" title="Atualizar Média dos encoders" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.encMedia"
+              title="Atualizar Média dos encoders"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Time" :props="props">
             {{ props.row.time }}
-            <q-popup-edit v-model="props.row.time" title="Atualizar o tempo" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.time"
+              title="Atualizar o tempo"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncRight" :props="props">
             {{ props.row.encRight }}
-            <q-popup-edit v-model="props.row.encRight" title="Atualizar Encoder direito" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.encRight"
+              title="Atualizar Encoder direito"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncLeft" :props="props">
             {{ props.row.encLeft }}
-            <q-popup-edit v-model="props.row.encLeft" title="Atualizar Encoder esquerdo" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.encLeft"
+              title="Atualizar Encoder esquerdo"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.status }}
-            <q-popup-edit v-model="props.row.status" title="Atualizar o status" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.status"
+              title="Atualizar o status"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="TrackStatus" :props="props">
             {{ props.row.trackStatus }}
-            <q-popup-edit v-model="props.row.trackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.trackStatus"
+              title="Atualizar o Trackstatus"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
@@ -46,10 +82,28 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="sendMap" color="primary" label="Enviar mapeamento" :disable="mapping.mapSending || mapping.mapRegs.length === 0" />
-      <q-btn @click="RobotHandler.queueCommand(new map_get())" color="primary" label="Ler mapeamento" />
-      <q-btn @click="RobotHandler.queueCommand(new map_get(true))" color="primary" label="Ler mapeamento na Ram" />
-      <q-btn @click="saveMap" color="primary" label="Salvar mapeamento" :disable="mapping.mapSaving" />
+      <q-btn
+        @click="sendMap"
+        color="primary"
+        label="Enviar mapeamento"
+        :disable="mapping.mapSending || mapping.mapRegs.length === 0"
+      />
+      <q-btn
+        @click="() => robotQueue.addCommand(new map_get())"
+        color="primary"
+        label="Ler mapeamento"
+      />
+      <q-btn
+        @click="() => robotQueue.addCommand(new map_get(true))"
+        color="primary"
+        label="Ler mapeamento na Ram"
+      />
+      <q-btn
+        @click="saveMap"
+        color="primary"
+        label="Salvar mapeamento"
+        :disable="mapping.mapSaving"
+      />
       <q-dialog v-model="mapping.mapSent">
         <q-card style="width: 300px">
           <q-card-section>
@@ -68,45 +122,89 @@
     </div>
     <div class="q-pa-md q-gutter-sm">
       <q-btn @click="deleteMapReg" color="primary" label="Deletar Registro" />
-      <q-btn @click="deleteAllMapRegs" color="primary" label="Deletar todos os registros" />
-      <q-select v-model="deleteRegID" :options="mapping.options" label="Selecione o ID do registro que será deletado" />
+      <q-btn
+        @click="deleteAllMapRegs"
+        color="primary"
+        label="Deletar todos os registros"
+      />
+      <q-select
+        v-model="deleteRegID"
+        :options="mapping.options"
+        label="Selecione o ID do registro que será deletado"
+      />
     </div>
-    <q-table title="Adicionar Registro" :rows="newReg" :columns="newColumns" row-key="id" binary-state-sort>
+    <q-table
+      title="Adicionar Registro"
+      :rows="newReg"
+      :columns="newColumns"
+      row-key="id"
+      binary-state-sort
+    >
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="EncMedia" :props="props">
             {{ props.row.encMedia }}
-            <q-popup-edit v-model="props.row.encMedia" title="Atualizar Média dos encoders" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.encMedia"
+              title="Atualizar Média dos encoders"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Time" :props="props">
             {{ props.row.time }}
-            <q-popup-edit v-model="props.row.time" title="Atualizar o tempo" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.time"
+              title="Atualizar o tempo"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncRight" :props="props">
             {{ props.row.encRight }}
-            <q-popup-edit v-model="props.row.encRight" title="Atualizar Encoder direito" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.encRight"
+              title="Atualizar Encoder direito"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="EncLeft" :props="props">
             {{ props.row.encLeft }}
-            <q-popup-edit v-model="props.row.encLeft" title="Atualizar Encoder esquerdo" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.encLeft"
+              title="Atualizar Encoder esquerdo"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.status }}
-            <q-popup-edit v-model="props.row.status" title="Atualizar o status" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.status"
+              title="Atualizar o status"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
           <q-td key="TrackStatus" :props="props">
             {{ props.row.trackStatus }}
-            <q-popup-edit v-model="props.row.trackStatus" title="Atualizar o Trackstatus" buttons v-slot="scope">
+            <q-popup-edit
+              v-model="props.row.trackStatus"
+              title="Atualizar o Trackstatus"
+              buttons
+              v-slot="scope"
+            >
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
@@ -121,9 +219,14 @@
 
 <script lang="ts">
 import { useMapping } from 'stores/mapping';
-import { map_add, map_clear, map_get, map_SaveRuntime } from 'src/utils/robot/commands/cmdParam';
+import {
+  map_add,
+  map_clear,
+  map_get,
+  map_SaveRuntime,
+} from 'src/utils/robot/commands/cmdParam';
 import { ref } from 'vue';
-import { RobotHandler } from 'src/utils/robot/handler';
+import { useRobotQueue } from 'stores/robotQueue';
 const columns = [
   {
     name: 'id',
@@ -171,10 +274,14 @@ const newReg: LFCommandCenter.RegMap[] = [
     trackStatus: 1,
   },
 ];
+
 const mapping = useMapping();
+const robotQueue = useRobotQueue();
+
 export default {
   setup() {
     const deleteRegID = ref(0);
+
     return {
       columns,
       newColumns,
@@ -183,7 +290,7 @@ export default {
       deleteMapReg,
       deleteAllMapRegs,
       mapping,
-      RobotHandler,
+      robotQueue,
       map_add,
       map_clear,
       map_get,
@@ -192,18 +299,20 @@ export default {
     function deleteMapReg() {
       mapping.deleteReg(deleteRegID.value);
       while (mapping.options.length !== 0) mapping.options.pop();
-      for (var i = 0; i < mapping.totalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
+      for (var i = 0; i < mapping.totalRegs; i++)
+        mapping.options.push(mapping.mapRegs.at(i).id);
       if (mapping.totalRegs > 0) deleteRegID.value = mapping.mapRegs.at(0).id;
       else deleteRegID.value = 1;
     }
     function deleteAllMapRegs() {
       mapping.clearMap();
-      RobotHandler.queueCommands([new map_clear(false)]);
+      robotQueue.addCommand(new map_clear(false));
     }
   },
   created() {
     while (mapping.options.length !== 0) mapping.options.pop();
-    for (var i = 0; i < mapping.totalRegs; i++) mapping.options.push(mapping.mapRegs.at(i).id);
+    for (var i = 0; i < mapping.totalRegs; i++)
+      mapping.options.push(mapping.mapRegs.at(i).id);
   },
   methods: {
     sendMap() {
@@ -217,11 +326,10 @@ export default {
       mapping.resendTries = 4;
       mapping.regsSent = true;
       mapping.regsString = '';
-      RobotHandler.queueCommand(new map_clear());
-      RobotHandler.queueCommand(new map_add(tempMap));
+      robotQueue.addCommands([new map_clear(), new map_add(tempMap)]);
     },
     saveMap() {
-      RobotHandler.queueCommand(new map_SaveRuntime());
+      robotQueue.addCommand(new map_SaveRuntime());
       mapping.mapSaving = true;
     },
     addMapReg() {

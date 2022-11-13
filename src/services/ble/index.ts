@@ -56,6 +56,7 @@ export class BLE {
 
       robot.services.forEach(async (characteristics, uuid) => {
         const uartService = await robotGattServer.getPrimaryService(uuid);
+
         characteristics.forEach(async (uuid, id) => {
           const characteristic = await uartService.getCharacteristic(uuid);
           this._characteristics.set(id, characteristic);
@@ -186,13 +187,15 @@ export class BLE {
     const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
     const data = this._handleChunck(characteristic.value);
 
-    console.log(this._txObservers.get('UART_TX'));
+    if (this.messageFinished()) {
+      console.log(this._txObservers.get('UART_TX'));
 
-    const [id] = [...this._characteristics.entries()].find(([, tx]) => {
-      return tx.uuid === characteristic.uuid;
-    });
+      const [id] = [...this._characteristics.entries()].find(([, tx]) => {
+        return tx.uuid === characteristic.uuid;
+      });
 
-    this._txObservers.get(id).forEach((observer) => observer(data));
+      this._txObservers.get(id).forEach((observer) => observer(data));
+    }
   }
 }
 
@@ -203,11 +206,13 @@ export const plugin = {
     const connected = ref(false);
     const connecting = ref(false);
     const error = ref('');
+
     app.provide<LFCommandCenter.UseBLE>(key, {
       ble,
       connected: connected,
       connecting: connecting,
       error: error,
+
       connect: async () => {
         connecting.value = true;
         try {
@@ -221,10 +226,12 @@ export const plugin = {
         }
         return Promise.resolve();
       },
+
       disconnect: () => {
         connected.value = false;
         ble.disconnect();
       },
+
     });
   },
 };

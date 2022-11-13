@@ -1,5 +1,6 @@
 import { PiniaPluginContext } from 'pinia';
 import { v4 as uuidv4 } from 'uuid';
+import { useRobotQueue } from 'stores/robotQueue';
 
 export abstract class Task {
   _id: string;
@@ -57,6 +58,8 @@ export const piniaPlugin = (storeId: string) => {
         } catch (error) {
           store.active.error = error;
           store.addFailedCommand(store.active);
+        } finally {
+          useRobotQueue().startNextCommand();
         }
         /**
          * TODO: refatorar robotQueue para ser possível rodar a fila aqui sem

@@ -11,39 +11,50 @@ const robotParameters = useRobotParameters();
 
 export abstract class Command extends Task {
   sanitizeData(data: string): LFCommandCenter.RobotResponse | null {
-    console.log(data);
-
-    if (!data.endsWith('\0')) return null;
-
+    // console.log(data);
     return JSON.parse(data.substring(0, data.length - 1));
   }
 
   characteristicObserver(data: string): Promise<void> | null {
     const result = this.sanitizeData(data);
-    if (!result) return null;
 
-    this.resultHandler(result);
-    commandQueue.startNextCommand();
+    if (null !== result) {
+      this.resultHandler(result);
+    }
+    else {
+      return null;
+    }
   }
 
-  abstract resultHandler(
-    data: Record<string, unknown> | string | null
-  ): Promise<void>;
+  abstract resultHandler(data: Record<string, unknown> | string | null): Promise<void>;
 }
 
 export class param_set extends Command {
-  row: LFCommandCenter.RobotParameter;
-  value: undefined;
-  initialValue: undefined;
+  className: string;
+  parameterName: string;
+  value: unknown;
+  initialValue: unknown;
 
-  constructor(
+  cmdExecd: string;
+
+  static fromRobotParameter(
     row: LFCommandCenter.RobotParameter,
     value: undefined,
     initialValue: undefined
   ) {
+    return new param_set(row.class.name, row.name, value, initialValue);
+  }
+
+  constructor(
+    className: string,
+    parameterName: string,
+    value: unknown,
+    initialValue: unknown
+  ) {
     super('param_set', { characteristicId: 'UART_TX' });
 
-    this.row = row;
+    this.className = className;
+    this.parameterName = parameterName;
     this.value = value;
     this.initialValue = initialValue;
   }
@@ -52,9 +63,11 @@ export class param_set extends Command {
     if (this.value === this.initialValue) return;
 
     try {
-      await robotParameters.ble.send(
+      this.cmdExecd = `param_set ${this.className}.${this.parameterName} ${this.value}`
+
+      robotParameters.ble.send(
         this.options.characteristicId.toString(),
-        `param_set ${this.row.class.name}.${this.row.name} ${this.value}`,
+        this.cmdExecd,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -68,20 +81,25 @@ export class param_set extends Command {
   }
 
   async resultHandler(response: LFCommandCenter.RobotResponse) {
-    robotParameters.ble.removeTxObserver(
-      this.id,
-      this.options.characteristicId.toString()
-    );
-    commandQueue.ble.clearData();
+    if (response.cmdExecd === this.cmdExecd) {
+      robotParameters.ble.removeTxObserver(
+        this.id,
+        this.options.characteristicId.toString()
+      );
 
-    if (response.data.match('OK')) console.log('Parâmetro alterado');
-    else console.error('Erro ao alterar parâmetro');
+      commandQueue.ble.clearData();
+
+      if (response.data.match('OK')) console.log('Parâmetro alterado');
+      else console.error('Erro ao alterar parâmetro');
+    }
   }
 }
 
 export class param_get extends Command {
   className: string;
   paramName: string;
+
+  cmdExecd: string;
 
   constructor(className: string, paramName: string) {
     super('param_get', { characteristicId: 'UART_TX' });
@@ -92,9 +110,11 @@ export class param_get extends Command {
 
   async execute() {
     try {
+      this.cmdExecd = `param_get ${this.className}.${this.paramName}`;
+
       await robotParameters.ble.send(
         this.options.characteristicId.toString(),
-        `param_get ${this.className}.${this.paramName}`,
+        this.cmdExecd,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -108,48 +128,54 @@ export class param_get extends Command {
   }
 
   async resultHandler(response: LFCommandCenter.RobotResponse) {
-    robotParameters.ble.removeTxObserver(
-      this.id,
-      this.options.characteristicId.toString()
-    );
-    robotParameters.ble.clearData();
+    if (response.cmdExecd === this.cmdExecd) {
+      robotParameters.ble.removeTxObserver(
+        this.id,
+        this.options.characteristicId.toString()
+      );
+      robotParameters.ble.clearData();
 
-    const match = response.cmdExecd.match(
-      'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
-    );
-    console.log(match);
-    console.log(
-      'Classe: ' +
+      const match = response.cmdExecd.match(
+        'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
+      );
+      console.log(match);
+      console.log(
+        'Classe: ' +
         match?.groups?.classe +
         ', Param: ' +
         match?.groups?.parametro +
         ', Value: ' +
         response.data
-    );
-    if (
-      match?.groups?.classe === undefined ||
-      match?.groups?.parametro === undefined
-    ) {
-      return;
+      );
+      if (
+        match?.groups?.classe === undefined ||
+        match?.groups?.parametro === undefined
+      ) {
+        return;
+      }
+      robotParameters.addParameter(
+        match?.groups?.classe,
+        match?.groups?.parametro,
+        response.data
+      );
     }
-    robotParameters.addParameter(
-      match?.groups?.classe,
-      match?.groups?.parametro,
-      response.data
-    );
   }
 }
 
 export class param_list extends Command {
+  cmdExecd: string;
+
   constructor() {
     super('param_list', { characteristicId: 'UART_TX' });
   }
 
   async execute() {
     try {
+      this.cmdExecd = 'param_list';
+
       await robotParameters.ble.send(
         this.options.characteristicId.toString(),
-        'param_list',
+        this.cmdExecd,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -163,38 +189,40 @@ export class param_list extends Command {
   }
 
   async resultHandler(response: LFCommandCenter.RobotResponse) {
-    robotParameters.ble.removeTxObserver(
-      this.id,
-      this.options.characteristicId.toString()
-    );
-    robotParameters.ble.clearData();
-    console.log('Parâmetros recebidos');
-
-    const lines: string[] = response.data.split('\n');
-
-    const qtdParams = Number(lines[0].substring(lines[0].indexOf(':') + 2));
-    console.log('Qtd de parâmetros: ' + qtdParams);
-
-    for (let index = 0; index < qtdParams; index++) {
-      const className: string = lines[index + 1].substring(
-        lines[index + 1].indexOf('-') + 2,
-
-        lines[index + 1].indexOf('.')
+    if (response.cmdExecd === this.cmdExecd) {
+      robotParameters.ble.removeTxObserver(
+        this.id,
+        this.options.characteristicId.toString()
       );
-      const paramName: string = lines[index + 1].substring(
-        lines[index + 1].indexOf('.') + 1,
+      robotParameters.ble.clearData();
+      console.log('Parâmetros recebidos');
 
-        lines[index + 1].indexOf(':')
-      );
-      const paramValue: string = lines[index + 1].substring(
-        lines[index + 1].indexOf(':') + 2
-      );
+      const lines: string[] = response.data.split('\n');
 
-      robotParameters.addParameter(className, paramName, paramValue);
+      const qtdParams = Number(lines[0].substring(lines[0].indexOf(':') + 2));
+      console.log('Qtd de parâmetros: ' + qtdParams);
 
-      console.log(
-        `ClassName: ${className}, ParamName: ${paramName}, ParamValue: ${paramValue}`
-      );
+      for (let index = 0; index < qtdParams; index++) {
+        const className: string = lines[index + 1].substring(
+          lines[index + 1].indexOf('-') + 2,
+
+          lines[index + 1].indexOf('.')
+        );
+        const paramName: string = lines[index + 1].substring(
+          lines[index + 1].indexOf('.') + 1,
+
+          lines[index + 1].indexOf(':')
+        );
+        const paramValue: string = lines[index + 1].substring(
+          lines[index + 1].indexOf(':') + 2
+        );
+
+        robotParameters.addParameter(className, paramName, paramValue);
+
+        console.log(
+          `ClassName: ${className}, ParamName: ${paramName}, ParamValue: ${paramValue}`
+        );
+      }
     }
   }
 }

@@ -263,7 +263,7 @@ const newColumns = [
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
-const newReg: LFCommandCenter.RegMap[] = [
+const newReg: LFCommandCenter.RegMap[] = ref([
   {
     id: 1,
     encMedia: 100,
@@ -271,9 +271,9 @@ const newReg: LFCommandCenter.RegMap[] = [
     encRight: 566,
     encLeft: 123,
     status: 345,
-    trackStatus: 1,
+    trackStatus: 2,
   },
-];
+]).value;
 
 const mapping = useMapping();
 const robotQueue = useRobotQueue();

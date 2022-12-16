@@ -52,9 +52,18 @@ export class param_set extends Command {
     if (this.value === this.initialValue) return;
 
     try {
+      let valueStr ='';
+      if(this.value != undefined)
+      {
+        valueStr = this.value.toString();
+        if(this.value < 0)
+        {
+          valueStr = '!' + valueStr;
+        }
+      }
       await robotParameters.ble.send(
         this.options.characteristicId.toString(),
-        `param_set ${this.row.class.name}.${this.row.name} ${this.value}`,
+        `param_set ${this.row.class.name}.${this.row.name} ${valueStr}`,
         this.characteristicObserver.bind(this),
         this.id
       );

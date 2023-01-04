@@ -101,28 +101,17 @@ export class BLE implements Bluetooth.BLEInterface {
    *
    * @param id Id da characterística pela qual a mensagem será enviada.
    * @param message Mensagem a ser enviada.
-   * @param observer Caso fornecido, será adicionado como observer da característica .
-   * @param uuid Caso fornecido, será usado como uuid do observer.
-   * @returns `Promise<(observerUuid: string, txCharacteristicId: string) => void>`
+   * @returns `Promise<never>`
    */
-  async send(
-    id: string,
-    message: string,
-    observer: Bluetooth.CharacteristicObserver = undefined,
-    uuid: string = undefined
-  ) {
+  async send(id: string, message: string) {
     try {
       if (!this._characteristics) {
         throw new Error('Característica RX não encontrada.');
       }
 
       await this._characteristics
-        .get('UART_RX')
+        .get(id)
         .writeValueWithoutResponse(this.encode(message));
-
-      if (observer) {
-        Promise.resolve(this.addTxObserver(id, observer, uuid));
-      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -164,7 +153,7 @@ export class BLE implements Bluetooth.BLEInterface {
         .get(characteristicId)
         .get(uuid)
         .forEach((rawMessage) => {
-          observer(JSON.parse(rawMessage));
+          observer instanceof Function && observer(JSON.parse(rawMessage));
         });
     });
   }
@@ -187,9 +176,9 @@ export class BLE implements Bluetooth.BLEInterface {
     return this._sendMessages(id);
   }
 
-  addTxObserver(
+  addTxObserver<T>(
     txCharacteristicId: string,
-    observer: Bluetooth.CharacteristicObserver,
+    observer: Bluetooth.CharacteristicObserver<T>,
     uuid: string = undefined
   ) {
     if (!uuid) {

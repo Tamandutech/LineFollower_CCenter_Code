@@ -29,7 +29,7 @@ declare namespace Robot {
   type RuntimeStream = Array<{
     name: string;
     value: number;
-    interval: number;
+    time: number;
   }>;
 
   type DataClass = {
@@ -42,8 +42,9 @@ declare namespace Robot {
     services: Map<string, Map<string, string>>;
   };
 
-  type CommandReceiver<ObserverType = Bluetooth.CharacteristicObserver> = (
+  type Command = (
     ble: Bluetooth.BLEInterface,
-    observer: ObserverType
-  ) => Promise<typeof Bluetooth.removeTxObserver>;
+    command: string,
+    characteristicId: string
+  ) => Promise<never>;
 }

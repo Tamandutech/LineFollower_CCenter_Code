@@ -2,17 +2,15 @@ declare namespace Bluetooth {
   type BleCharacteristicsMap = Map<string, string>;
   type BleServicesMap = Map<string, BleCharacteristicsMap>;
 
-  type CharacteristicObserver<T = string> = (
-    response: Robot.Response<T>
-  ) => void;
-  type ObserverMap = Map<string, CharacteristicObserver>;
+  type CharacteristicObserver<T> = (response: T) => void;
+  type ObserverMap = Map<string, unknown>;
   type TxObserverMap = Map<string, ObserverMap>;
   type UseBLE = {
     ble: import('src/services/ble').BLE;
     connected: import('vue').Ref<boolean>;
     connecting: import('vue').Ref<boolean>;
     error: import('vue').Ref<string>;
-    connect: (config: Robot.BluetoothConnectionConfig) => Promise<void>;
+    connect: (config?: Robot.BluetoothConnectionConfig) => Promise<void>;
     disconnect: () => void;
   };
 
@@ -22,17 +20,12 @@ declare namespace Bluetooth {
   ): boolean;
 
   interface BLEInterface {
-    send: (
-      id: string,
-      message: string,
-      observer?: CharacteristicObserver,
-      uuid?: string
-    ) => Promise<() => ReturnType<typeof removeTxObserver>>;
+    send: (id: string, message: string) => Promise<never>;
     encode: (message: string) => Uint8Array;
     decode: (buffer: ArrayBufferLike) => string;
-    addTxObserver: (
+    addTxObserver: <T>(
       txCharacteristicId: string,
-      observer: CharacteristicObserver,
+      observer: CharacteristicObserver<T>,
       uuid?: string
     ) => () => ReturnType<typeof removeTxObserver>;
     removeTxObserver: typeof removeTxObserver;

@@ -85,9 +85,9 @@ export class param_set extends Command {
       await robotParameters.ble.send(
         this.options.characteristicId.toString(),
         `param_set ${this.row.class.name}.${this.row.name} ${this.value}`,
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      robotParameters.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       robotParameters.ble.removeTxObserver(
         this.id,
@@ -124,9 +124,9 @@ export class param_get extends Command {
       await robotParameters.ble.send(
         this.options.characteristicId.toString(),
         `param_get ${this.className}.${this.paramName}`,
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      robotParameters.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       robotParameters.ble.removeTxObserver(
         this.id,
@@ -178,9 +178,9 @@ export class param_list extends Command {
       await robotParameters.ble.send(
         this.options.characteristicId.toString(),
         'param_list',
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      robotParameters.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       robotParameters.ble.removeTxObserver(
         this.id,
@@ -240,9 +240,9 @@ export class map_clear extends Command {
       await mapping.ble.send(
         this.options.characteristicId.toString(),
         this.command,
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      mapping.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       mapping.ble.removeTxObserver(
         this.id,
@@ -277,9 +277,9 @@ export class map_get extends Command {
       await mapping.ble.send(
         this.options.characteristicId.toString(),
         this._command,
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      mapping.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       mapping.ble.removeTxObserver(
         this.id,
@@ -318,9 +318,9 @@ export class map_SaveRuntime extends Command {
       await mapping.ble.send(
         this.options.characteristicId.toString(),
         'map_SaveRuntime',
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      mapping.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       mapping.ble.removeTxObserver(
         this.id,
@@ -379,9 +379,9 @@ export class map_add extends Command {
       await mapping.ble.send(
         this.options.characteristicId.toString(),
         `map_add ${mapping.regsString}`,
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      mapping.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       mapping.ble.removeTxObserver(
         this.id,
@@ -432,9 +432,9 @@ export class battery_voltage extends Command {
       await battery.ble.send(
         this.options.characteristicId.toString(),
         'bat_voltage',
-        this.characteristicObserver.bind(this),
-        this.id
       );
+
+      mapping.ble.addTxObserver(this.options.characteristicId.toString(), this.characteristicObserver.bind(this), this.id)
     } catch (error) {
       battery.ble.removeTxObserver(
         this.id,

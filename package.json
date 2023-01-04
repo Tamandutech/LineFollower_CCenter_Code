@@ -19,6 +19,7 @@
     "@types/web-bluetooth": "^0.0.14",
     "@vueuse/core": "^8.8.1",
     "brotli": "^1.3.2",
+    "chart.js": "^3.9.1",
     "dotenv": "^16.0.2",
     "firebase": "^9.9.3",
     "mitt": "^3.0.0",
@@ -26,6 +27,7 @@
     "quasar": "^2.6.0",
     "uuid": "^9.0.0",
     "vue": "^3.0.0",
+    "vue-chartjs": "^4.1.2",
     "vue-router": "^4.0.0"
   },
   "devDependencies": {

@@ -67,6 +67,12 @@
               </q-item-section>
               <q-item-section> Mapeamento </q-item-section>
             </q-item>
+            <q-item clickable :to="'/robot/stream'" exact>
+              <q-item-section avatar>
+                <q-icon :name="mdiChartLine" />
+              </q-item-section>
+              <q-item-section> Transmissão </q-item-section>
+            </q-item>
           </q-expansion-item>
         </q-list>
       </q-scroll-area>
@@ -88,6 +94,7 @@ import {
   mdiRobotMowerOutline,
   mdiBluetoothConnect,
   mdiBluetoothOff,
+  mdiChartLine,
   mdiAccountCheck,
   mdiCloseOctagon,
   mdiAlertCircle,

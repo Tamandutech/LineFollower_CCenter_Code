@@ -45,7 +45,7 @@ module.exports = configure(function (/* ctx */) {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       // 'ionicons-v4',
-      // 'mdi-v6',
+      'mdi-v6',
       // 'fontawesome-v6',
       // 'eva-icons',
       // 'themify',
@@ -180,7 +180,7 @@ module.exports = configure(function (/* ctx */) {
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,
-        })
+        });
       },
       injectPwaMetaTags: true,
       swFilename: 'sw.js',

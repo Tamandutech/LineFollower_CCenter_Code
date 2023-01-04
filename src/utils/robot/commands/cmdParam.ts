@@ -2,14 +2,55 @@ import { useRobotParameters } from 'stores/robotParameters';
 import { useRobotQueue } from 'stores/robotQueue';
 import { useMapping } from 'stores/mapping';
 import { useBattery } from 'stores/battery';
-import { Task } from 'src/services/queue';
+import { v4 as uuidv4 } from 'uuid';
 
 const battery = useBattery();
 const commandQueue = useRobotQueue();
 const mapping = useMapping();
 const robotParameters = useRobotParameters();
 
-export abstract class Command extends Task {
+export abstract class Command {
+  _id: string;
+  _name: string;
+  _options: Record<string, string | number>;
+  _error: string | null;
+
+  constructor(name: string, options: Record<string, string | number> = null) {
+    this._name = name;
+    this._id = uuidv4();
+    if (options) {
+      this._options = options;
+    }
+  }
+
+  get name() {
+    return this._name;
+  }
+
+  get id() {
+    return this._id;
+  }
+
+  get options() {
+    return this._options;
+  }
+
+  get error() {
+    return this._error;
+  }
+
+  set error(value: unknown) {
+    if (value instanceof Error) {
+      this._error = value.message;
+    } else if (typeof value === 'string') {
+      this._error = value;
+    } else {
+      this._error = value.toString();
+    }
+  }
+
+  abstract execute(): Promise<void>;
+
   characteristicObserver(response: LFCommandCenter.RobotResponse): void {
     if (!response.cmdExecd.startsWith(this.name)) {
       return;

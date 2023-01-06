@@ -51,7 +51,7 @@ export abstract class Command {
 
   abstract execute(): Promise<void>;
 
-  characteristicObserver(response: LFCommandCenter.RobotResponse): void {
+  characteristicObserver(response: Robot.Response<string>): void {
     if (!response.cmdExecd.startsWith(this.name)) {
       return;
     }
@@ -62,15 +62,11 @@ export abstract class Command {
 }
 
 export class param_set extends Command {
-  row: LFCommandCenter.RobotParameter;
+  row: Robot.Parameter;
   value: unknown;
   initialValue: unknown;
 
-  constructor(
-    row: LFCommandCenter.RobotParameter,
-    value: unknown,
-    initialValue: unknown
-  ) {
+  constructor(row: Robot.Parameter, value: unknown, initialValue: unknown) {
     super('param_set', { characteristicId: 'UART_TX' });
 
     this.row = row;
@@ -110,7 +106,7 @@ export class param_set extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -153,7 +149,7 @@ export class param_get extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -211,7 +207,7 @@ export class param_list extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -277,7 +273,7 @@ export class map_clear extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -318,7 +314,7 @@ export class map_get extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -363,7 +359,7 @@ export class map_SaveRuntime extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -381,10 +377,10 @@ export class map_SaveRuntime extends Command {
 }
 
 export class map_add extends Command {
-  regMaps: LFCommandCenter.RegMap[];
+  regMaps: Robot.RegMap[];
   actualReg: number;
 
-  constructor(regMaps: LFCommandCenter.RegMap[], actualReg = 0) {
+  constructor(regMaps: Robot.RegMap[], actualReg = 0) {
     super('map_add', { characteristicId: 'UART_TX' });
     mapping.setRegToSend(actualReg);
     this.regMaps = regMaps;
@@ -428,7 +424,7 @@ export class map_add extends Command {
     }
   }
 
-  resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
@@ -485,7 +481,7 @@ export class battery_voltage extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  async resultHandler(response: Robot.Response<string>) {
     battery.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()

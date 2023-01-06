@@ -263,7 +263,7 @@ const newColumns = [
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
-const newReg: LFCommandCenter.RegMap[] = ref([
+const newReg: Robot.RegMap[] = ref([
   {
     id: 1,
     encMedia: 100,
@@ -333,7 +333,7 @@ export default {
       mapping.mapSaving = true;
     },
     addMapReg() {
-      let newMapReg = {} as LFCommandCenter.RegMap;
+      let newMapReg = {} as Robot.RegMap;
       newMapReg.id = 0;
       newMapReg.time = newReg[0].time;
       newMapReg.status = newReg[0].status;

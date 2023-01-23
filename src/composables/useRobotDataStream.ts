@@ -1,24 +1,37 @@
 import { sendCommand } from 'src/tasks';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, computed } from 'vue';
+import { DeviceError } from 'src/services/ble/errors';
 
 export default (
   ble: Bluetooth.BLEInterface,
-  streamCharacteristicId = 'STREAM_TX',
-  commandCharacteristicId = 'UART_TX'
+  streamCharacteristicId: string,
+  txCharacteristicId: string,
+  rxCharacteristicId: string,
+  streamReader: (values: Robot.RuntimeStream[]) => void
 ) => {
-  let streamObserverUuid: string | undefined;
-
   const parametersInStream = ref<Map<string, number>>(new Map());
   const isStreamActive = computed<boolean>(
     () => parametersInStream.value.size > 0
   );
 
-  const start = (
-    parameter: string,
-    interval: number,
-    reader: (values: Robot.RuntimeStream) => void
-  ) => {
+  const error = ref<unknown>();
+  const errorHandler: Queue.MessageReceiver<Promise<never>> = async function (
+    this: Queue.ITask<Robot.Command>,
+    { error: e }
+  ) {
+    if (e) {
+      error.value = e;
+      return;
+    }
+
+    return this.broker.lock();
+  };
+
+  const streamObserverUuid = uuidv4();
+  ble.addTxObserver(streamCharacteristicId, streamReader, streamObserverUuid);
+
+  const start = (parameter: string, interval: number) => {
     if (parametersInStream.value.get(parameter) === interval) {
       return Promise.resolve();
     }
@@ -31,33 +44,33 @@ export default (
         this: Queue.ITask<Robot.Command>,
         response: Robot.Response<string>
       ) {
+        this.broker.unlock();
+
         if (response.cmdExecd === command) {
-          removeObserver();
+          removeTxObserver();
 
           if (response.data === 'OK') {
-            streamObserverUuid = streamObserverUuid || uuidv4();
-            ble.addTxObserver(
-              streamCharacteristicId,
-              reader,
-              streamObserverUuid
-            );
-
             parametersInStream.value.set(parameter, interval);
-
             return resolve();
           }
 
-          return reject();
+          return reject(new DeviceError());
         }
       };
 
-      const removeObserver = ble.addTxObserver(
-        commandCharacteristicId,
-        observer,
-        observerUuid
-      );
+      let removeTxObserver: () => boolean;
+      try {
+        removeTxObserver = ble.addTxObserver(
+          txCharacteristicId,
+          observer.bind(sendCommand),
+          observerUuid
+        );
+      } catch (e) {
+        error.value = e;
+        resolve();
+      }
 
-      sendCommand.delay([ble, , commandCharacteristicId]);
+      sendCommand.delay([ble, command, rxCharacteristicId], errorHandler);
     });
   };
 
@@ -78,6 +91,8 @@ export default (
         this: Queue.ITask<Robot.Command>,
         response: Robot.Response<string>
       ) {
+        this.broker.unlock();
+
         if (response.cmdExecd === command) {
           removeObserver();
 
@@ -87,22 +102,26 @@ export default (
               ble.removeTxObserver(streamObserverUuid, streamCharacteristicId);
             }
 
-            resolve(true);
+            return resolve(true);
           }
 
-          resolve(false);
+          return reject(new DeviceError());
         }
       };
 
       const removeObserver = ble.addTxObserver(
-        commandCharacteristicId,
-        observer,
+        txCharacteristicId,
+        observer.bind(sendCommand),
         observerUuid
       );
 
-      sendCommand.delay([ble, , commandCharacteristicId]);
+      sendCommand.delay([ble, command, rxCharacteristicId], errorHandler);
     });
   };
 
-  return { isStreamActive, start, stop };
+  const stopAll = async () => {
+    return Promise.all([...parametersInStream.value.keys()].map(stop));
+  };
+
+  return { isStreamActive, start, stop, stopAll, error };
 };

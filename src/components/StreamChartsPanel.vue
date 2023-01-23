@@ -69,7 +69,7 @@ const parametersFirstTimeValue = new Map<string, number>();
 const streamReader = (currentValues: Robot.RuntimeStream[]) => {
   currentValues.forEach(({ name: parameter, value, Time }) => {
     const time = Number(Time);
-    const currentValue = (Number(value) + Math.random()) * (Math.random() * 3);
+    const currentValue = Number(value);
 
     if (!parametersFirstTimeValue.has(parameter)) {
       parametersFirstTimeValue.set(parameter, time);

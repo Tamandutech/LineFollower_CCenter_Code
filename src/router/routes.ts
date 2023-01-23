@@ -43,7 +43,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import('pages/StreamChartPage.vue'),
+        component: () => import('pages/RuntimeStreamPage.vue'),
         name: 'stream',
         meta: { requiresAuth: true },
       },

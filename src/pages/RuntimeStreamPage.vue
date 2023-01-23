@@ -177,7 +177,9 @@
                   </q-item-section>
                   <q-item-section>{{ label }}</q-item-section>
                   <q-item-section side>
-                    <q-item-label caption>{{ value }}</q-item-label>
+                    <q-item-label caption>{{
+                      formatter.format(Number(value))
+                    }}</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -234,6 +236,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useQuasar } from 'quasar';
 import useRobotRuntime from 'src/composables/useRobotRuntime';
 import useBluetooth from 'src/services/ble';
 import {
@@ -312,4 +315,8 @@ const closeStreamsPanel = () => {
   renderStreamsPanel.value = false;
   showControlsDialog.value = false;
 };
+
+const formatter = Intl.NumberFormat(useQuasar().lang.getLocale(), {
+  notation: 'scientific',
+});
 </script>

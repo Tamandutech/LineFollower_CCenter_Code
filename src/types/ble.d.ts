@@ -1,4 +1,11 @@
 declare namespace Bluetooth {
+  type ErrorOptions = { message: string; action: string; cause?: unknown };
+  interface Error {
+    readonly message: string;
+    readonly action: string;
+    readonly cause: unknown;
+  }
+
   type BleCharacteristicsMap = Map<string, string>;
   type BleServicesMap = Map<string, BleCharacteristicsMap>;
 
@@ -9,7 +16,6 @@ declare namespace Bluetooth {
     ble: import('src/services/ble').BLE;
     connected: import('vue').Ref<boolean>;
     connecting: import('vue').Ref<boolean>;
-    error: import('vue').Ref<string>;
     connect: (config?: Robot.BluetoothConnectionConfig) => Promise<void>;
     disconnect: () => void;
   };
@@ -29,5 +35,6 @@ declare namespace Bluetooth {
       uuid?: string
     ) => () => ReturnType<typeof removeTxObserver>;
     removeTxObserver: typeof removeTxObserver;
+    connected: boolean
   }
 }

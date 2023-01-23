@@ -6,11 +6,7 @@ export const sendCommand = task(
     command: string,
     characteristicId: string
   ) {
-    try {
-      return ble.send(characteristicId, command);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    return ble.send(characteristicId, command);
   },
   'sendMessage',
   { bind: true }

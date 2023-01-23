@@ -1,7 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import { inject, markRaw, ref } from 'vue';
+import {
+  ConnectionError,
+  DeviceNotFoundError,
+  CharacteristicWriteError,
+} from './errors';
 import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
+
+export { BleError } from './errors';
 
 /**
  * Hardcodado pois os serviços para o envio de comandos via
@@ -54,9 +61,9 @@ export class BLE implements Bluetooth.BLEInterface {
       device.addEventListener('gattserverdisconnected', this._onDisconnect);
       const robotGattServer = await device.gatt.connect();
 
-      config.services.forEach(async (characteristics, uuid) => {
+      for (const [uuid, characteristics] of config.services.entries()) {
         const uartService = await robotGattServer.getPrimaryService(uuid);
-        characteristics.forEach(async (uuid, id) => {
+        for (const [id, uuid] of characteristics.entries()) {
           const characteristic = await uartService.getCharacteristic(uuid);
           this._characteristics.set(id, characteristic);
           this._messages.set(id, new Map());
@@ -71,10 +78,10 @@ export class BLE implements Bluetooth.BLEInterface {
 
             await characteristic.startNotifications();
           }
-        });
-      });
+        }
+      }
     } catch (error) {
-      return Promise.reject(error);
+      return Promise.reject(new ConnectionError({ cause: error }));
     }
   }
 
@@ -104,16 +111,19 @@ export class BLE implements Bluetooth.BLEInterface {
    * @returns `Promise<never>`
    */
   async send(id: string, message: string) {
-    try {
-      if (!this._characteristics) {
-        throw new Error('Característica RX não encontrada.');
-      }
+    if (!this._characteristics.has(id)) {
+      throw new ConnectionError({
+        message: 'Característica RX não encontrada.',
+        action: 'Verifique se as características estão disponíveis no robô.',
+      });
+    }
 
+    try {
       await this._characteristics
         .get(id)
         .writeValueWithoutResponse(this.encode(message));
     } catch (error) {
-      return Promise.reject(error);
+      return Promise.reject(new CharacteristicWriteError({ cause: error }));
     }
   }
 
@@ -181,6 +191,21 @@ export class BLE implements Bluetooth.BLEInterface {
     observer: Bluetooth.CharacteristicObserver<T>,
     uuid: string = undefined
   ) {
+    if (!this.connected) {
+      throw new ConnectionError({
+        message: 'Não há conexão bluetooth.',
+        action: 'Conecte a dashboard a um seguidor de linha.',
+      });
+    }
+
+    if (!this._txObservers.has(txCharacteristicId)) {
+      throw new ConnectionError({
+        message: 'Foram encontrados problemas na comunicação com o robô.',
+        action:
+          'Verifique se as configurações da interface bluetooth do robô estão corretas.',
+      });
+    }
+
     if (!uuid) {
       uuid = uuidv4();
     }
@@ -211,12 +236,10 @@ export const plugin = {
 
     const connected = ref(false);
     const connecting = ref(false);
-    const error = ref('');
     app.provide<Bluetooth.UseBLE>(key, {
       ble,
       connected: connected,
       connecting: connecting,
-      error: error,
       connect: async (config: Robot.BluetoothConnectionConfig = ROBOTS[0]) => {
         connecting.value = true;
 
@@ -226,14 +249,14 @@ export const plugin = {
             optionalServices: [...config.services.keys()],
           });
           if (!device) {
-            throw new Error('Seguidor de Linha não encontrado.');
+            throw new DeviceNotFoundError();
           }
 
           await ble.connect(device, config);
           connected.value = true;
-        } catch (e) {
+        } catch (error) {
           connected.value = false;
-          error.value = e.toString();
+          throw error;
         } finally {
           connecting.value = false;
         }

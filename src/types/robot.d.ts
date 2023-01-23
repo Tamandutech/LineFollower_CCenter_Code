@@ -26,11 +26,11 @@ declare namespace Robot {
     trackStatus: number;
   };
 
-  type RuntimeStream = Array<{
+  type RuntimeStream = {
     name: string;
-    value: number;
-    time: number;
-  }>;
+    value: number | string;
+    Time: number;
+  };
 
   type DataClass = {
     name: string;

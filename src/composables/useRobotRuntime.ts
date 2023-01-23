@@ -1,12 +1,17 @@
-import { sendCommand } from 'src/tasks';
 import { v4 as uuidv4 } from 'uuid';
 import { ref } from 'vue';
+import { sendCommand } from 'src/tasks';
 
-export default (ble: Bluetooth.BLEInterface, characteristicId: string) => {
+export default (
+  ble: Bluetooth.BLEInterface,
+  txCharacteristicId: string,
+  rxCharacteristicId: string
+) => {
   let uuid: string;
 
   const parameters = ref<Map<string, number>>(new Map());
-  const updateParameters = () => {
+  const error = ref<unknown>();
+  const updateParameters = async () => {
     uuid = uuidv4();
 
     return new Promise<void>((resolve) => {
@@ -35,20 +40,30 @@ export default (ble: Bluetooth.BLEInterface, characteristicId: string) => {
         resolve();
       };
 
-      const removeTxObserver = ble.addTxObserver(
-        characteristicId,
-        observer.bind(sendCommand),
-        uuid
-      );
+      let removeTxObserver: () => boolean;
+      try {
+        removeTxObserver = ble.addTxObserver(
+          txCharacteristicId,
+          observer.bind(sendCommand),
+          uuid
+        );
+      } catch (e) {
+        error.value = e;
+        resolve();
+      }
 
       sendCommand.delay(
-        [ble, 'runtime_list', characteristicId],
-        async function (this: Queue.ITask<Robot.Command>) {
+        [ble, 'runtime_list', rxCharacteristicId],
+        async function (this: Queue.ITask<Robot.Command>, { error: e }) {
+          if (e) {
+            error.value = e;
+            return;
+          }
           return this.broker.lock();
         }
       );
     });
   };
 
-  return { parameters, updateParameters };
+  return { parameters, error, updateParameters };
 };

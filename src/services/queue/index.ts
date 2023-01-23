@@ -109,9 +109,13 @@ export class Message<T extends (...args: Parameters<T>) => ReturnType<T>>
   async resolve() {
     try {
       this._result = await this._task.apply(...this._args);
-      return Promise.resolve(this._receiver && this._receiver(this._result));
+      if (this._receiver) this._receiver({ result: this._result });
+
+      return Promise.resolve();
     } catch (error) {
       this.error = error;
+
+      if (this._receiver) this._receiver({ error });
       return Promise.reject(error);
     }
   }
@@ -123,10 +127,9 @@ export const piniaPlugin = (storeId: string) => {
       for (const message of store.pullPendingMessages()) {
         store.active = message;
         try {
-          await store.active.resolve();
-          store.completeActiveMessage();
+          await store.completeActiveMessage();
         } catch (error) {
-          store.failActiveMessage();
+          store.failActiveMessage(error);
         }
       }
     };

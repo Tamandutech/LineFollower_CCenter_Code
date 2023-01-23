@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { defineStore } from 'pinia';
 
+export class NoActiveMessageError extends Error {
+  readonly message = 'Não há tarefas pendentes na fila.';
+}
+
 export const useCommandQueue = defineStore('commandQueue', {
   state: () => ({
     pending: [],
     completed: [],
-    failed: [],
+    failed: new Map(),
     active: null,
     locked: false,
   }),
@@ -21,12 +25,16 @@ export const useCommandQueue = defineStore('commandQueue', {
     ) {
       return this.pending.push(...messages);
     },
-    completeActiveMessage() {
-      if (this.active) this.completed.push(this.active);
+    async completeActiveMessage() {
+      if (!this.active) throw new NoActiveMessageError();
+
+      await this.active.resolve();
+
+      this.completed.push(this.active);
       this.active = null;
     },
-    failActiveMessage() {
-      if (this.active) this.failed.push(this.active);
+    failActiveMessage(error: unknown) {
+      if (this.active) this.failed.set(this.active, error);
       this.active = null;
     },
     pullPendingMessages: function* <

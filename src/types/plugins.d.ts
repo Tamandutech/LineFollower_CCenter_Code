@@ -16,8 +16,8 @@ declare module 'pinia' {
     pushMessages<T extends (...args: Parameters<T>) => ReturnType<T>>(
       ...messages: Queue.IMessage<T>[]
     ): void;
-    completeActiveMessage(): void;
-    failActiveMessage(): void;
+    completeActiveMessage(): Promise<void>;
+    failActiveMessage(error: unknown): void;
     pullPendingMessages<
       T extends (...args: Parameters<T>) => ReturnType<T>
     >(): Iterable<Queue.IMessage<T>>;

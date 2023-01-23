@@ -1,5 +1,11 @@
 declare namespace Queue {
-  type MessageReceiver<T> = (result: T) => void;
+  type MessageReceiver<T> = ({
+    result,
+    error,
+  }: {
+    result?: T;
+    error?: unknown;
+  }) => void;
 
   type TaskOptions = {
     bind: boolean;
@@ -21,8 +27,8 @@ declare namespace Queue {
   interface IMessage<T extends (...args: Parameters<T>) => ReturnType<T>> {
     readonly task: ITask<T>;
     readonly id: string;
-    readonly result: ReturnType<T> | undefined;
-    readonly receiver: MessageReceiver<ReturnType<T>> | undefined;
+    readonly result?: ReturnType<T>;
+    readonly receiver?: MessageReceiver<ReturnType<T>>;
     readonly args: Parameters<T>;
     readonly resolve: (...args: Parameters<T>) => Promise<void>;
     error: unknown;

@@ -82,13 +82,13 @@ export class param_set extends Command {
       if (this.value !== undefined) {
         valueStr = this.value.toString();
 
-        if (this.value < 0) {
+        if (Number(this.value) < 0) {
           valueStr = '!' + valueStr;
         }
       }
 
       await robotParameters.ble.send(
-        this.options.characteristicId.toString(),
+        'UART_RX',
         `param_set ${this.row.class.name}.${this.row.name} ${valueStr}`
       );
 
@@ -131,7 +131,7 @@ export class param_get extends Command {
   async execute() {
     try {
       await robotParameters.ble.send(
-        this.options.characteristicId.toString(),
+        'UART_RX',
         `param_get ${this.className}.${this.paramName}`
       );
 
@@ -187,17 +187,14 @@ export class param_list extends Command {
   }
 
   async execute() {
-    try {
-      await robotParameters.ble.send(
-        this.options.characteristicId.toString(),
-        'param_list'
-      );
+    robotParameters.ble.addTxObserver(
+      this.options.characteristicId.toString(),
+      this.characteristicObserver.bind(this),
+      this.id
+    );
 
-      robotParameters.ble.addTxObserver(
-        this.options.characteristicId.toString(),
-        this.characteristicObserver.bind(this),
-        this.id
-      );
+    try {
+      await robotParameters.ble.send('UART_RX', 'param_list');
     } catch (error) {
       robotParameters.ble.removeTxObserver(
         this.id,
@@ -254,10 +251,7 @@ export class map_clear extends Command {
 
   async execute() {
     try {
-      await mapping.ble.send(
-        this.options.characteristicId.toString(),
-        this.command
-      );
+      await mapping.ble.send('UART_RX', this.command);
 
       mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
@@ -295,10 +289,7 @@ export class map_get extends Command {
 
   async execute() {
     try {
-      await mapping.ble.send(
-        this.options.characteristicId.toString(),
-        this._command
-      );
+      await mapping.ble.send('UART_RX', this._command);
 
       mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
@@ -340,10 +331,7 @@ export class map_SaveRuntime extends Command {
 
   async execute() {
     try {
-      await mapping.ble.send(
-        this.options.characteristicId.toString(),
-        'map_SaveRuntime'
-      );
+      await mapping.ble.send('UART_RX', 'map_SaveRuntime');
 
       mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
@@ -405,10 +393,7 @@ export class map_add extends Command {
       }
     }
     try {
-      await mapping.ble.send(
-        this.options.characteristicId.toString(),
-        `map_add ${mapping.regsString}`
-      );
+      await mapping.ble.send('UART_RX', `map_add ${mapping.regsString}`);
 
       mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
@@ -462,10 +447,7 @@ export class battery_voltage extends Command {
 
   async execute() {
     try {
-      await battery.ble.send(
-        this.options.characteristicId.toString(),
-        'bat_voltage'
-      );
+      await battery.ble.send('UART_RX', 'bat_voltage');
 
       mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),

@@ -153,7 +153,7 @@ export const piniaPlugin = (storeId: string) => {
       });
 
       return { task: markRaw(task) };
-    } else if (storeId === 'robotQueue') {
+    } else if (storeId === 'queue') {
       store.$onAction(async ({ store, name, after, onError }) => {
         if (name !== 'setActiveCommand') return;
 

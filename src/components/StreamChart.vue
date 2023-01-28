@@ -27,6 +27,15 @@ onMounted(() => {
         intersect: false,
         mode: 'nearest',
       },
+      scales: {
+        x: {
+          ticks: {
+            callback(value) {
+              return Number(value) / 1000 + 's';
+            },
+          },
+        },
+      },
       animation: false,
       borderColor: colors.getPaletteColor(props.color),
       backgroundColor: colors.lighten(colors.getPaletteColor(props.color), 25),

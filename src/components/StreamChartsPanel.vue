@@ -139,11 +139,7 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
         datasets: [
           {
             label: parameter,
-            data: streamsValues
-              .get(parameter)
-              .value.map(
-                ([, value]) => (value + Math.random()) * (Math.random() * 3)
-              ),
+            data: streamsValues.get(parameter).value.map(([, value]) => value),
           },
         ],
       })),

@@ -78,6 +78,7 @@
                       (value) =>
                         (parametersToStream.get(option).interval = value)
                     "
+                    :step="0.5"
                   ></q-slider
                 ></q-item-section>
               </q-item>

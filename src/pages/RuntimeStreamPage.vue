@@ -51,7 +51,7 @@
                     dense
                     options-dense
                     borderless
-                    :options="[5, 10, 15, 20, 25, 30, 35, 40]"
+                    :options="[5, 10, 15, 20, 25, 30, 35, 40, 60, 80, 100, 500, 1000]"
                   >
                     <template #prepend>
                       <q-icon :name="mdiCameraDocument"></q-icon>
@@ -64,7 +64,7 @@
                   <q-slider
                     :id="`parameter-otion-${index}`"
                     label
-                    :max="5"
+                    :max="2"
                     :min="0"
                     switch-label-side
                     color="teal"
@@ -78,7 +78,7 @@
                       (value) =>
                         (parametersToStream.get(option).interval = value)
                     "
-                    :step="0.5"
+                    :step="0.05"
                   ></q-slider
                 ></q-item-section>
               </q-item>

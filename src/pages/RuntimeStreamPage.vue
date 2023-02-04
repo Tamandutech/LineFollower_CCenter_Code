@@ -51,7 +51,9 @@
                     dense
                     options-dense
                     borderless
-                    :options="[5, 10, 15, 20, 25, 30, 35, 40, 60, 80, 100, 500, 1000]"
+                    :options="[
+                      5, 10, 15, 20, 25, 30, 35, 40, 60, 80, 100, 500, 1000,
+                    ]"
                   >
                     <template #prepend>
                       <q-icon :name="mdiCameraDocument"></q-icon>
@@ -238,7 +240,7 @@
 
 <script lang="ts" setup>
 import { useQuasar } from 'quasar';
-import useRobotRuntime from 'src/composables/useRobotRuntime';
+import { useRobotRuntime } from 'src/composables/runtime';
 import useBluetooth from 'src/services/ble';
 import {
   mdiCog,

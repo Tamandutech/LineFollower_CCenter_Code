@@ -1,17 +1,26 @@
 import { v4 as uuidv4 } from 'uuid';
+import { useMessageReceiver } from './receiver';
 import { ref } from 'vue';
 import { sendCommand } from 'src/tasks';
+import type { Ref } from 'vue';
 
-export default (
+export const useRobotRuntime = (
   ble: Bluetooth.BLEInterface,
   txCharacteristicId: string,
   rxCharacteristicId: string
-) => {
+): {
+  parameters: Ref<Map<string, number>>;
+  error: Ref<unknown>;
+  updateParameters: () => Promise<void>;
+} => {
   let uuid: string;
 
   const parameters = ref<Map<string, number>>(new Map());
-  const error = ref<unknown>();
-  const updateParameters = async () => {
+  const { error, receiver } = useMessageReceiver(() =>
+    sendCommand.broker.lock()
+  );
+
+  async function updateParameters(): Promise<void> {
     uuid = uuidv4();
 
     return new Promise<void>((resolve) => {
@@ -52,18 +61,9 @@ export default (
         resolve();
       }
 
-      sendCommand.delay(
-        [ble, 'runtime_list', rxCharacteristicId],
-        async function (this: Queue.ITask<Robot.Command>, { error: e }) {
-          if (e) {
-            error.value = e;
-            return;
-          }
-          return this.broker.lock();
-        }
-      );
+      sendCommand.delay([ble, 'runtime_list', rxCharacteristicId], receiver);
     });
-  };
+  }
 
   return { parameters, error, updateParameters };
 };

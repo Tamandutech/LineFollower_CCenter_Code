@@ -1,37 +1,35 @@
 import { sendCommand } from 'src/tasks';
+import { useMessageReceiver } from './receiver';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, computed } from 'vue';
 import { DeviceError } from 'src/services/ble/errors';
+import type { ComputedRef, Ref } from 'vue';
 
-export default (
+export const useRobotDataStream = (
   ble: Bluetooth.BLEInterface,
   streamCharacteristicId: string,
   txCharacteristicId: string,
   rxCharacteristicId: string,
   streamReader: (values: Robot.RuntimeStream[]) => void
-) => {
+): {
+  isStreamActive: ComputedRef<boolean>;
+  start: (parameter: string, interval: number) => Promise<void>;
+  stop: (parameter: string) => Promise<boolean>;
+  stopAll: () => Promise<boolean[]>;
+  error: Ref<unknown>;
+} => {
   const parametersInStream = ref<Map<string, number>>(new Map());
   const isStreamActive = computed<boolean>(
     () => parametersInStream.value.size > 0
   );
-
-  const error = ref<unknown>();
-  const errorHandler: Queue.MessageReceiver<Promise<never>> = async function (
-    this: Queue.ITask<Robot.Command>,
-    { error: e }
-  ) {
-    if (e) {
-      error.value = e;
-      return;
-    }
-
-    return this.broker.lock();
-  };
+  const { error, receiver } = useMessageReceiver<Promise<never>>(() =>
+    sendCommand.broker.lock()
+  );
 
   const streamObserverUuid = uuidv4();
   ble.addTxObserver(streamCharacteristicId, streamReader, streamObserverUuid);
 
-  const start = (parameter: string, interval: number) => {
+  async function start(parameter: string, interval: number): Promise<void> {
     if (parametersInStream.value.get(parameter) === interval) {
       return Promise.resolve();
     }
@@ -70,11 +68,11 @@ export default (
         resolve();
       }
 
-      sendCommand.delay([ble, command, rxCharacteristicId], errorHandler);
+      sendCommand.delay([ble, command, rxCharacteristicId], receiver);
     });
-  };
+  }
 
-  const stop = (parameter: string) => {
+  async function stop(parameter: string): Promise<boolean> {
     if (!isStreamActive.value) {
       throw new Error('Não há transmissão ativa');
     }
@@ -115,13 +113,13 @@ export default (
         observerUuid
       );
 
-      sendCommand.delay([ble, command, rxCharacteristicId], errorHandler);
+      sendCommand.delay([ble, command, rxCharacteristicId], receiver);
     });
-  };
+  }
 
-  const stopAll = async () => {
+  async function stopAll(): Promise<boolean[]> {
     return Promise.all([...parametersInStream.value.keys()].map(stop));
-  };
+  }
 
   return { isStreamActive, start, stop, stopAll, error };
 };

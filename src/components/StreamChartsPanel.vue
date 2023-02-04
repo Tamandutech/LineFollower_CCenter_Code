@@ -26,7 +26,7 @@ import {
 } from 'vue';
 import type { ComputedRef } from 'vue';
 import type { ChartData } from 'chart.js';
-import useRobotDataStream from 'src/composables/useRobotDataStream';
+import { useRobotDataStream } from 'src/composables/stream';
 import StreamChart from 'components/StreamChart.vue';
 import useBluetooth from 'src/services/ble';
 import { randomColorGenerator } from 'src/utils/colors';

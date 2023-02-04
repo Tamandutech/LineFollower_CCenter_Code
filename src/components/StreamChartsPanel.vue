@@ -24,12 +24,12 @@ import {
   computed,
   reactive,
 } from 'vue';
-import type { ComputedRef } from 'vue';
-import type { ChartData } from 'chart.js';
 import { useRobotDataStream } from 'src/composables/stream';
 import StreamChart from 'components/StreamChart.vue';
 import useBluetooth from 'src/services/ble';
 import { randomColorGenerator } from 'src/utils/colors';
+import type { ComputedRef } from 'vue';
+import type { ChartData } from 'chart.js';
 
 const props = defineProps<{
   parameters: Map<string, { interval: number; range: number }>;
@@ -67,6 +67,8 @@ const loading = computed(
 );
 const parametersFirstTimeValue = new Map<string, number>();
 const streamReader = (currentValues: Robot.RuntimeStream[]) => {
+  console.log(currentValues);
+
   currentValues.forEach(({ name: parameter, value, Time }) => {
     const time = Number(Time);
     const currentValue = Number(value);
@@ -89,8 +91,6 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
     ) {
       return;
     }
-
-    streamsValues.get(parameter).value.shift();
 
     if (!streamsLoaded.has(parameter)) {
       streamsLoaded.set(parameter, {
@@ -134,15 +134,25 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
     .filter(([, { interval }]) => interval > 0)
     .map(([parameter]) => [
       parameter,
-      computed(() => ({
-        labels: streamsValues.get(parameter).value.map(([time]) => time),
-        datasets: [
-          {
-            label: parameter,
-            data: streamsValues.get(parameter).value.map(([, value]) => value),
-          },
-        ],
-      })),
+      computed(() => {
+        const valuesCount = streamsValues.get(parameter).value.length;
+        const offset = props.parameters.get(parameter).range;
+
+        return {
+          labels: streamsValues
+            .get(parameter)
+            .value.map(([time]) => time)
+            .slice(valuesCount - offset),
+          datasets: [
+            {
+              label: parameter,
+              data: streamsValues
+                .get(parameter)
+                .value.map(([, value]) => value),
+            },
+          ],
+        };
+      }),
     ])
 );
 

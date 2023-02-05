@@ -1,5 +1,10 @@
 <template>
-  <q-btn :icon="mdiRobotMower" color="secondary" round>
+  <q-btn
+    :icon="mdiRobotMower"
+    color="secondary"
+    round
+    @click="fetchBatteryVoltage"
+  >
     <q-menu transition-show="jump-down" transition-hide="jump-up">
       <q-list>
         <q-item clickable @click="fetchBatteryVoltage">

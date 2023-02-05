@@ -37,7 +37,6 @@ export class BLE implements Bluetooth.BLEInterface {
   private _characteristics: Map<string, BluetoothRemoteGATTCharacteristic>;
   private _cache: string;
   private _txObservers: Bluetooth.TxObserverMap;
-  private _config: Robot.BluetoothConnectionConfig;
   private _decoder = new TextDecoder();
   private _encoder = new TextEncoder();
   private _messages: Map<string, Map<string, string[]>>;
@@ -55,7 +54,6 @@ export class BLE implements Bluetooth.BLEInterface {
     config: Required<Robot.BluetoothConnectionConfig> = ROBOTS[0]
   ) {
     this._device = device;
-    this._config = config;
 
     try {
       device.addEventListener('gattserverdisconnected', this._onDisconnect);
@@ -146,8 +144,6 @@ export class BLE implements Bluetooth.BLEInterface {
     if (this._characteristics) {
       this._characteristics.clear();
     }
-
-    this._config = null;
   }
 
   _pushMessage(characteristicId: string) {
@@ -165,6 +161,8 @@ export class BLE implements Bluetooth.BLEInterface {
         .forEach((rawMessage) => {
           observer instanceof Function && observer(JSON.parse(rawMessage));
         });
+
+      this._messages.get(characteristicId).set(uuid, []);
     });
   }
 

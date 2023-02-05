@@ -92,7 +92,7 @@ export const useRobotDataStream = (
         this.broker.unlock();
 
         if (response.cmdExecd === command) {
-          removeObserver();
+          removeTxObserver();
 
           if (response.data === 'OK') {
             parametersInStream.value.delete(parameter);
@@ -107,11 +107,17 @@ export const useRobotDataStream = (
         }
       };
 
-      const removeObserver = ble.addTxObserver(
+      let removeTxObserver: () => boolean;
+      try {
+        removeTxObserver = ble.addTxObserver(
         txCharacteristicId,
         observer.bind(sendCommand),
         observerUuid
       );
+      } catch (e) {
+        error.value = e;
+        resolve(false);
+      }
 
       sendCommand.delay([ble, command, rxCharacteristicId], receiver);
     });

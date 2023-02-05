@@ -440,16 +440,16 @@ export class map_add extends Command {
   }
 }
 
-export class battery_voltage extends Command {
+export class bat_voltage extends Command {
   constructor() {
-    super('battery_voltage', { characteristicId: 'UART_TX' });
+    super('bat_voltage', { characteristicId: 'UART_TX' });
   }
 
   async execute() {
     try {
       await battery.ble.send('UART_RX', 'bat_voltage');
 
-      mapping.ble.addTxObserver(
+      battery.ble.addTxObserver(
         this.options.characteristicId.toString(),
         this.characteristicObserver.bind(this),
         this.id

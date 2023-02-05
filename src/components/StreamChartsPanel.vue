@@ -55,6 +55,7 @@ const streamsLoaded = reactive(
       min: number;
       mean: number;
       receivedValuesCount: number;
+      StreamFullDataCsv: string;
       sum: number;
       stop: () => ReturnType<typeof stopStreamReading>;
     }
@@ -79,18 +80,13 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
 
     if (!streamsValues.has(parameter)) return;
 
+    const TreatedTime = time - parametersFirstTimeValue.get(parameter);
     streamsValues
       .get(parameter)
       .value.push([
-        time - parametersFirstTimeValue.get(parameter),
+        TreatedTime,
         currentValue,
       ]);
-    if (
-      streamsValues.get(parameter).value.length <=
-      props.parameters.get(parameter).range
-    ) {
-      return;
-    }
 
     if (!streamsLoaded.has(parameter)) {
       streamsLoaded.set(parameter, {
@@ -100,13 +96,17 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
         min: currentValue,
         sum: currentValue,
         receivedValuesCount: 1,
+        StreamFullDataCsv: 'Values; Time\n' +
+        currentValue.toString() + ';' + TreatedTime.toString() + '\n',
         get mean() {
           return this.sum / this.receivedValuesCount;
         },
       });
+
     } else {
       const streamStatus = streamsLoaded.get(parameter);
-
+      streamStatus.StreamFullDataCsv += currentValue.toString() + ';' + TreatedTime.toString() + '\n';
+      
       if (currentValue > streamStatus.max) {
         streamStatus.max = currentValue;
       } else if (currentValue < streamStatus.min) {
@@ -136,8 +136,8 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
       parameter,
       computed(() => {
         const valuesCount = streamsValues.get(parameter).value.length;
-        const offset = props.parameters.get(parameter).range;
-
+        let offset = props.parameters.get(parameter).range;
+        if(offset > valuesCount) offset = valuesCount;
         return {
           labels: streamsValues
             .get(parameter)
@@ -148,7 +148,7 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
               label: parameter,
               data: streamsValues
                 .get(parameter)
-                .value.map(([, value]) => value),
+                .value.map(([, value]) => value).slice(valuesCount - offset),
             },
           ],
         };

@@ -15,7 +15,7 @@ export const useRobotDataStream = (
   isStreamActive: ComputedRef<boolean>;
   start: (parameter: string, interval: number) => Promise<void>;
   stop: (parameter: string) => Promise<boolean>;
-  stopAll: () => Promise<boolean[]>;
+  stopAll: () => Promise<void>;
   error: Ref<unknown>;
 } => {
   const parametersInStream = ref<Map<string, number>>(new Map());
@@ -110,10 +110,10 @@ export const useRobotDataStream = (
       let removeTxObserver: () => boolean;
       try {
         removeTxObserver = ble.addTxObserver(
-        txCharacteristicId,
-        observer.bind(sendCommand),
-        observerUuid
-      );
+          txCharacteristicId,
+          observer.bind(sendCommand),
+          observerUuid
+        );
       } catch (e) {
         error.value = e;
         resolve(false);
@@ -123,8 +123,14 @@ export const useRobotDataStream = (
     });
   }
 
-  async function stopAll(): Promise<boolean[]> {
-    return Promise.all([...parametersInStream.value.keys()].map(stop));
+  async function stopAll(): Promise<void> {
+    for (const parameter of parametersInStream.value.keys()) {
+      try {
+        await stop(parameter);
+      } catch (e) {
+        error.value = e;
+      }
+    }
   }
 
   return { isStreamActive, start, stop, stopAll, error };

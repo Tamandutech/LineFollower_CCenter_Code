@@ -3,14 +3,13 @@
     <q-dialog v-model="showErrorDialog">
       <CommandErrorCard :error="error" />
     </q-dialog>
-    <q-dialog v-model="showConfigDialog">
+    <q-dialog v-model="showConfigDialog" :maximized="$q.platform.is.mobile">
       <StreamsConfigCard class="full-width">
         <q-card-section>
           <q-form
             @submit="loadStreamsPanel"
             id="stream-config-form"
             ref="configForm"
-            v-if="!renderStreamsPanel"
           >
             <q-list>
               <q-item class="q-px-none">
@@ -36,33 +35,35 @@
               <q-item
                 v-for="(option, index) in parameters.keys()"
                 :key="index"
-                class="bg-grey-1 q-my-sm rounded-borders"
+                class="bg-grey-1 q-my-sm q-pb-sm rounded-borders column"
               >
-                <q-item-section>
-                  <q-item-label
-                    ><label :for="`parameter-otion-${index}`">{{
-                      option
-                    }}</label></q-item-label
-                  >
-                </q-item-section>
-                <q-item-section side
-                  ><q-select
+                <div class="col q-mb-md">
+                  <label :for="`parameter-otion-${index}`" class="text-bold">{{
+                    option
+                  }}</label>
+                </div>
+                <div class="col row">
+                  <div class="col">
+                    <q-avatar :icon="mdiCameraDocument" size="md"></q-avatar>
+                    Resolução
+                  </div>
+                  <q-select
                     v-model="parametersToStream.get(option).range"
                     dense
                     options-dense
-                    borderless
+                    bottom-slots
+                    filled
+                    color="teal-5"
+                    class="col-auto q-pb-sm"
                     :options="[
                       5, 10, 15, 20, 25, 30, 35, 40, 60, 80, 100, 500, 1000,
                     ]"
-                  >
-                    <template #prepend>
-                      <q-icon :name="mdiCameraDocument"></q-icon>
-                    </template> </q-select
-                ></q-item-section>
-                <q-item-section side class="q-mr-sm">
-                  <q-avatar :icon="mdiUpdate" />
-                </q-item-section>
-                <q-item-section>
+                  />
+                </div>
+                <div class="col row">
+                  <div class="col">
+                    <q-avatar :icon="mdiUpdate" size="md" /> Intervalo
+                  </div>
                   <q-slider
                     :id="`parameter-otion-${index}`"
                     label
@@ -70,6 +71,7 @@
                     :min="0"
                     switch-label-side
                     color="teal"
+                    class="col"
                     :label-value="parametersToStream.get(option).interval + 's'"
                     :model-value="parametersToStream.get(option).interval"
                     @update:model-value="
@@ -81,8 +83,8 @@
                         (parametersToStream.get(option).interval = value)
                     "
                     :step="0.05"
-                  ></q-slider
-                ></q-item-section>
+                  ></q-slider>
+                </div>
               </q-item>
             </q-list>
           </q-form>
@@ -99,15 +101,8 @@
             label="Iniciar Transmissão"
             @click="submitConfigForm"
             form="stream-config-form"
-            v-close-popup
           />
-          <q-btn
-            v-close-popup
-            flat
-            :click="(showInvalidConfigMessage = false)"
-            color="primary"
-            label="Fechar"
-          />
+          <q-btn v-close-popup flat color="primary" label="Fechar" />
         </q-card-actions>
       </StreamsConfigCard>
     </q-dialog>
@@ -194,7 +189,6 @@
               color="grey-9"
               label="Parar"
               @click="streams.get(parameterTab).stop"
-              v-if="renderStreamsPanel"
               v-close-popup
             />
             <q-btn
@@ -202,7 +196,6 @@
               label="Parar Todas"
               flat
               @click="closeStreamsPanel"
-              v-if="renderStreamsPanel"
               v-close-popup
             />
           </q-card-actions>
@@ -231,7 +224,7 @@
         fab
         :icon="mdiCog"
         @click="loadConfigDialog"
-        :disable="showConfigDialog"
+        v-if="!showConfigDialog"
         color="grey-9"
       />
     </q-page-sticky>
@@ -287,7 +280,10 @@ watchEffect(loadErrorDialog);
 const loadConfigDialog = async function () {
   await updateRuntimeParameters();
 
-  if (parametersToStream.size > 1) showConfigDialog.value = true;
+  if (parametersToStream.size > 1) {
+    showInvalidConfigMessage.value = false;
+    showConfigDialog.value = true;
+  }
 };
 
 const updateRuntimeParameters = async function () {
@@ -303,12 +299,11 @@ const updateRuntimeParameters = async function () {
 
 const submitConfigForm = () => {
   if ([...parametersToStream.values()].some(({ interval }) => interval > 0)) {
-    showInvalidConfigMessage.value = false;
-
-    return configForm.value.submit(new Event('submit'));
+    configForm.value.submit(new Event('submit'));
+    showConfigDialog.value = false;
+  } else {
+    showInvalidConfigMessage.value = true;
   }
-
-  showInvalidConfigMessage.value = true;
 };
 
 const loadStreamsPanel = () => {
@@ -319,7 +314,8 @@ const closeStreamsPanel = () => {
   showControlsDialog.value = false;
 };
 
-const formatter = Intl.NumberFormat(useQuasar().lang.getLocale(), {
+const $q = useQuasar();
+const formatter = Intl.NumberFormat($q.lang.getLocale(), {
   notation: 'scientific',
 });
 </script>

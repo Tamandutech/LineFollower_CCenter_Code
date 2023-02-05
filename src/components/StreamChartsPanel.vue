@@ -68,8 +68,6 @@ const loading = computed(
 );
 const parametersFirstTimeValue = new Map<string, number>();
 const streamReader = (currentValues: Robot.RuntimeStream[]) => {
-  console.log(currentValues);
-
   currentValues.forEach(({ name: parameter, value, Time }) => {
     const time = Number(Time);
     const currentValue = Number(value);

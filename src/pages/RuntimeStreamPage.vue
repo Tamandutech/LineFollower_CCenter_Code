@@ -66,7 +66,7 @@
                   <q-slider
                     :id="`parameter-otion-${index}`"
                     label
-                    :max="2"
+                    :max="3"
                     :min="0"
                     switch-label-side
                     color="teal"
@@ -192,6 +192,13 @@
           <q-card-actions align="left">
             <q-btn
               color="grey-9"
+              label="Salvar"
+              @click="SaveStreamCsv(parameterTab, streams.get(parameterTab).StreamFullDataCsv)"
+              v-if="renderStreamsPanel"
+              v-close-popup
+            />
+            <q-btn
+              color="grey-9"
               label="Parar"
               @click="streams.get(parameterTab).stop"
               v-if="renderStreamsPanel"
@@ -239,7 +246,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useQuasar } from 'quasar';
+import { useQuasar, exportFile } from 'quasar';
 import { useRobotRuntime } from 'src/composables/runtime';
 import useBluetooth from 'src/services/ble';
 import {
@@ -317,6 +324,10 @@ const loadStreamsPanel = () => {
 const closeStreamsPanel = () => {
   renderStreamsPanel.value = false;
   showControlsDialog.value = false;
+};
+
+const SaveStreamCsv = (StreamName: string,StreamData:string) => {
+  exportFile(StreamName + '.csv', StreamData, 'text/csv;charset=UTF-8;');
 };
 
 const formatter = Intl.NumberFormat(useQuasar().lang.getLocale(), {

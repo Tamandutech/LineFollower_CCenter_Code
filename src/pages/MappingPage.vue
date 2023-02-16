@@ -121,12 +121,29 @@
       </q-dialog>
     </div>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="deleteMapReg" color="primary" label="Deletar Registro" />
+      <q-btn @click="openDeleteRegsDialog('Tem certeza que deseja deletar o registro ' + `${deleteRegID}` + '?', false)" color="primary" label="Deletar Registro" />
       <q-btn
-        @click="deleteAllMapRegs"
+        @click="openDeleteRegsDialog('Tem certeza que deseja deletar todos os registros do mapeamento?', true)"
         color="primary"
         label="Deletar todos os registros"
       />
+      <q-dialog v-model="deleteRegsDialog">
+        <q-card style="width: 300px">
+          <q-card-section>
+            <div class="text-h6">Mapeamento</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            {{ deleteRegsDialogText }}
+          </q-card-section>
+
+          <q-card-actions align="right" class="bg-white text-teal">
+            <q-btn  v-if="deleteAllRegs" @click="deleteAllMapRegs" flat label="Sim" v-close-popup />
+            <q-btn  v-else @click="deleteMapReg" flat label="Sim" v-close-popup />
+            <q-btn flat label="Não" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
       <q-select
         v-model="deleteRegID"
         :options="mapping.options"
@@ -277,18 +294,24 @@ const newReg: LFCommandCenter.RegMap[] = ref([
 
 const mapping = useMapping();
 const robotQueue = useRobotQueue();
+const deleteRegsDialog = ref(false);
+const deleteRegsDialogText = ref('');
+const deleteAllRegs = ref(false);
+const deleteRegID = ref(1);
 
 export default {
   setup() {
-    const deleteRegID = ref(0);
-
     return {
       columns,
       newColumns,
       newReg,
       deleteRegID,
+      deleteRegsDialog,
+      deleteRegsDialogText,
+      deleteAllRegs,
       deleteMapReg,
       deleteAllMapRegs,
+      openDeleteRegsDialog,
       mapping,
       robotQueue,
       map_add,
@@ -296,6 +319,13 @@ export default {
       map_get,
       map_SaveRuntime,
     };
+    function openDeleteRegsDialog(DialogText:string, DeleteAllRegs: boolean) {
+      deleteRegsDialog.value = true;
+      deleteRegsDialogText.value = DialogText;
+      if(DeleteAllRegs) deleteAllRegs.value = true;
+      else deleteAllRegs.value = false;
+
+    }
     function deleteMapReg() {
       mapping.deleteReg(deleteRegID.value);
       while (mapping.options.length !== 0) mapping.options.pop();
@@ -342,6 +372,11 @@ export default {
       newMapReg.encRight = newReg[0].encRight;
       newMapReg.trackStatus = newReg[0].trackStatus;
       mapping.addRegObj(newMapReg);
+      while (mapping.options.length !== 0) mapping.options.pop();
+      for (var i = 0; i < mapping.totalRegs; i++)
+        mapping.options.push(mapping.mapRegs.at(i).id);
+      if (mapping.totalRegs > 0) deleteRegID.value = mapping.mapRegs.at(0).id;
+      else deleteRegID.value = 1;
     },
   },
 };

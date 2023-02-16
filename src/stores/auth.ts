@@ -1,58 +1,87 @@
 import { defineStore } from 'pinia';
-import { signInWithRedirect, getRedirectResult, signOut, GithubAuthProvider, UserCredential } from 'firebase/auth';
-import type { User, Auth } from 'firebase/auth';
+import {
+  signInWithRedirect,
+  signOut,
+  GithubAuthProvider,
+  UserCredential,
+  getRedirectResult,
+} from 'firebase/auth';
+import type { User, AuthError } from 'firebase/auth';
+import type { Router } from 'vue-router';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
     user: null as User,
+    blocked: false,
   }),
   getters: {
-    getCurrentUser(state) {
-      return state.user;
-    },
+    getCurrentUser: (state) => state.user,
   },
   actions: {
-    loginUser(auth: LFCommandCenter.AuthService): void {
-      signInWithRedirect(auth.service, auth.github_provider);
-    },
-
-    async isMemberTTGihub(userCredential: UserCredential): Promise<boolean> {
+    async isMemberTTGithub(userCredential: UserCredential): Promise<boolean> {
       try {
-        const token = GithubAuthProvider.credentialFromResult(userCredential).accessToken;
-
-        const response = await fetch('https://api.github.com/user/memberships/orgs/Tamandutech', {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-        });
+        const token =
+          GithubAuthProvider.credentialFromResult(userCredential).accessToken;
+        const response = await fetch(
+          'https://api.github.com/user/memberships/orgs/Tamandutech',
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github+json',
+            },
+          }
+        );
 
         const membership = (await response.json()) as { state: string };
-
-        if (membership.state === 'active')
-          return Promise.resolve(true);
-
+        if (membership.state === 'active') return Promise.resolve(true);
         return Promise.resolve(false);
-      } catch (error) {
-        console.error(error);
-        return Promise.resolve(false);
-      }
-    },
-
-    async getRedirectResult(auth: Auth): Promise<UserCredential> {
-      try {
-        return Promise.resolve(await getRedirectResult(auth));
       } catch (error) {
         return Promise.reject(error);
       }
     },
-
-    async logoutUser(service: Auth): Promise<void> {
-      return signOut(service);
+    loginUser(): Promise<never> {
+      try {
+        return signInWithRedirect(this.service, this.github_provider);
+      } catch (error) {
+        Promise.reject(error as AuthError);
+      }
     },
+    logoutUser(): Promise<void> {
+      this.setUser(null);
+      return signOut(this.service);
+    },
+    async handleAuthStateChange(
+      user: User | null,
+      router: Router,
+      successRouteName: string
+    ) {
+      try {
+        const result = await getRedirectResult(this.service);
 
-    async handleOnAuthStateChanged(currentUser: User | null) {
-      this.$patch((state) => {
-        state.user = currentUser;
-      });
+        if (!result) {
+          if (user) this.setUser(user);
+
+          return Promise.resolve()
+        };
+
+        if (await this.isMemberTTGithub(result)) {
+          this.setUser(user);
+          router.push({ name: successRouteName });
+          return Promise.resolve(this.getCurrentUser);
+        }
+        this.blockUser();
+        return Promise.resolve(null);
+      } catch (error) {
+        return Promise.reject(error as AuthError);
+      }
+    },
+    setUser(user: User | null) {
+      this.$patch({ user });
+    },
+    blockUser() {
+      this.$patch({ user: null, blocked: true });
+      return signOut(this.service);
     },
   },
 });

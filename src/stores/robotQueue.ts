@@ -1,76 +1,42 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { defineStore } from 'pinia';
-
-export abstract class Command {
-  id: number;
-  cmdName: string;
-
-  constructor(cmdName: string) {
-    this.cmdName = cmdName;
-    this.id = Math.floor(Math.random() * 1000);
-  }
-
-  abstract func(): Promise<void>;
-  abstract rspInterpreter(rsp: LFCommandCenter.RobotResponse): Promise<void>;
-
-  async execute() {
-    this.func().catch((error) => {
-      console.error(error);
-      useRobotQueue().startNextCommand();
-    });
-  }
-
-  async setResponse(rsp: LFCommandCenter.RobotResponse) {
-    await this.rspInterpreter(rsp);
-    useRobotQueue().startNextCommand();
-  }
-}
+import { Command } from 'src/utils/robot/commands/cmdParam';
 
 export const useRobotQueue = defineStore('queue', {
   state: () => ({
-    pending: [] as Command[],
-    completed: [] as Command[],
-    active: {} as Command,
+    _pending: [] as Command[],
+    _completed: [] as Command[],
+    _failed: [] as Command[],
+    _active: null as Command | null,
   }),
 
   getters: {
-    PENDING(): Command[] {
-      return this.pending;
-    },
-
-    ACTIVE(): Command {
-      return this.active;
-    },
-
-    COMPLETED(): Command[] {
-      return this.completed;
-    },
+    pending: (state): Command[] => state._pending,
+    active: (state): Command => state._active,
+    completed: (state): Command[] => state._completed,
+    failed: (state): Command[] => state._failed,
   },
 
   actions: {
-    addCommand(Command: Command) {
-      console.log('> addCommand', Command.id);
+    addCommand(command: Command) {
+      console.log('> addCommand', command.id);
 
-      this.$patch(() => {
-        this.pending.push(Command);
-      });
+      this.addPendingCommands(command);
 
-      if (Object.keys(this.active).length == 0) {
+      if (!this._active) {
         this.startNextCommand();
       }
     },
 
-    addCommands(Commands: Command[]) {
+    addCommands(commands: Command[]) {
       console.log(
         '> addCommands',
-        Commands.map((c) => c.id)
+        commands.map((c) => c.id)
       );
 
-      this.$patch(() => {
-        this.pending.push(...Commands);
-      });
+      this.addPendingCommands(...commands);
 
-      if (Object.keys(this.active).length == 0) {
+      if (!this._active) {
         this.startNextCommand();
       }
     },
@@ -78,32 +44,40 @@ export const useRobotQueue = defineStore('queue', {
     startNextCommand() {
       console.log('> startNextCommand');
 
-      if (Object.keys(this.active).length > 0) {
-        this.addCompletedCommand(this.active);
+      if (this._active) {
+        this.addCompletedCommand(this._active);
       }
 
       if (this.pending.length > 0) {
         this.setActiveCommand(this.pending[0]);
         this.popCurrentCommand();
       } else {
-        this.active = {} as Command;
+        this._active = null;
       }
     },
 
-    addPendingCommand(Command: Command) {
-      this.pending.push(Command);
+    addPendingCommands(...commands: Command[]) {
+      this.$patch(() => {
+        this.pending.push(...commands);
+      });
     },
 
-    setActiveCommand(Command: Command) {
-      this.active = Command;
+    setActiveCommand(command: Command) {
+      this.$patch((state) => {
+        state._active = command;
+      });
     },
 
     popCurrentCommand() {
-      this.pending.shift();
+      this._pending.shift();
     },
 
-    addCompletedCommand(Command: Command) {
-      this.completed.push(Command);
+    addCompletedCommand(command: Command) {
+      this._completed.push(command);
+    },
+
+    addFailedCommand(command: Command) {
+      this._failed.push(command);
     },
   },
 });

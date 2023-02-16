@@ -1,7 +1,7 @@
 <template>
-  <q-btn v-if="props.user">
-    <q-avatar style="font-size: 42px;">
-      <img :src="props.user.photoURL" />
+  <q-btn v-if="auth.user">
+    <q-avatar style="font-size: 42px">
+      <img :src="auth.user.photoURL" />
     </q-avatar>
     <q-menu fit transition-show="jump-down" transition-hide="jump-up">
       <div class="row no-wrap q-pa-md">
@@ -9,25 +9,27 @@
           <q-item v-close-popup>
             <q-item-section>
               <q-item-label>Nome</q-item-label>
-              <q-item-label caption>{{ user.displayName }}</q-item-label>
+              <q-item-label caption>{{ auth.user.displayName }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-close-popup>
             <q-item-section>
               <q-item-label>E-mail</q-item-label>
-              <q-item-label caption>{{ user.email }}</q-item-label>
+              <q-item-label caption>{{ auth.user.email }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-close-popup>
             <q-item-section>
               <q-item-label>Autenticador</q-item-label>
-              <q-item-label caption>{{ user.providerData[0].providerId }}</q-item-label>
+              <q-item-label caption>{{
+                auth.user.providerData[0].providerId
+              }}</q-item-label>
             </q-item-section>
           </q-item>
 
           <q-separator inset spaced />
 
-          <q-item clickable @click="emit('logout')">
+          <q-item clickable @click="logout">
             <q-item-section avatar>
               <q-avatar :icon="mdiExport"></q-avatar>
             </q-item-section>
@@ -52,11 +54,31 @@
 </template>
 
 <script lang="ts" setup>
-import type { User } from 'firebase/auth';
+import { User } from '@firebase/auth';
 import { mdiExport, mdiAccountOff } from '@quasar/extras/mdi-v6';
 import GitHubLoginButton from 'components/GitHubLoginButton.vue';
+import { useAuth } from 'src/stores/auth';
 
-const emit = defineEmits(['logout']);
-const props = defineProps<{ user: User }>();
+const emit = defineEmits<{
+  (e: 'login', user: User): void;
+  (e: 'block'): void;
+  (e: 'error', error: Error): void;
+}>();
 
+const auth = useAuth();
+const logout = () => auth.logoutUser();
+auth.$onAction(({ name, store, after, onError }) => {
+  after(() => {
+    if (name === 'setUser' && store.getCurrentUser) {
+      emit('login', store.getCurrentUser);
+    }
+    if (name === 'blockUser') {
+      emit('block');
+    }
+  });
+
+  onError((error) => {
+    emit('error', error as Error);
+  });
+});
 </script>

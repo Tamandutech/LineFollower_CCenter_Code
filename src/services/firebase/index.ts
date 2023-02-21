@@ -19,4 +19,4 @@ export const plugin = {
 
 // Definir hook para injetar aplicação do firebase em qualquer componente
 const key = Symbol('firebase');
-export default () => inject<LFCommandCenter.FirebaseBackend>(key);
+export default () => inject<Firebase.Backend>(key);

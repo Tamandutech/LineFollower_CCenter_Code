@@ -13,6 +13,7 @@ export default boot(async ({ app, router, store }) => {
   } = app.config.globalProperties.$firebase;
   store.use(authStorePlugin(service, github_provider, 'auth', router, 'index'));
   store.use(blePiniaPlugin(app.config.globalProperties.$ble));
+  store.use(queuePlugin('commandQueue'));
   store.use(queuePlugin('queue'));
 
   router.beforeResolve((to) => {

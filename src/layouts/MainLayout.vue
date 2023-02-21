@@ -9,7 +9,7 @@
           <q-btn
             color="secondary"
             round
-            @click="connected ? disconnect() : connect()"
+            @click="connected ? disconnect() : performConnect()"
             :icon="connected ? mdiBluetoothOff : mdiBluetoothConnect"
             :loading="connecting"
           >
@@ -67,6 +67,12 @@
               </q-item-section>
               <q-item-section> Mapeamento </q-item-section>
             </q-item>
+            <q-item clickable :to="'/robot/stream'" exact>
+              <q-item-section avatar>
+                <q-icon :name="mdiChartLine" />
+              </q-item-section>
+              <q-item-section> Transmissão </q-item-section>
+            </q-item>
           </q-expansion-item>
         </q-list>
       </q-scroll-area>
@@ -79,7 +85,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import {
   mdiTableLarge,
   mdiTune,
@@ -88,6 +94,7 @@ import {
   mdiRobotMowerOutline,
   mdiBluetoothConnect,
   mdiBluetoothOff,
+  mdiChartLine,
   mdiAccountCheck,
   mdiCloseOctagon,
   mdiAlertCircle,
@@ -95,7 +102,7 @@ import {
   mdiAlertBox,
 } from '@quasar/extras/mdi-v6';
 import { useQuasar } from 'quasar';
-import useBluetooth from 'src/services/ble';
+import useBluetooth, { BleError } from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
 import RobotChip from 'src/components/RobotChip.vue';
 import type { User, AuthError } from 'firebase/auth';
@@ -103,15 +110,24 @@ import type { User, AuthError } from 'firebase/auth';
 const drawer = ref(false);
 const $q = useQuasar();
 
-const { connected, connecting, error, connect, disconnect } = useBluetooth();
+const { connected, connecting, connect, disconnect } = useBluetooth();
 
-watch(error, () =>
-  $q.notify({
-    message: 'Ocorreu um erro durante a conexão com o robô. Tente novamente.',
-    color: 'negative',
-    icon: mdiAlertBox,
-  })
-);
+async function performConnect() {
+  try {
+    await connect();
+  } catch (error) {
+    const message =
+      error instanceof BleError
+        ? error.message
+        : 'Ocorreu um erro durante a conexão com o robô. Tente novamente.';
+
+    $q.notify({
+      message,
+      color: 'negative',
+      icon: mdiAlertBox,
+    });
+  }
+}
 
 function welcomeUser(user: User) {
   return $q.notify({
@@ -120,6 +136,7 @@ function welcomeUser(user: User) {
     icon: mdiAccountCheck,
   });
 }
+
 function notifyBlock() {
   return $q.notify({
     message:
@@ -128,6 +145,7 @@ function notifyBlock() {
     color: 'negative',
   });
 }
+
 function notifyError(error: AuthError) {
   let message: string;
   if (error.hasOwnProperty('code')) {
@@ -145,6 +163,7 @@ function notifyError(error: AuthError) {
     icon: mdiAlertCircle,
   });
 }
+
 function notifyAuthenticationRequired() {
   return $q.notify({
     message:

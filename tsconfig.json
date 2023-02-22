@@ -15,7 +15,7 @@
       "services/*": ["src/services/*"]
     },
     "strictNullChecks": false,
-    "typeRoots": ["./@types", "./node_modules/@types"],
+    "typeRoots": ["./src/types", "./node_modules/@types"],
     "forceConsistentCasingInFileNames": true,
     "lib": ["es6", "dom"]
   },

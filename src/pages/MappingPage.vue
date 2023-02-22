@@ -56,6 +56,17 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="Offset" :props="props">
+            {{ props.row.offset }}
+            <q-popup-edit
+              v-model="props.row.offset"
+              title="Atualizar Offset"
+              buttons
+              v-slot="scope"
+            >
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.status }}
             <q-popup-edit
@@ -203,6 +214,17 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="Offset" :props="props">
+            {{ props.row.offset }}
+            <q-popup-edit
+              v-model="props.row.offset"
+              title="Atualizar Offset"
+              buttons
+              v-slot="scope"
+            >
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.status }}
             <q-popup-edit
@@ -264,6 +286,7 @@ const columns = [
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
+  { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
@@ -277,6 +300,7 @@ const newColumns = [
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
+  { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
@@ -287,6 +311,7 @@ const newReg: LFCommandCenter.RegMap[] = ref([
     time: 45,
     encRight: 566,
     encLeft: 123,
+    offset: 0,
     status: 345,
     trackStatus: 2,
   },
@@ -370,6 +395,7 @@ export default {
       newMapReg.encMedia = newReg[0].encMedia;
       newMapReg.encLeft = newReg[0].encLeft;
       newMapReg.encRight = newReg[0].encRight;
+      newMapReg.offset = newReg[0].offset;
       newMapReg.trackStatus = newReg[0].trackStatus;
       mapping.addRegObj(newMapReg);
       while (mapping.options.length !== 0) mapping.options.pop();

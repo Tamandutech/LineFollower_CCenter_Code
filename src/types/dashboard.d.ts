@@ -16,6 +16,7 @@ declare namespace LFCommandCenter {
     time: number;
     encRight: number;
     encLeft: number;
+    offset: number;
     status: RobotStatus;
     trackStatus: number;
   };

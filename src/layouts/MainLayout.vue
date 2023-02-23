@@ -9,22 +9,28 @@
           <q-btn
             color="secondary"
             round
-            @click="connected ? disconnect() : performConnect()"
-            :icon="connected ? mdiBluetoothOff : mdiBluetoothConnect"
+            @click="performConnect"
+            :icon="mdiBluetoothConnect"
             :loading="connecting"
+            v-if="!connected"
           >
             <template v-slot:loading>
               <q-spinner-radio class="on-center" />
             </template>
           </q-btn>
-          <RobotChip></RobotChip>
+          <RobotChip
+            @low-battery="
+              (currentVoltage) => lowBatteryDialog.warn(currentVoltage)
+            "
+            v-else
+          />
           <UserChip
             color="secondary"
             round
             @login="welcomeUser"
             @block="notifyBlock"
             @error="notifyError"
-          ></UserChip>
+          />
         </div>
       </q-toolbar>
     </q-header>
@@ -81,11 +87,17 @@
     <q-page-container>
       <router-view @navigation-guard="notifyAuthenticationRequired" />
     </q-page-container>
+
+    <q-dialog v-model="lowBatteryDialog.show">
+      <BatteryWarningCard
+        :current-voltage="lowBatteryDialog.voltage"
+      ></BatteryWarningCard>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import {
   mdiTableLarge,
   mdiTune,
@@ -93,7 +105,6 @@ import {
   mdiHome,
   mdiRobotMowerOutline,
   mdiBluetoothConnect,
-  mdiBluetoothOff,
   mdiChartLine,
   mdiAccountCheck,
   mdiCloseOctagon,
@@ -105,12 +116,23 @@ import { useQuasar } from 'quasar';
 import useBluetooth, { BleError } from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
 import RobotChip from 'src/components/RobotChip.vue';
+import BatteryWarningCard from 'src/components/cards/BatteryWarningCard.vue';
 import type { User, AuthError } from 'firebase/auth';
 
 const drawer = ref(false);
+const lowBatteryDialog = reactive({
+  show: false,
+  voltage: null,
+  warned: false,
+  warn(currentVoltage: number) {
+    if (!this.warned) {
+      this.voltage = currentVoltage;
+      this.show = true;
+    }
+  },
+});
 const $q = useQuasar();
-
-const { connected, connecting, connect, disconnect } = useBluetooth();
+const { connected, connecting, connect } = useBluetooth();
 
 async function performConnect() {
   try {

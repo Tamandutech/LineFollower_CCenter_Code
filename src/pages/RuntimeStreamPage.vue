@@ -188,7 +188,12 @@
             <q-btn
               color="grey-9"
               label="Salvar"
-              @click="SaveStreamCsv(parameterTab, streams.get(parameterTab).StreamFullDataCsv)"
+              @click="
+                SaveStreamCsv(
+                  parameterTab,
+                  streams.get(parameterTab).StreamFullDataCsv
+                )
+              "
               v-close-popup
             />
             <q-btn
@@ -254,20 +259,20 @@ import {
   mdiChevronDoubleDown,
   mdiFormatVerticalAlignCenter,
 } from '@quasar/extras/mdi-v6';
-import { ref, watchEffect, reactive } from 'vue';
+import { ref, reactive } from 'vue';
 import StreamChartsPanel from 'components/StreamChartsPanel.vue';
 import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import StreamsConfigCard from 'src/components/cards/StreamsConfigCard.vue';
 
 const { ble } = useBluetooth();
-const { parameters, error, updateParameters } = useRobotRuntime(
-  ble,
-  'UART_TX',
-  'UART_RX'
-);
+const {
+  parameters,
+  error,
+  errorCaptured: showErrorDialog,
+  updateParameters,
+} = useRobotRuntime(ble, 'UART_TX', 'UART_RX');
 
 const showConfigDialog = ref(false);
-const showErrorDialog = ref(false);
 const showInvalidConfigMessage = ref(false);
 const showControlsDialog = ref(false);
 const configForm = ref<quasar.QForm>(null);
@@ -277,11 +282,6 @@ const parametersToStream = reactive<
 >(new Map());
 const renderStreamsPanel = ref(false);
 const parameterTab = ref<string>();
-
-const loadErrorDialog = function () {
-  if (error.value) showErrorDialog.value = true;
-};
-watchEffect(loadErrorDialog);
 
 const loadConfigDialog = async function () {
   await updateRuntimeParameters();
@@ -320,7 +320,7 @@ const closeStreamsPanel = () => {
   showControlsDialog.value = false;
 };
 
-const SaveStreamCsv = (StreamName: string,StreamData:string) => {
+const SaveStreamCsv = (StreamName: string, StreamData: string) => {
   exportFile(StreamName + '.csv', StreamData, 'text/csv;charset=UTF-8;');
 };
 

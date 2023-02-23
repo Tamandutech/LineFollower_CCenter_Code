@@ -8,7 +8,11 @@ export const useErrorCapturing = <This, Args extends unknown[], Return>(
   errorRef?: Ref<unknown>,
   errorCapturedRef?: Ref<boolean>,
   reThrow = false
-) => {
+): {
+  routineWithErrorCapturing: (this: This, ...args: Args) => Promise<Return>;
+  error: Ref<unknown>;
+  errorCaptured: Ref<boolean>;
+} => {
   const error = errorRef || ref(null);
   const errorCaptured = errorCapturedRef || ref(false);
 
@@ -33,5 +37,5 @@ export const useErrorCapturing = <This, Args extends unknown[], Return>(
     }
   }
 
-  return { routineWithErrorCapturing, error };
+  return { routineWithErrorCapturing, error, errorCaptured };
 };

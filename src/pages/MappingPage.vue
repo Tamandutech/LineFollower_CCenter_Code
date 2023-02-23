@@ -319,6 +319,7 @@ function addMappingRecord() {
     record.encMedia,
     record.encLeft,
     record.encRight,
+    record.offset,
     record.trackStatus
   );
 }

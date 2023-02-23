@@ -1,7 +1,8 @@
-export class BleError extends Error implements Bluetooth.Error {
+export class BleError extends Error implements Bluetooth.BaseError {
+  readonly name: string;
   readonly action: string;
   readonly message: string;
-  readonly cause: unknown;
+  readonly cause?: Error;
 
   constructor(
     { message, action, cause }: Bluetooth.ErrorOptions,
@@ -11,6 +12,24 @@ export class BleError extends Error implements Bluetooth.Error {
     this.message = message;
     this.action = action;
     this.cause = cause;
+  }
+}
+
+export class RuntimeError extends BleError {
+  constructor(
+    { message, action, cause }: Partial<Bluetooth.ErrorOptions> = {},
+    ...args: Array<string | undefined>
+  ) {
+    super(
+      {
+        message: message || 'Ocorreu um erro no robô',
+        action:
+          action ||
+          'Verifique se há erros não sendo tratados no microcontrolador do robô.',
+        cause,
+      },
+      ...args
+    );
   }
 }
 

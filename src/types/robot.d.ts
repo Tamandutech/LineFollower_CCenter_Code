@@ -5,18 +5,14 @@ declare namespace Robot {
     CAR_STOPPED = 2,
   }
 
+  type DataClass = Map<string, string | number>;
+
   interface Response<T> extends Record<string, unknown> {
     cmdExecd: string;
     data: T;
   }
 
-  type Parameter = {
-    class: DataClass;
-    name: string;
-    value: unknown;
-  };
-
-  type RegMap = {
+  type MappingRecord = {
     id: number;
     encMedia: number;
     time: number;
@@ -31,11 +27,6 @@ declare namespace Robot {
     name: string;
     value: number | string;
     Time: number;
-  };
-
-  type DataClass = {
-    name: string;
-    parameters: Parameter[];
   };
 
   type BluetoothConnectionConfig = {

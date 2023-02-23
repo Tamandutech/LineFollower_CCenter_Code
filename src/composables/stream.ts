@@ -1,8 +1,7 @@
-import { sendCommand } from 'src/tasks';
-import { useMessageReceiver } from './receiver';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, computed } from 'vue';
-import { DeviceError } from 'src/services/ble/errors';
+import { RuntimeError, BleError } from 'src/services/ble/errors';
+import { useErrorCapturing } from './error';
 import type { ComputedRef, Ref } from 'vue';
 
 export const useRobotDataStream = (
@@ -17,121 +16,85 @@ export const useRobotDataStream = (
   stop: (parameter: string) => Promise<boolean>;
   stopAll: () => Promise<void>;
   error: Ref<unknown>;
+  errorCaptured: Ref<boolean>;
 } => {
   const parametersInStream = ref<Map<string, number>>(new Map());
   const isStreamActive = computed<boolean>(
     () => parametersInStream.value.size > 0
   );
-  const { error, receiver } = useMessageReceiver<Promise<never>>(() =>
-    sendCommand.broker.lock()
-  );
+  const error = ref<unknown>();
+  const errorCaptured = ref(false);
 
   const streamObserverUuid = uuidv4();
   ble.addTxObserver(streamCharacteristicId, streamReader, streamObserverUuid);
 
-  async function start(parameter: string, interval: number): Promise<void> {
-    if (parametersInStream.value.get(parameter) === interval) {
-      return Promise.resolve();
-    }
+  const { routineWithErrorCapturing: start } = useErrorCapturing(
+    async function (parameter: string, interval: number): Promise<void> {
+      if (parametersInStream.value.get(parameter) === interval) {
+        return;
+      }
 
-    const command = `start_stream ${parameter} ${interval}`;
+      const status = await ble.request(
+        txCharacteristicId,
+        rxCharacteristicId,
+        `start_stream ${parameter} ${interval}`
+      );
+      if (status === 'OK') {
+        parametersInStream.value.set(parameter, interval);
+        return;
+      }
 
-    return new Promise<void>((resolve, reject) => {
-      const observerUuid = uuidv4();
-      const observer = function (
-        this: Queue.ITask<Robot.Command>,
-        response: Robot.Response<string>
-      ) {
-        this.broker.unlock();
+      throw new RuntimeError({
+        message: 'Ocorreu um erro durante a inicialização da transmissão.',
+        action: 'Certifique-se de não há transmissão ativa no robô.',
+      });
+    },
+    [BleError],
+    error,
+    errorCaptured
+  );
 
-        if (response.cmdExecd === command) {
-          removeTxObserver();
+  const { routineWithErrorCapturing: stop } = useErrorCapturing(
+    async function (parameter: string): Promise<boolean> {
+      if (!isStreamActive.value) {
+        return;
+      }
 
-          if (response.data === 'OK') {
-            parametersInStream.value.set(parameter, interval);
-            return resolve();
-          }
-
-          return reject(new DeviceError());
+      const status = await ble.request(
+        txCharacteristicId,
+        rxCharacteristicId,
+        `start_stream ${parameter} 0`
+      );
+      if (status === 'OK') {
+        parametersInStream.value.delete(parameter);
+        if (parametersInStream.value.size === 0) {
+          ble.removeTxObserver(streamObserverUuid, streamCharacteristicId);
         }
-      };
 
-      let removeTxObserver: () => boolean;
-      try {
-        removeTxObserver = ble.addTxObserver(
-          txCharacteristicId,
-          observer.bind(sendCommand),
-          observerUuid
-        );
-      } catch (e) {
-        error.value = e;
-        resolve();
+        return;
       }
 
-      sendCommand.delay([ble, command, rxCharacteristicId], receiver);
-    });
-  }
+      error.value = new RuntimeError({
+        message: 'Ocorreu um erro durante a finalização da transmissão.',
+        action: 'Certifique-se de não há transmissão ativa no robô.',
+      });
+    },
+    [BleError],
+    error,
+    errorCaptured
+  );
 
-  async function stop(parameter: string): Promise<boolean> {
-    if (!isStreamActive.value) {
-      throw new Error('Não há transmissão ativa');
-    }
-
-    const command = `start_stream ${parameter} 0`;
-
-    return new Promise<boolean>((resolve, reject) => {
-      if (!parametersInStream.value.get(parameter)) {
-        reject('Transmissão não encontrada.');
-      }
-
-      const observerUuid = uuidv4();
-      const observer = function (
-        this: Queue.ITask<Robot.Command>,
-        response: Robot.Response<string>
-      ) {
-        this.broker.unlock();
-
-        if (response.cmdExecd === command) {
-          removeTxObserver();
-
-          if (response.data === 'OK') {
-            parametersInStream.value.delete(parameter);
-            if (parametersInStream.value.size === 0) {
-              ble.removeTxObserver(streamObserverUuid, streamCharacteristicId);
-            }
-
-            return resolve(true);
-          }
-
-          return reject(new DeviceError());
-        }
-      };
-
-      let removeTxObserver: () => boolean;
-      try {
-        removeTxObserver = ble.addTxObserver(
-          txCharacteristicId,
-          observer.bind(sendCommand),
-          observerUuid
-        );
-      } catch (e) {
-        error.value = e;
-        resolve(false);
-      }
-
-      sendCommand.delay([ble, command, rxCharacteristicId], receiver);
-    });
-  }
-
-  async function stopAll(): Promise<void> {
-    for (const parameter of parametersInStream.value.keys()) {
-      try {
+  const { routineWithErrorCapturing: stopAll } = useErrorCapturing(
+    async function stopAll(): Promise<void> {
+      for (const parameter of parametersInStream.value.keys()) {
         await stop(parameter);
-      } catch (e) {
-        error.value = e;
       }
-    }
-  }
+    },
+    [BleError],
+    error,
+    errorCaptured,
+    true
+  );
 
-  return { isStreamActive, start, stop, stopAll, error };
+  return { isStreamActive, start, stop, stopAll, error, errorCaptured };
 };

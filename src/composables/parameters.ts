@@ -12,7 +12,6 @@ export const useRobotParameters = (
   dataClasses: Map<string, Robot.DataClass>;
   loading: Ref<boolean>;
   error: Ref<unknown>;
-  errorCaptured: Ref<boolean>;
   setParameter: (
     className: string,
     paramName: string,
@@ -23,7 +22,6 @@ export const useRobotParameters = (
 } => {
   const dataClasses = reactive(new Map<string, Robot.DataClass>());
   const error = ref<unknown>(null);
-  const errorCaptured = ref(false);
   const { loading, notifyLoading } = useLoading();
 
   function addDataClass(name: string, dataClass: Robot.DataClass): void {
@@ -58,8 +56,7 @@ export const useRobotParameters = (
       });
     }),
     [BleError],
-    error,
-    errorCaptured
+    error
   );
 
   async function getParameter(className: string, paramName: string) {
@@ -93,15 +90,13 @@ export const useRobotParameters = (
         });
     },
     [BleError],
-    error,
-    errorCaptured
+    error
   );
 
   return {
     dataClasses,
     loading,
     error,
-    errorCaptured,
     setParameter,
     getParameter,
     listParameters,

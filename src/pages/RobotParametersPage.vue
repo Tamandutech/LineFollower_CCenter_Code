@@ -100,6 +100,7 @@
 
 <script lang="ts" setup>
 import { useRobotParameters } from 'src/composables/parameters';
+import { useIsTruthy } from 'src/composables/boolean';
 import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';
 import useBluetooth from 'src/services/ble';
 import CommandErrorCard from 'src/components/cards/CommandErrorCard.vue';
@@ -110,11 +111,11 @@ const {
   dataClasses,
   loading,
   error,
-  errorCaptured: showErrorDialog,
   listParameters,
   getParameter,
   setParameter,
 } = useRobotParameters(ble, 'UART_TX', 'UART_RX');
+const showErrorDialog = useIsTruthy(error);
 const filter = ref('');
 
 const columns = [

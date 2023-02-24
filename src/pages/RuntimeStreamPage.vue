@@ -263,14 +263,15 @@ import { ref, reactive } from 'vue';
 import StreamChartsPanel from 'components/StreamChartsPanel.vue';
 import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import StreamsConfigCard from 'src/components/cards/StreamsConfigCard.vue';
+import { useIsTruthy } from 'src/composables/boolean';
 
 const { ble } = useBluetooth();
-const {
-  parameters,
-  error,
-  errorCaptured: showErrorDialog,
-  updateParameters,
-} = useRobotRuntime(ble, 'UART_TX', 'UART_RX');
+const { parameters, error, updateParameters } = useRobotRuntime(
+  ble,
+  'UART_TX',
+  'UART_RX'
+);
+const showErrorDialog = useIsTruthy(error);
 
 const showConfigDialog = ref(false);
 const showInvalidConfigMessage = ref(false);
@@ -286,7 +287,7 @@ const parameterTab = ref<string>();
 const loadConfigDialog = async function () {
   await updateRuntimeParameters();
 
-  if (parametersToStream.size > 1) {
+  if (parameters.value.size > 1 && !showErrorDialog.value) {
     showInvalidConfigMessage.value = false;
     showConfigDialog.value = true;
   }

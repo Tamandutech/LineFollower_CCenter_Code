@@ -28,7 +28,11 @@ export const useRobotDataStream = (
   const streamObserverUuid = uuidv4();
   ble.addTxObserver(streamCharacteristicId, streamReader, streamObserverUuid);
 
-  const { routineWithErrorCapturing: start } = useErrorCapturing(
+  const { routineWithErrorCapturing: start } = useErrorCapturing<
+    undefined,
+    [string, number],
+    void
+  >(
     async function (parameter: string, interval: number): Promise<void> {
       if (parametersInStream.value.get(parameter) === interval) {
         return;
@@ -50,11 +54,14 @@ export const useRobotDataStream = (
       });
     },
     [BleError],
-    error,
-    errorCaptured
+    error
   );
 
-  const { routineWithErrorCapturing: stop } = useErrorCapturing(
+  const { routineWithErrorCapturing: stop } = useErrorCapturing<
+    undefined,
+    [string],
+    boolean
+  >(
     async function (parameter: string): Promise<boolean> {
       if (!isStreamActive.value) {
         return;
@@ -80,19 +87,21 @@ export const useRobotDataStream = (
       });
     },
     [BleError],
-    error,
-    errorCaptured
+    error
   );
 
-  const { routineWithErrorCapturing: stopAll } = useErrorCapturing(
-    async function stopAll(): Promise<void> {
+  const { routineWithErrorCapturing: stopAll } = useErrorCapturing<
+    undefined,
+    void[],
+    void
+  >(
+    async function (): Promise<void> {
       for (const parameter of parametersInStream.value.keys()) {
-        await stop(parameter);
+        await stop.call(this, parameter);
       }
     },
     [BleError],
     error,
-    errorCaptured,
     true
   );
 

@@ -12,7 +12,6 @@ export const useRobotMapping = (
 ) => {
   const mappingRecords = ref<Robot.MappingRecord[]>([]);
   const error = ref<unknown>(null);
-  const errorCaptured = ref(false);
   const { loading, notifyLoading } = useLoading();
   const { undo, redo } = useRefHistory(mappingRecords, { deep: true });
 
@@ -49,8 +48,7 @@ export const useRobotMapping = (
   const { routineWithErrorCapturing: deleteRecords } = useErrorCapturing(
     notifyLoading(clearRecords.bind(this, true)),
     [RuntimeError],
-    error,
-    errorCaptured
+    error
   );
 
   const { routineWithErrorCapturing: hardDeleteRecords } = useErrorCapturing(
@@ -85,6 +83,7 @@ export const useRobotMapping = (
       encMedia,
       encRight,
       trackStatus,
+      offset,
       time,
     });
   }
@@ -134,8 +133,7 @@ export const useRobotMapping = (
   const { routineWithErrorCapturing: sendMapping } = useErrorCapturing(
     autoRetriedSendMapping,
     [RuntimeError],
-    error,
-    errorCaptured
+    error
   );
 
   const { routineWithErrorCapturing: saveMapping } = useErrorCapturing(
@@ -155,8 +153,7 @@ export const useRobotMapping = (
       }
     }),
     [RuntimeError],
-    error,
-    errorCaptured
+    error
   );
 
   const { routineWithErrorCapturing: fetchMapping } = useErrorCapturing(
@@ -176,15 +173,13 @@ export const useRobotMapping = (
         .map(deserializeRecord);
     }),
     [BleError],
-    error,
-    errorCaptured
+    error
   );
 
   return {
     mappingRecords,
     loading,
     error,
-    errorCaptured,
     undo,
     redo,
     hardDeleteRecords,

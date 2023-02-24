@@ -17,7 +17,6 @@
 <script setup lang="ts">
 import {
   onUnmounted,
-  watchEffect,
   onBeforeMount,
   shallowRef,
   triggerRef,
@@ -28,6 +27,7 @@ import { useRobotDataStream } from 'src/composables/stream';
 import StreamChart from 'components/StreamChart.vue';
 import useBluetooth from 'src/services/ble';
 import { randomColorGenerator } from 'src/utils/colors';
+import { whenever } from '@vueuse/core';
 import type { ComputedRef } from 'vue';
 import type { ChartData } from 'chart.js';
 
@@ -166,14 +166,11 @@ const gracefullyStopStreams = async () => {
   try {
     await stopAllStreams();
   } catch (error) {
-    emit('error', error);
     disconnectBluetooth();
   }
 };
 
-watchEffect(() => {
-  if (error.value) emit('error', error.value);
-});
+whenever(error, () => emit('error', error.value));
 
 onBeforeMount(async () => {
   try {
@@ -183,7 +180,6 @@ onBeforeMount(async () => {
       }
     }
   } catch (error) {
-    emit('error', error);
     await gracefullyStopStreams();
   }
 });

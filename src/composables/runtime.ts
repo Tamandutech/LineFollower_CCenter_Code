@@ -10,37 +10,36 @@ export const useRobotRuntime = (
 ): {
   parameters: Ref<Map<string, number>>;
   error: Ref<unknown>;
-  errorCaptured: Ref<boolean>;
   updateParameters: () => Promise<void>;
 } => {
   const parameters = ref<Map<string, number>>(new Map());
 
-  const {
-    routineWithErrorCapturing: updateParameters,
-    error,
-    errorCaptured,
-  } = useErrorCapturing(
-    async function (): Promise<void> {
-      const rawData = await ble.request(
-        txCharacteristicId,
-        rxCharacteristicId,
-        'runtime_list'
-      );
+  const { routineWithErrorCapturing: updateParameters, error } =
+    useErrorCapturing(
+      async function (): Promise<void> {
+        const rawData = await ble.request(
+          txCharacteristicId,
+          rxCharacteristicId,
+          'runtime_list'
+        );
 
-      const [, ...results] = rawData.toString().split('\n');
+        const [, ...results] = rawData.toString().split('\n');
 
-      results
-        .filter((line) => line !== '')
-        .forEach((line) => {
-          const [, className, parameterName, value] = line.match(
-            /^\s\d+\s-\s(\w+)\.(\w+):\s(-?\d+\.{0,1}\d*)$/
-          );
+        results
+          .filter((line) => line !== '')
+          .forEach((line) => {
+            const [, className, parameterName, value] = line.match(
+              /^\s\d+\s-\s(\w+)\.(\w+):\s(-?\d+\.{0,1}\d*)$/
+            );
 
-          parameters.value.set(`${className}.${parameterName}`, Number(value));
-        });
-    },
-    [BleError]
-  );
+            parameters.value.set(
+              `${className}.${parameterName}`,
+              Number(value)
+            );
+          });
+      },
+      [BleError]
+    );
 
-  return { parameters, error, errorCaptured, updateParameters };
+  return { parameters, error, updateParameters };
 };

@@ -269,13 +269,13 @@ import { useRobotMapping } from 'src/composables/mapping';
 import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import { useConfirmDialog } from '@vueuse/core';
 import { ref, computed, watchEffect } from 'vue';
+import { useIsTruthy } from 'src/composables/boolean';
 
 const { ble } = useBluetooth();
 const {
   mappingRecords,
   loading,
   error,
-  errorCaptured: showErrorDialog,
   hardDeleteRecords,
   removeRecord,
   addRecord,
@@ -283,6 +283,7 @@ const {
   saveMapping,
   fetchMapping,
 } = useRobotMapping(ble, 'UART_TX', 'UART_RX');
+const showErrorDialog = useIsTruthy(error);
 
 const showSuccessDialog = ref(false);
 const successDialogMessage = ref<string>();

@@ -46,13 +46,13 @@ export const useRobotMapping = (
   }
 
   const { routineWithErrorCapturing: deleteRecords } = useErrorCapturing(
-    notifyLoading(clearRecords.bind(this, true)),
+    notifyLoading(clearRecords.bind(undefined, true)),
     [RuntimeError],
     error
   );
 
   const { routineWithErrorCapturing: hardDeleteRecords } = useErrorCapturing(
-    notifyLoading(clearRecords.bind(this, false)),
+    notifyLoading(clearRecords.bind(undefined, false)),
     [RuntimeError],
     error
   );

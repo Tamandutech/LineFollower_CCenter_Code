@@ -81,7 +81,7 @@ export const useRobotDataStream = (
         return;
       }
 
-      error.value = new RuntimeError({
+      throw new RuntimeError({
         message: 'Ocorreu um erro durante a finalização da transmissão.',
         action: 'Certifique-se de não há transmissão ativa no robô.',
       });

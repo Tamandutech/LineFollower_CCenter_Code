@@ -45,14 +45,14 @@ export const useRobotMapping = (
     return Promise.resolve();
   }
 
-  const { routineWithErrorCapturing: deleteRecords } = useErrorCapturing(
-    notifyLoading(clearRecords.bind(undefined, true)),
+  const { deleteRecords } = useErrorCapturing(
+    notifyLoading(clearRecords.bind(undefined, true), 'deleteRecords'),
     [RuntimeError],
     error
   );
 
-  const { routineWithErrorCapturing: hardDeleteRecords } = useErrorCapturing(
-    notifyLoading(clearRecords.bind(undefined, false)),
+  const { hardDeleteRecords } = useErrorCapturing(
+    notifyLoading(clearRecords.bind(undefined, false), 'hardDeleteRecords'),
     [RuntimeError],
     error
   );
@@ -88,55 +88,55 @@ export const useRobotMapping = (
     });
   }
 
-  const { autoRetriedRoutine: autoRetriedSendMapping } = useRetry(
-    notifyLoading(async function (
-      sortedRecords?: Robot.MappingRecord[]
-    ): Promise<void> {
-      await deleteRecords();
+  const { sendMapping } = useErrorCapturing(
+    useRetry(
+      notifyLoading(async function (
+        records?: Robot.MappingRecord[]
+      ): Promise<void> {
+        await deleteRecords();
 
-      sortedRecords =
-        sortedRecords ||
-        [...mappingRecords.value].sort((r1, r2) => r1.encMedia - r2.encMedia);
+        records = [...(records || mappingRecords.value)].sort(
+          (r1, r2) => r1.encMedia - r2.encMedia
+        );
 
-      let mappingPayload = '';
-      let sendingStatus: string;
-      while (sortedRecords.length > 0) {
-        while (true) {
-          if (
-            !sortedRecords.at(0) ||
-            (mappingPayload + serializeRecord(sortedRecords.at(0)) + ';')
-              .length > 90
-          ) {
-            break;
+        let mappingPayload = '';
+        let sendingStatus: string;
+        while (records.length > 0) {
+          while (true) {
+            if (
+              !records.at(0) ||
+              (mappingPayload + serializeRecord(records.at(0)) + ';').length >
+                90
+            ) {
+              break;
+            }
+
+            mappingPayload += serializeRecord(records.shift()) + ';';
           }
 
-          mappingPayload += serializeRecord(sortedRecords.shift()) + ';';
+          sendingStatus = await ble.request(
+            txCharacteristicId,
+            rxCharacteristicId,
+            `map_add ${mappingPayload}`
+          );
+          if (sendingStatus !== 'OK') {
+            throw new RuntimeError({
+              message: 'Ocorreu um erro durante o envio do mapeamento.',
+              action:
+                'Verifique se há algum problema no registro de mapeamento do robô',
+            });
+          }
         }
-
-        sendingStatus = await ble.request(
-          txCharacteristicId,
-          rxCharacteristicId,
-          `map_add ${mappingPayload}`
-        );
-        if (sendingStatus !== 'OK') {
-          throw new RuntimeError({
-            message: 'Ocorreu um erro durante o envio do mapeamento.',
-            action:
-              'Verifique se há algum problema no registro de mapeamento do robô',
-          });
-        }
-      }
-    }),
-    [RuntimeError],
-    1000
-  );
-  const { routineWithErrorCapturing: sendMapping } = useErrorCapturing(
-    autoRetriedSendMapping,
+      },
+      'sendMapping'),
+      [RuntimeError],
+      1000
+    )['sendMapping'] as (records?: Robot.MappingRecord[]) => Promise<void>,
     [RuntimeError],
     error
   );
 
-  const { routineWithErrorCapturing: saveMapping } = useErrorCapturing(
+  const { saveMapping } = useErrorCapturing(
     notifyLoading(async function (): Promise<void> {
       const savingStatus = await ble.request(
         txCharacteristicId,
@@ -151,12 +151,12 @@ export const useRobotMapping = (
             'Verifique se há problemas na escrita de mapeamento na memória flash do robô.',
         });
       }
-    }),
+    }, 'saveMapping'),
     [RuntimeError],
     error
   );
 
-  const { routineWithErrorCapturing: fetchMapping } = useErrorCapturing(
+  const { fetchMapping } = useErrorCapturing(
     notifyLoading<undefined, [boolean], void>(async function (
       fromRam: boolean
     ): Promise<void> {
@@ -165,13 +165,13 @@ export const useRobotMapping = (
         rxCharacteristicId,
         fromRam ? 'map_getRuntime' : 'map_get'
       );
-      console.log(rawMapping);
 
       mappingRecords.value = rawMapping
         .slice(0, -1) // Ignora '\n' no final
         .split('\n')
         .map(deserializeRecord);
-    }),
+    },
+    'fetchMapping'),
     [BleError],
     error
   );
@@ -180,7 +180,7 @@ export const useRobotMapping = (
     mappingRecords,
     loading,
     error,
-    undo,
+    undo, // TODO: implementar UI para usar o "undo" e o "redo"
     redo,
     hardDeleteRecords,
     deleteRecords,

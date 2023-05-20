@@ -17,7 +17,7 @@
       >
         <template v-slot:top-left>
           <q-btn
-            :loading="loading"
+              :loading="loading === listParameters.name"
             :icon="mdiRefreshCircle"
             @click="listParameters"
             color="primary"

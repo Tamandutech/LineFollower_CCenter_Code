@@ -2,6 +2,10 @@ import { ref, unref } from 'vue';
 import type { Ref } from 'vue';
 
 /**
+ * Retorna uma função que re-executa a função fornecida caso certos erros
+ * ocorram durante a execução. Caso a função fornecida tenha um nome, ele será
+ * preservado, caso contrário a nova função será a
+ * propriedade `autoRetriedRoutine` do objeto retornado.
  *
  * @param routine Função para aplicar autoretry
  * @param retryFor Tipos de erro para capturar e executar a função novamente
@@ -18,30 +22,33 @@ export const useRetry = <This, Args extends unknown[], Return>(
 ) => {
   const retryDelay = ref(delay || 0);
 
-  async function autoRetriedRoutine(
-    this: This,
-    ...args: Args
-  ): Promise<Return> {
-    let tries = unref(maxRetries);
-    while (true) {
-      tries -= 1;
-      try {
-        const result = await routine.call(this, ...args);
-        return Promise.resolve(result);
-      } catch (error) {
-        if (
-          tries == 0 ||
-          !retryFor.some((errorType) => error instanceof errorType)
-        ) {
-          throw error;
-        }
+  return {
+    [routine.name || 'autoRetriedRoutine']: async function (
+      this: This,
+      ...args: Args
+    ): Promise<Return> {
+      let tries = unref(maxRetries);
+      while (true) {
+        tries -= 1;
+        try {
+          const result = await routine.call(this, ...args);
+          return Promise.resolve(result);
+        } catch (error) {
+          if (
+            tries == 0 ||
+            !retryFor.some((errorType) => error instanceof errorType)
+          ) {
+            throw error;
+          }
 
-        if (retryDelay.value > 0) {
-          await new Promise((resolve) => setTimeout(resolve, retryDelay.value));
+          if (retryDelay.value > 0) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, retryDelay.value)
+            );
+          }
         }
       }
-    }
-  }
-
-  return { autoRetriedRoutine, delay: retryDelay };
+    },
+    delay: retryDelay,
+  };
 };

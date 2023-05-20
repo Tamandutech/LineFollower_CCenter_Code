@@ -97,7 +97,7 @@
         @click="performAction(sendMapping, 'Mapeamento enviado.')"
         color="primary"
         label="Enviar mapeamento"
-        :disable="loading || mappingRecords.length === 0"
+        :disable="loading !== null || mappingRecords.length === 0"
       />
       <q-btn
         @click="fetchMapping(true)"
@@ -113,7 +113,7 @@
         @click="performAction(saveMapping, 'Mapeamento salvo com sucesso.')"
         color="primary"
         label="Salvar mapeamento"
-        :disable="loading"
+        :disable="loading !== null"
       />
       <q-dialog v-model="showErrorDialog">
         <CommandErrorCard :error="error" />

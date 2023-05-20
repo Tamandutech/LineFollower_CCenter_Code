@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show">
-    <q-card style="width: 300px">
+    <q-card :style="{ width: `${width}px` }">
       <q-card-section>
         <div class="text-h6">{{ title }}</div>
       </q-card-section>

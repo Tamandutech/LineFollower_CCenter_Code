@@ -23,7 +23,7 @@ const props = withDefaults(
     modelValue: boolean;
     message: string;
     title: string;
-    width: string | number;
+    width?: string | number;
   }>(),
   { width: 500 }
 );

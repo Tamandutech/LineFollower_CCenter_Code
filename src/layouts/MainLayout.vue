@@ -6,23 +6,15 @@
         <q-toolbar-title>LF Dash</q-toolbar-title>
         <!-- <q-space></q-space> -->
         <div class="q-px-md q-gutter-sm">
-          <q-btn
-            color="secondary"
-            round
-            @click="performConnect"
-            :icon="mdiBluetoothConnect"
-            :loading="connecting"
+          <ConnectBluetoothButton
             v-if="!connected"
-          >
-            <template v-slot:loading>
-              <q-spinner-radio class="on-center" />
-            </template>
-          </q-btn>
+            @bluetooth-connection-error="notifyBluetoothError"
+          />
           <RobotChip
-            @low-battery="
-              (currentVoltage) => lowBatteryDialog.warn(currentVoltage)
-            "
             v-else
+            @low-battery="
+              (currentVoltage: number) => lowBatteryDialog.warn(currentVoltage)
+            "
           />
           <UserChip
             color="secondary"
@@ -104,7 +96,6 @@ import {
   mdiMenu,
   mdiHome,
   mdiRobotMowerOutline,
-  mdiBluetoothConnect,
   mdiChartLine,
   mdiAccountCheck,
   mdiCloseOctagon,
@@ -113,11 +104,14 @@ import {
   mdiAlertBox,
 } from '@quasar/extras/mdi-v6';
 import { useQuasar } from 'quasar';
-import useBluetooth, { BleError } from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
 import RobotChip from 'src/components/RobotChip.vue';
 import BatteryWarningCard from 'src/components/cards/BatteryWarningCard.vue';
+import ConnectBluetoothButton from 'src/components/buttons/ConnectBluetoothButton.vue';
+import useBluetooth from 'src/services/ble';
 import type { User, AuthError } from 'firebase/auth';
+
+const { connected } = useBluetooth();
 
 const drawer = ref(false);
 const lowBatteryDialog = reactive({
@@ -132,23 +126,9 @@ const lowBatteryDialog = reactive({
   },
 });
 const $q = useQuasar();
-const { connected, connecting, connect } = useBluetooth();
 
-async function performConnect() {
-  try {
-    await connect();
-  } catch (error) {
-    const message =
-      error instanceof BleError
-        ? error.message
-        : 'Ocorreu um erro durante a conexão com o robô. Tente novamente.';
-
-    $q.notify({
-      message,
-      color: 'negative',
-      icon: mdiAlertBox,
-    });
-  }
+function notifyBluetoothError(message: string) {
+  return $q.notify({ message, color: 'negative', icon: mdiAlertBox });
 }
 
 function welcomeUser(user: User) {

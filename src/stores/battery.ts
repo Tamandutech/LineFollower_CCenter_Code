@@ -6,7 +6,7 @@ export const useBattery = defineStore('battery', {
   } => ({
     voltage: null,
     time: null,
-    historic: [],
+    historic: [] /** TODO: mostrar isso em um gráfico */,
   }),
 
   getters: {

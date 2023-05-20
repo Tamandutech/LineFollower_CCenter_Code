@@ -7,6 +7,14 @@
       row-key="id"
       binary-state-sort
     >
+      <template v-slot:top-left>
+        <q-btn
+          :icon="mdiSourceBranch"
+          flat
+          @click="toogleVersionsDialog(true)"
+          :disable="!ble.connected"
+        />
+      </template>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="id" :props="props">
@@ -94,7 +102,12 @@
     </q-table>
     <div class="q-pa-md q-gutter-sm">
       <q-btn
-        @click="performAction(sendMapping, 'Mapeamento enviado.')"
+        @click="
+          withSuccessFeedback(sendMapping, {
+            summary: 'Mapeamento Enviado',
+            message: 'O mapeamento foi enviado para o robô com sucesso!',
+          })()
+        "
         color="primary"
         label="Enviar mapeamento"
         :disable="loading !== null || mappingRecords.length === 0"
@@ -110,7 +123,19 @@
         label="Ler mapeamento na Ram"
       />
       <q-btn
-        @click="performAction(saveMapping, 'Mapeamento salvo com sucesso.')"
+        @click="
+          performAction(
+            withSuccessFeedback(saveMapping, {
+              summary: 'Mapeamento Salvo',
+              message: 'O mapeamento enviado foi registrado com sucesso!',
+            }),
+            [],
+            {
+              title: 'Salvar Mapeamento',
+              question: 'Tem certeza que deseja salvar o mapeamento atual?',
+            }
+          )
+        "
         color="primary"
         label="Salvar mapeamento"
         :disable="loading !== null"
@@ -118,42 +143,91 @@
       <q-dialog v-model="showErrorDialog">
         <CommandErrorCard :error="error" />
       </q-dialog>
-      <q-dialog v-model="showSuccessDialog">
-        <q-card style="width: 300px">
-          <q-card-section>
-            <div class="text-h6">Mapeamento</div>
-          </q-card-section>
+      <SuccessDialog
+        v-model="showSuccessDialog"
+        v-if="showSuccessDialog"
+        :title="successDialogState.summary"
+        :message="successDialogState.message"
+      />
+      <ConfirmActionDialog
+        :confirm="confirm"
+        v-if="isRevealed"
+        :cancel="cancel"
+        v-model="isRevealed"
+      >
+        <template #title>{{ confirmDialogState.title }}</template>
+        <template #question>{{ confirmDialogState.question }}</template>
+      </ConfirmActionDialog>
 
-          <q-card-section class="q-pt-none">
-            {{ successDialogMessage }}
-          </q-card-section>
-
-          <q-card-actions align="right" class="bg-white text-teal">
-            <q-btn flat label="OK" v-close-popup />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
-      <q-dialog v-model="isRevealed">
-        <q-card style="width: 300px">
-          <q-card-section>
-            <div class="text-h6">Deletar Registro</div>
-          </q-card-section>
-
-          <q-card-section class="q-pt-none">
-            Tem certeza que deseja deletar o registro {{ deleteRecordId }}?
-          </q-card-section>
-
-          <q-card-actions align="right" class="bg-white text-teal">
-            <q-btn flat label="SIM" v-close-popup @click="confirm" />
-            <q-btn flat label="NÃO" v-close-popup @click="cancel" />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
+      <ProfileVersionsDialog
+        collection="mappings"
+        title="Mapeamentos"
+        :data="mappingRecords"
+        @install-request="
+        (version: Robot.ProfileVersion<Robot.Mapping>) =>
+          performAction(
+            withSuccessFeedback(
+              sendMapping,
+              {summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.'}
+            ),
+            [version.data],
+            {
+              title: 'Instalar Versão',
+              question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
+            }
+          )
+      "
+        installable
+        v-model="showVersionsDialog"
+        v-slot="{ version }"
+        v-if="showVersionsDialog"
+      >
+        <q-list separator>
+          <q-expansion-item
+            switch-toggle-side
+            v-for="(record, index) of version.data"
+            :key="index"
+            :caption="Number(index) || '0'"
+          >
+            <q-list separator>
+              <q-item v-for="(value, key) in record" :key="key">
+                <q-item-section>{{ key }}</q-item-section>
+                <q-item-section side>{{ value }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
+        </q-list>
+      </ProfileVersionsDialog>
     </div>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="reveal" color="primary" label="Deletar Registro" />
       <q-btn
-        @click="hardDeleteRecords"
+        @click="
+          performAction(
+            async (id: number) => removeRecord(id),
+            [deleteRecordId],
+            {
+              title: 'Deletar Registro',
+              question: `Tem certeza que deseja deletar o registro ${deleteRecordId}`,
+            }
+          )
+        "
+        color="primary"
+        label="Deletar Registro"
+      />
+      <q-btn
+        @click="
+          performAction(
+            withSuccessFeedback(hardDeleteRecords, {
+              summary: 'Mapeamento Deletado',
+              message: 'O mapeamento salvo na flash foi deletado com sucesso.',
+            }),
+            [],
+            {
+              title: 'Deletar Mapeamento',
+              question: 'Tem certeza que deseja deletar o mapeamento atual?',
+            }
+          )
+        "
         color="primary"
         label="Deletar todos os registros"
       />
@@ -266,10 +340,18 @@
 <script lang="ts" setup>
 import useBluetooth from 'src/services/ble';
 import { useRobotMapping } from 'src/composables/mapping';
-import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
-import { useConfirmDialog } from '@vueuse/core';
-import { ref, computed, watchEffect } from 'vue';
 import { useIsTruthy } from 'src/composables/boolean';
+import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
+import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
+import SuccessDialog from 'src/components/dialogs/SuccessDialog.vue';
+import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
+import {
+  usePerformActionDialog,
+  useSuccessFeedback,
+} from 'src/composables/actions';
+import { ref, computed, watchEffect } from 'vue';
+import { useToggle } from '@vueuse/core';
+import { mdiSourceBranch } from '@quasar/extras/mdi-v6';
 
 const { ble } = useBluetooth();
 const {
@@ -285,18 +367,19 @@ const {
 } = useRobotMapping(ble, 'UART_TX', 'UART_RX');
 const showErrorDialog = useIsTruthy(error);
 
-const showSuccessDialog = ref(false);
-const successDialogMessage = ref<string>();
-async function performAction(action: () => void, successMessage: string) {
-  try {
-    await action();
-    showSuccessDialog.value = true;
-    successDialogMessage.value = successMessage;
-  } catch (e) {
-    error.value = e;
-    showErrorDialog.value = true;
-  }
-}
+const {
+  isRevealed,
+  confirm,
+  cancel,
+  performAction,
+  state: confirmDialogState,
+} = usePerformActionDialog();
+
+const { feedback: successDialogState, withSuccessFeedback } =
+  useSuccessFeedback();
+const showSuccessDialog = useIsTruthy(successDialogState);
+
+const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
 
 const deleteRecordId = ref(0);
 const recordDeleteOptions = computed(() =>
@@ -309,8 +392,6 @@ watchEffect(() => {
     deleteRecordId.value = null;
   }
 });
-const { isRevealed, reveal, confirm, cancel, onConfirm } = useConfirmDialog();
-onConfirm(() => removeRecord(deleteRecordId.value));
 
 function addMappingRecord() {
   const record = newRecord.value[0];

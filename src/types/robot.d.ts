@@ -21,7 +21,9 @@ declare namespace Robot {
     time: Date;
   };
 
-  type DataClass = Map<string, string | number>;
+  type ParameterValue = string | number;
+  type DataClass = Map<string, ParameterValue>;
+  type Parameters = Map<string, DataClass>;
 
   interface Response<T> extends Record<string, unknown> {
     cmdExecd: string;
@@ -34,10 +36,11 @@ declare namespace Robot {
     time: number;
     encRight: number;
     encLeft: number;
-    offset: number
+    offset: number;
     status: Status;
     trackStatus: number;
   };
+  type Mapping = MappingRecord[];
 
   type RuntimeStream = {
     name: string;
@@ -45,9 +48,23 @@ declare namespace Robot {
     Time: number;
   };
 
+  type Timestamp = import('firebase/firestore').Timestamp;
+  type DocumentReference = import('firebase/firestore').Timestamp;
+  type ProfileVersion<T> = {
+    id: string;
+    description: string;
+    created: Timestamp;
+    updated: Timestamp;
+    robot?: DocumentReference;
+    competition?: DocumentReference;
+    data: T;
+  };
+
   type BluetoothConnectionConfig = {
+    id: string;
     name: string;
-    services: Map<string, Map<string, string>>;
+    services: Record<string, Record<string, string>>;
+    interface: string;
   };
 
   type Command = (

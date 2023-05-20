@@ -166,10 +166,13 @@ export const useRobotMapping = (
         fromRam ? 'map_getRuntime' : 'map_get'
       );
 
-      mappingRecords.value = rawMapping
-        .slice(0, -1) // Ignora '\n' no final
-        .split('\n')
-        .map(deserializeRecord);
+      mappingRecords.value =
+        rawMapping === ''
+          ? []
+          : rawMapping
+              .slice(0, -1) // Ignora '\n' no final
+              .split('\n')
+              .map(deserializeRecord);
     },
     'fetchMapping'),
     [BleError],

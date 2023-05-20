@@ -2,8 +2,18 @@ import 'pinia';
 
 declare module 'pinia' {
   export interface PiniaCustomProperties {
-    get service(): import('firebase/auth').Auth;
-    get github_provider(): import('firebase/auth').GithubAuthProvider;
+    service: import('firebase/auth').Auth;
+    github_provider: import('firebase/auth').GithubAuthProvider;
     ble: import('src/services/ble').RobotBLEAdapter;
+    firestore: import('firebase/firestore').Firestore;
+    router: import('vue-router').Router;
+  }
+  export interface DefineStoreOptionsBase<S, Store> {
+    sync?: {
+      collection: string;
+      doc: string | keyof S;
+      fields: Map<keyof S, { field: string; ref?: string }>;
+      create: boolean;
+    };
   }
 }

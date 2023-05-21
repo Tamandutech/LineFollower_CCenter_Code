@@ -13,7 +13,7 @@ provider.setCustomParameters({
   redirect_uri: process.env.OAUTH_REDIRECT_URI,
 });
 
-export default (app: FirebaseApp): LFCommandCenter.AuthService => ({
+export default (app: FirebaseApp): Firebase.AuthService => ({
   service: getAuth(app),
   github_provider: provider,
 });

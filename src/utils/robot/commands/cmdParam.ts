@@ -2,45 +2,71 @@ import { useRobotParameters } from 'stores/robotParameters';
 import { useRobotQueue } from 'stores/robotQueue';
 import { useMapping } from 'stores/mapping';
 import { useBattery } from 'stores/battery';
-import { Task } from 'src/services/queue';
+import { v4 as uuidv4 } from 'uuid';
 
 const battery = useBattery();
 const commandQueue = useRobotQueue();
 const mapping = useMapping();
 const robotParameters = useRobotParameters();
 
-export abstract class Command extends Task {
-  sanitizeData(data: string): LFCommandCenter.RobotResponse | null {
-    console.log(data);
+export abstract class Command {
+  _id: string;
+  _name: string;
+  _options: Record<string, string | number>;
+  _error: string | null;
 
-    if (!data.endsWith('\0')) return null;
-
-    return JSON.parse(data.substring(0, data.length - 1));
+  constructor(name: string, options: Record<string, string | number> = null) {
+    this._name = name;
+    this._id = uuidv4();
+    if (options) {
+      this._options = options;
+    }
   }
 
-  characteristicObserver(data: string): Promise<void> | null {
-    const result = this.sanitizeData(data);
-    if (!result) return null;
-
-    this.resultHandler(result);
-    commandQueue.startNextCommand();
+  get name() {
+    return this._name;
   }
 
-  abstract resultHandler(
-    data: Record<string, unknown> | string | null
-  ): Promise<void>;
+  get id() {
+    return this._id;
+  }
+
+  get options() {
+    return this._options;
+  }
+
+  get error() {
+    return this._error;
+  }
+
+  set error(value: unknown) {
+    if (value instanceof Error) {
+      this._error = value.message;
+    } else if (typeof value === 'string') {
+      this._error = value;
+    } else {
+      this._error = value.toString();
+    }
+  }
+
+  abstract execute(): Promise<void>;
+
+  characteristicObserver(response: Robot.Response<string>): void {
+    if (!response.cmdExecd.startsWith(this.name)) {
+      return;
+    }
+    return this.resultHandler(response);
+  }
+
+  abstract resultHandler(data: Record<string, unknown> | string | null): void;
 }
 
 export class param_set extends Command {
-  row: LFCommandCenter.RobotParameter;
-  value: undefined;
-  initialValue: undefined;
+  row: Robot.Parameter;
+  value: unknown;
+  initialValue: unknown;
 
-  constructor(
-    row: LFCommandCenter.RobotParameter,
-    value: undefined,
-    initialValue: undefined
-  ) {
+  constructor(row: Robot.Parameter, value: unknown, initialValue: unknown) {
     super('param_set', { characteristicId: 'UART_TX' });
 
     this.row = row;
@@ -52,18 +78,22 @@ export class param_set extends Command {
     if (this.value === this.initialValue) return;
 
     try {
-      let valueStr ='';
-      if(this.value != undefined)
-      {
+      let valueStr = '';
+      if (this.value !== undefined) {
         valueStr = this.value.toString();
-        if(this.value < 0)
-        {
+
+        if (Number(this.value) < 0) {
           valueStr = '!' + valueStr;
         }
       }
+
       await robotParameters.ble.send(
+        'UART_RX',
+        `param_set ${this.row.class.name}.${this.row.name} ${valueStr}`
+      );
+
+      robotParameters.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        `param_set ${this.row.class.name}.${this.row.name} ${valueStr}`,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -76,14 +106,13 @@ export class param_set extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    commandQueue.ble.clearData();
 
-    if (response.data.match('OK')) console.log('Parâmetro alterado');
+    if (response.data.toString().match('OK')) console.log('Parâmetro alterado');
     else console.error('Erro ao alterar parâmetro');
   }
 }
@@ -102,8 +131,12 @@ export class param_get extends Command {
   async execute() {
     try {
       await robotParameters.ble.send(
+        'UART_RX',
+        `param_get ${this.className}.${this.paramName}`
+      );
+
+      robotParameters.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        `param_get ${this.className}.${this.paramName}`,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -116,12 +149,11 @@ export class param_get extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    robotParameters.ble.clearData();
 
     const match = response.cmdExecd.match(
       'param_get[ ]+(?<classe>[^.]*).(?<parametro>[^"]*)'
@@ -155,13 +187,14 @@ export class param_list extends Command {
   }
 
   async execute() {
+    robotParameters.ble.addTxObserver(
+      this.options.characteristicId.toString(),
+      this.characteristicObserver.bind(this),
+      this.id
+    );
+
     try {
-      await robotParameters.ble.send(
-        this.options.characteristicId.toString(),
-        'param_list',
-        this.characteristicObserver.bind(this),
-        this.id
-      );
+      await robotParameters.ble.send('UART_RX', 'param_list');
     } catch (error) {
       robotParameters.ble.removeTxObserver(
         this.id,
@@ -171,15 +204,14 @@ export class param_list extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     robotParameters.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    robotParameters.ble.clearData();
     console.log('Parâmetros recebidos');
 
-    const lines: string[] = response.data.split('\n');
+    const lines: string[] = response.data.toString().split('\n');
 
     const qtdParams = Number(lines[0].substring(lines[0].indexOf(':') + 2));
     console.log('Qtd de parâmetros: ' + qtdParams);
@@ -219,9 +251,10 @@ export class map_clear extends Command {
 
   async execute() {
     try {
-      await mapping.ble.send(
+      await mapping.ble.send('UART_RX', this.command);
+
+      mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        this.command,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -234,14 +267,14 @@ export class map_clear extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
-    if (response.data.match('OK')) console.log('Dados de mapeamento deletados');
+    if (response.data.toString().match('OK'))
+      console.log('Dados de mapeamento deletados');
     else console.log('Erro ao limpar mapeamento.');
   }
 }
@@ -256,9 +289,10 @@ export class map_get extends Command {
 
   async execute() {
     try {
-      await mapping.ble.send(
+      await mapping.ble.send('UART_RX', this._command);
+
+      mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        this._command,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -271,16 +305,15 @@ export class map_get extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
     mapping.clearMap();
 
-    const regs: string[] = response.data.split('\n');
+    const regs: string[] = response.data.toString().split('\n');
     regs.pop();
 
     regs.forEach((reg) => mapping.addReg(reg));
@@ -298,9 +331,10 @@ export class map_SaveRuntime extends Command {
 
   async execute() {
     try {
-      await mapping.ble.send(
+      await mapping.ble.send('UART_RX', 'map_SaveRuntime');
+
+      mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        'map_SaveRuntime',
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -313,15 +347,14 @@ export class map_SaveRuntime extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
     mapping.mapSaving = false;
-    if (response.data === 'OK') {
+    if (response.data.toString() === 'OK') {
       mapping.mapStringDialog = 'Mapeamento salvo na flash com sucesso.';
       mapping.mapSent = true;
     } else {
@@ -332,10 +365,10 @@ export class map_SaveRuntime extends Command {
 }
 
 export class map_add extends Command {
-  regMaps: LFCommandCenter.RegMap[];
+  regMaps: Robot.RegMap[];
   actualReg: number;
 
-  constructor(regMaps: LFCommandCenter.RegMap[], actualReg = 0) {
+  constructor(regMaps: Robot.RegMap[], actualReg = 0) {
     super('map_add', { characteristicId: 'UART_TX' });
     mapping.setRegToSend(actualReg);
     this.regMaps = regMaps;
@@ -360,9 +393,10 @@ export class map_add extends Command {
       }
     }
     try {
-      await mapping.ble.send(
+      await mapping.ble.send('UART_RX', `map_add ${mapping.regsString}`);
+
+      mapping.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        `map_add ${mapping.regsString}`,
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -375,14 +409,13 @@ export class map_add extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  resultHandler(response: Robot.Response<string>) {
     mapping.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    mapping.ble.clearData();
 
-    if (response.data === 'OK') {
+    if (response.data.toString() === 'OK') {
       mapping.regsSent = true;
 
       if (mapping.totalRegs > mapping.getRegToSend) {
@@ -407,16 +440,17 @@ export class map_add extends Command {
   }
 }
 
-export class battery_voltage extends Command {
+export class bat_voltage extends Command {
   constructor() {
-    super('battery_voltage', { characteristicId: 'UART_TX' });
+    super('bat_voltage', { characteristicId: 'UART_TX' });
   }
 
   async execute() {
     try {
-      await battery.ble.send(
+      await battery.ble.send('UART_RX', 'bat_voltage');
+
+      battery.ble.addTxObserver(
         this.options.characteristicId.toString(),
-        'bat_voltage',
         this.characteristicObserver.bind(this),
         this.id
       );
@@ -429,12 +463,11 @@ export class battery_voltage extends Command {
     }
   }
 
-  async resultHandler(response: LFCommandCenter.RobotResponse) {
+  async resultHandler(response: Robot.Response<string>) {
     battery.ble.removeTxObserver(
       this.id,
       this.options.characteristicId.toString()
     );
-    battery.ble.clearData();
-    battery.updateVoltage(response.data);
+    battery.updateVoltage(response.data.toString());
   }
 }

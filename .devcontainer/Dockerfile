@@ -34,4 +34,3 @@ ENV CHOKIDAR_USEPOLLING=true
 # [Optional] Uncomment if you want to install more global node modules
 RUN su node -c "npm install -g @quasar/cli"
 RUN su node -c "npm install -g firebase-tools"
-RUN su node -c "chmod +x ./scripts/*"

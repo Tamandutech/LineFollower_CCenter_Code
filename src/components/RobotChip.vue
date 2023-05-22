@@ -45,6 +45,7 @@
                 :options="batteryStatusUpdateIntervalOptions"
                 options-dense
                 map-options
+                emit-value
                 color="teal-5"
               ></q-select>
             </q-item-section>
@@ -65,6 +66,7 @@
                 :options="batteryLowWarningThresholdOptions"
                 options-dense
                 map-options
+                emit-value
                 color="teal-5"
               ></q-select>
             </q-item-section>
@@ -145,8 +147,8 @@ battery.$subscribe((mutation, state) => {
   }
 });
 
-function fetchBatteryVoltage() {
-  battery.fetchVoltage(ble, 'UART_TX', 'UART_RX');
+async function fetchBatteryVoltage() {
+  await battery.fetchVoltage(ble, 'UART_TX', 'UART_RX');
 }
 
 const { resume, pause } = useTimeoutPoll(

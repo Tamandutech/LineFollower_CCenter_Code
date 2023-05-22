@@ -153,7 +153,7 @@
     <div class="q-pa-md q-gutter-sm">
       <q-btn @click="reveal" color="primary" label="Deletar Registro" />
       <q-btn
-        @click="hardDeleteRecords"
+        @click="performAction(hardDeleteRecords, 'O mapeamento foi deletado.')"
         color="primary"
         label="Deletar todos os registros"
       />

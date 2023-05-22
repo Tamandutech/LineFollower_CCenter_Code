@@ -99,9 +99,10 @@ export const useRobotMapping = (
           (r1, r2) => r1.encMedia - r2.encMedia
         );
 
-        let mappingPayload = '';
         let sendingStatus: string;
+        let mappingPayload: string;
         while (records.length > 0) {
+          mappingPayload = '';
           while (true) {
             if (
               !records.at(0) ||

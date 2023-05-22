@@ -50,7 +50,7 @@ export const useRobotParameters = (
 
       results.forEach((line) => {
         const [, className, parameterName, value] = line.match(
-          /^\s\d+\s-\s(\w+)\.(\w+):\s(.+)$/
+          /^\s\d+\s-\s(\w+)\.(\w+):\s(.*)$/
         );
         addParameter(className, parameterName, value);
       });

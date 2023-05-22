@@ -146,7 +146,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
       this.addTxObserver(
         txCharacteristicId,
         (response: Robot.Response<T>) => {
-          resolve(response.data || (response as unknown as T));
+          resolve(response.data ?? (response as unknown as T));
           this.removeTxObserver(txCharacteristicId, observerUuid);
         },
         observerUuid

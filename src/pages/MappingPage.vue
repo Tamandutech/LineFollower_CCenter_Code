@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-table
       title="Mapeamento"
-      :rows="rows"
+      :rows="mappingRecords"
       :columns="columns"
       row-key="id"
       binary-state-sort
@@ -100,12 +100,12 @@
         :disable="loading || mappingRecords.length === 0"
       />
       <q-btn
-        @click="fetchMapping(true)"
+        @click="fetchMapping(false)"
         color="primary"
         label="Ler mapeamento"
       />
       <q-btn
-        @click="fetchMapping(false)"
+        @click="fetchMapping(true)"
         color="primary"
         label="Ler mapeamento na Ram"
       />
@@ -140,20 +140,20 @@
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            Tem certeza que deseja deletar o registro {{ deleteRecordId }}?
+            {{ DeleteDialogMessage }}
           </q-card-section>
 
           <q-card-actions align="right" class="bg-white text-teal">
-            <q-btn flat label="SIM" v-close-popup @click="confirm" />
+            <q-btn flat label="SIM" v-close-popup @click="confirm(isHardDeleteConfirm)" />
             <q-btn flat label="NÃO" v-close-popup @click="cancel" />
           </q-card-actions>
         </q-card>
       </q-dialog>
     </div>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="reveal" color="primary" label="Deletar Registro" />
+      <q-btn @click="reveal(false)" color="primary" label="Deletar Registro" />
       <q-btn
-        @click="performAction(hardDeleteRecords, 'O mapeamento foi deletado.')"
+        @click="reveal(true)"
         color="primary"
         label="Deletar todos os registros"
       />
@@ -309,8 +309,33 @@ watchEffect(() => {
     deleteRecordId.value = null;
   }
 });
-const { isRevealed, reveal, confirm, cancel, onConfirm } = useConfirmDialog();
-onConfirm(() => removeRecord(deleteRecordId.value));
+
+const DeleteDialogMessage = ref<string>();
+const isHardDeleteConfirm = ref<boolean>()
+const { isRevealed, reveal, confirm, cancel, onConfirm, onReveal } = useConfirmDialog();
+onConfirm((isHardDelete) => {
+  if(isHardDelete)
+  {
+    performAction(hardDeleteRecords, 'O mapeamento foi deletado.');
+  }
+  else
+  {
+    removeRecord(deleteRecordId.value);
+  }
+});
+
+onReveal((isHardDelete) => {
+  if(isHardDelete)
+  {
+    isHardDeleteConfirm.value = true;
+    DeleteDialogMessage.value = 'Tem certeza que deseja deletar todos os registros?';
+  }
+  else
+  {
+    isHardDeleteConfirm.value = false;
+    DeleteDialogMessage.value = 'Tem certeza que deseja deletar o registro ' + deleteRecordId.value + '?';
+  }
+});
 
 function addMappingRecord() {
   const record = newRecord.value[0];
@@ -320,8 +345,8 @@ function addMappingRecord() {
     record.encMedia,
     record.encLeft,
     record.encRight,
-    record.offset,
-    record.trackStatus
+    record.trackStatus,
+    record.offset
   );
 }
 

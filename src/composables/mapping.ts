@@ -97,6 +97,7 @@ export const useRobotMapping = (
       sortedRecords =
         sortedRecords ||
         [...mappingRecords.value].sort((r1, r2) => r1.encMedia - r2.encMedia);
+      mappingRecords.value =  mappingRecords.value.sort((r1, r2) => r1.encMedia - r2.encMedia);
 
       let sendingStatus: string;
       let mappingPayload: string;

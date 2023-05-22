@@ -113,7 +113,7 @@ const { state: buttonIcon, next } = useCycleList(
 const buttonColor = ref('teal-5');
 
 const batteryStatusUpdateIntervalOptions = ref(
-  [0, 60000, 150000, 300000, 600000].map((interval) => ({
+  [0, 30000, 60000, 90000, 120000].map((interval) => ({
     label:
       interval > 0
         ? (interval / ONE_MINUTE_IN_MILLISECONDS).toPrecision(2)
@@ -121,11 +121,11 @@ const batteryStatusUpdateIntervalOptions = ref(
     value: interval,
   }))
 );
-const batteryStatusUpdateInterval = ref(2.5 * ONE_MINUTE_IN_MILLISECONDS);
+const batteryStatusUpdateInterval = ref(0.5 * ONE_MINUTE_IN_MILLISECONDS);
 
-const batteryLowWarningThreshold = ref(6000);
+const batteryLowWarningThreshold = ref(7900);
 const batteryLowWarningThresholdOptions = ref(
-  [6000, 5000, 4000, 3000, 1500].map((threshold) => ({
+  [7900, 7400, 7200, 6900, 6600].map((threshold) => ({
     label: (threshold / 1000).toPrecision(2) + 'V',
     value: threshold,
   }))

@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-table
       title="Mapeamento"
-      :rows="rows"
+      :rows="mappingRecords"
       :columns="columns"
       row-key="id"
       binary-state-sort
@@ -113,12 +113,12 @@
         :disable="loading !== null || mappingRecords.length === 0"
       />
       <q-btn
-        @click="fetchMapping(true)"
+        @click="fetchMapping(false)"
         color="primary"
         label="Ler mapeamento"
       />
       <q-btn
-        @click="fetchMapping(false)"
+        @click="fetchMapping(true)"
         color="primary"
         label="Ler mapeamento na Ram"
       />
@@ -401,8 +401,8 @@ function addMappingRecord() {
     record.encMedia,
     record.encLeft,
     record.encRight,
-    record.offset,
-    record.trackStatus
+    record.trackStatus,
+    record.offset
   );
 }
 
@@ -430,10 +430,6 @@ const columns = [
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
-const rows = computed(() =>
-  mappingRecords.value.map((record) => ({ ...record }))
-);
-
 const newColumns = [
   {
     name: 'EncMedia',

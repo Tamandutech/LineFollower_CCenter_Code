@@ -167,10 +167,13 @@ export const useRobotMapping = (
       );
       console.log(rawMapping);
 
-      mappingRecords.value = rawMapping
-        .slice(0, -1) // Ignora '\n' no final
-        .split('\n')
-        .map(deserializeRecord);
+      mappingRecords.value =
+        rawMapping === ''
+          ? []
+          : rawMapping
+              .slice(0, -1) // Ignora '\n' no final
+              .split('\n')
+              .map(deserializeRecord);
     }),
     [BleError],
     error

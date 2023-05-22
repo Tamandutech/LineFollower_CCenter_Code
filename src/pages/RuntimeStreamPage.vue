@@ -188,7 +188,12 @@
             <q-btn
               color="grey-9"
               label="Salvar"
-              @click="SaveStreamCsv(parameterTab, streams.get(parameterTab).StreamFullDataCsv)"
+              @click="
+                SaveStreamCsv(
+                  parameterTab,
+                  streams.get(parameterTab).StreamFullDataCsv
+                )
+              "
               v-close-popup
             />
             <q-btn
@@ -254,10 +259,11 @@ import {
   mdiChevronDoubleDown,
   mdiFormatVerticalAlignCenter,
 } from '@quasar/extras/mdi-v6';
-import { ref, watchEffect, reactive } from 'vue';
+import { ref, reactive } from 'vue';
 import StreamChartsPanel from 'components/StreamChartsPanel.vue';
 import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import StreamsConfigCard from 'src/components/cards/StreamsConfigCard.vue';
+import { useIsTruthy } from 'src/composables/boolean';
 
 const { ble } = useBluetooth();
 const { parameters, error, updateParameters } = useRobotRuntime(
@@ -265,9 +271,9 @@ const { parameters, error, updateParameters } = useRobotRuntime(
   'UART_TX',
   'UART_RX'
 );
+const showErrorDialog = useIsTruthy(error);
 
 const showConfigDialog = ref(false);
-const showErrorDialog = ref(false);
 const showInvalidConfigMessage = ref(false);
 const showControlsDialog = ref(false);
 const configForm = ref<quasar.QForm>(null);
@@ -278,15 +284,10 @@ const parametersToStream = reactive<
 const renderStreamsPanel = ref(false);
 const parameterTab = ref<string>();
 
-const loadErrorDialog = function () {
-  if (error.value) showErrorDialog.value = true;
-};
-watchEffect(loadErrorDialog);
-
 const loadConfigDialog = async function () {
   await updateRuntimeParameters();
 
-  if (parametersToStream.size > 1) {
+  if (parameters.value.size > 1 && !showErrorDialog.value) {
     showInvalidConfigMessage.value = false;
     showConfigDialog.value = true;
   }
@@ -320,7 +321,7 @@ const closeStreamsPanel = () => {
   showControlsDialog.value = false;
 };
 
-const SaveStreamCsv = (StreamName: string,StreamData:string) => {
+const SaveStreamCsv = (StreamName: string, StreamData: string) => {
   exportFile(StreamName + '.csv', StreamData, 'text/csv;charset=UTF-8;');
 };
 

@@ -1,32 +1,171 @@
 <template>
-  <q-btn
-    :icon="mdiRobotMower"
-    color="secondary"
-    round
-    @click="fetchBatteryVoltage"
-  >
-    <q-menu transition-show="jump-down" transition-hide="jump-up">
-      <q-list>
-        <q-item clickable @click="fetchBatteryVoltage">
-          <q-item-section avatar>
-            <q-avatar :icon="mdiBatteryCharging"></q-avatar>
-          </q-item-section>
-          <q-item-section>{{ battery.voltage }}</q-item-section>
-        </q-item>
-      </q-list>
+  <q-btn :icon="buttonIcon" :color="buttonColor" round>
+    <q-menu transition-show="jump-down" transition-hide="jump-up" fit>
+      <div class="row no-wrap q-pa-md">
+        <q-list>
+          <q-item-label header>Robô</q-item-label>
+          <q-item>
+            <q-item-section avatar>
+              <q-avatar :icon="mdiRobotMowerOutline"></q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Nome</q-item-label>
+              <q-item-label caption>{{ ble.name }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section avatar>
+              <q-avatar :icon="mdiBatteryCharging"></q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Bateria</q-item-label>
+              <q-item-label caption>{{
+                (battery.voltage / 1000).toFixed(2) + 'V'
+              }}</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator inset spaced />
+
+          <q-item-label header>Configurações</q-item-label>
+
+          <q-item>
+            <q-item-section avatar>
+              <q-avatar :icon="mdiBatteryClock"></q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Atualizar tensão da bateria</q-item-label>
+              <q-item-label caption>Interválo em minutos</q-item-label>
+            </q-item-section>
+            <q-item-section side top>
+              <q-select
+                filled
+                dense
+                v-model="batteryStatusUpdateInterval"
+                :options="batteryStatusUpdateIntervalOptions"
+                options-dense
+                map-options
+                emit-value
+                color="teal-5"
+              ></q-select>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section avatar>
+              <q-avatar :icon="mdiBatteryAlert"></q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Alerta sobre a tensão da bateria</q-item-label>
+              <q-item-label caption>Limite em volts</q-item-label>
+            </q-item-section>
+            <q-item-section side top>
+              <q-select
+                filled
+                dense
+                v-model="batteryLowWarningThreshold"
+                :options="batteryLowWarningThresholdOptions"
+                options-dense
+                map-options
+                emit-value
+                color="teal-5"
+              ></q-select>
+            </q-item-section>
+          </q-item>
+          <q-item clickable @click="disconnect">
+            <q-item-section avatar>
+              <q-avatar :icon="mdiBluetoothOff"></q-avatar>
+            </q-item-section>
+            <q-item-section>Desconectar</q-item-section>
+          </q-item>
+        </q-list>
+      </div>
     </q-menu>
   </q-btn>
 </template>
 
 <script lang="ts" setup>
 import { useBattery } from 'stores/battery';
-import { useRobotQueue } from 'stores/robotQueue';
-import { bat_voltage } from 'src/utils/robot/commands/cmdParam';
-import { mdiRobotMower, mdiBatteryCharging } from '@quasar/extras/mdi-v6';
+import useBluetooth from 'src/services/ble';
+import {
+  mdiRobotMower,
+  mdiBatteryCharging,
+  mdiRobotMowerOutline,
+  mdiBatteryClock,
+  mdiBatteryAlert,
+  mdiBluetoothOff,
+} from '@quasar/extras/mdi-v6';
+import { onUnmounted, ref, watchEffect } from 'vue';
+import { useTimeoutPoll, useCycleList } from '@vueuse/core';
 
+const emit = defineEmits<{
+  (e: 'low-battery', currentVoltage: number): void;
+}>();
+
+const ONE_MINUTE_IN_MILLISECONDS = 60000;
+
+const { ble, disconnect } = useBluetooth();
 const battery = useBattery();
-const robotQueue = useRobotQueue();
-function fetchBatteryVoltage() {
-  robotQueue.addCommand(new bat_voltage());
+
+const { state: buttonIcon, next } = useCycleList(
+  [mdiRobotMower, mdiBatteryAlert],
+  { initialValue: mdiRobotMower }
+);
+const buttonColor = ref('teal-5');
+
+const batteryStatusUpdateIntervalOptions = ref(
+  [0, 30000, 60000, 90000, 120000].map((interval) => ({
+    label:
+      interval > 0
+        ? (interval / ONE_MINUTE_IN_MILLISECONDS).toPrecision(2)
+        : 'Nunca',
+    value: interval,
+  }))
+);
+const batteryStatusUpdateInterval = ref(0.5 * ONE_MINUTE_IN_MILLISECONDS);
+
+const batteryLowWarningThreshold = ref(7900);
+const batteryLowWarningThresholdOptions = ref(
+  [7900, 7400, 7200, 6900, 6600].map((threshold) => ({
+    label: (threshold / 1000).toPrecision(2) + 'V',
+    value: threshold,
+  }))
+);
+
+let batteryLowWarningIntervalId: number;
+battery.$subscribe((mutation, state) => {
+  if (state.voltage <= batteryLowWarningThreshold.value) {
+    batteryLowWarningIntervalId = setInterval(
+      next,
+      ONE_MINUTE_IN_MILLISECONDS / 2
+    );
+    buttonColor.value = 'warning';
+    emit('low-battery', state.voltage);
+  } else {
+    clearInterval(batteryLowWarningIntervalId);
+    buttonColor.value = 'teal-5';
+    while (buttonIcon.value !== mdiRobotMower) next();
+  }
+});
+
+async function fetchBatteryVoltage() {
+  await battery.fetchVoltage(ble, 'UART_TX', 'UART_RX');
 }
+
+const { resume, pause } = useTimeoutPoll(
+  fetchBatteryVoltage,
+  batteryStatusUpdateInterval,
+  { immediate: false }
+);
+watchEffect(() => {
+  return batteryStatusUpdateInterval.value == 0
+    ? pause()
+    : ble.connected && resume();
+});
+
+const unlistenResumeOnConnect = ble.onConnect(resume);
+const unlistenPauseOnDisconnect = ble.onDisconnect(pause);
+onUnmounted(() => {
+  unlistenPauseOnDisconnect();
+  unlistenResumeOnConnect();
+});
 </script>

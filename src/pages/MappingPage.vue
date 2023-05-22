@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-table
       title="Mapeamento"
-      :rows="mapping.mapRegs"
+      :rows="mappingRecords"
       :columns="columns"
       row-key="id"
       binary-state-sort
@@ -94,35 +94,38 @@
     </q-table>
     <div class="q-pa-md q-gutter-sm">
       <q-btn
-        @click="sendMap"
+        @click="performAction(sendMapping, 'Mapeamento enviado.')"
         color="primary"
         label="Enviar mapeamento"
-        :disable="mapping.mapSending || mapping.mapRegs.length === 0"
+        :disable="loading || mappingRecords.length === 0"
       />
       <q-btn
-        @click="() => robotQueue.addCommand(new map_get())"
+        @click="fetchMapping(false)"
         color="primary"
         label="Ler mapeamento"
       />
       <q-btn
-        @click="() => robotQueue.addCommand(new map_get(true))"
+        @click="fetchMapping(true)"
         color="primary"
         label="Ler mapeamento na Ram"
       />
       <q-btn
-        @click="saveMap"
+        @click="performAction(saveMapping, 'Mapeamento salvo com sucesso.')"
         color="primary"
         label="Salvar mapeamento"
-        :disable="mapping.mapSaving"
+        :disable="loading"
       />
-      <q-dialog v-model="mapping.mapSent">
+      <q-dialog v-model="showErrorDialog">
+        <CommandErrorCard :error="error" />
+      </q-dialog>
+      <q-dialog v-model="showSuccessDialog">
         <q-card style="width: 300px">
           <q-card-section>
             <div class="text-h6">Mapeamento</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            {{ mapping.mapStringDialog }}
+            {{ successDialogMessage }}
           </q-card-section>
 
           <q-card-actions align="right" class="bg-white text-teal">
@@ -130,40 +133,40 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-    </div>
-    <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="openDeleteRegsDialog('Tem certeza que deseja deletar o registro ' + `${deleteRegID}` + '?', false)" color="primary" label="Deletar Registro" />
-      <q-btn
-        @click="openDeleteRegsDialog('Tem certeza que deseja deletar todos os registros do mapeamento?', true)"
-        color="primary"
-        label="Deletar todos os registros"
-      />
-      <q-dialog v-model="deleteRegsDialog">
+      <q-dialog v-model="isRevealed">
         <q-card style="width: 300px">
           <q-card-section>
-            <div class="text-h6">Mapeamento</div>
+            <div class="text-h6">Deletar Registro</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            {{ deleteRegsDialogText }}
+            {{ DeleteDialogMessage }}
           </q-card-section>
 
           <q-card-actions align="right" class="bg-white text-teal">
-            <q-btn  v-if="deleteAllRegs" @click="deleteAllMapRegs" flat label="Sim" v-close-popup />
-            <q-btn  v-else @click="deleteMapReg" flat label="Sim" v-close-popup />
-            <q-btn flat label="Não" v-close-popup />
+            <q-btn flat label="SIM" v-close-popup @click="confirm(isHardDeleteConfirm)" />
+            <q-btn flat label="NÃO" v-close-popup @click="cancel" />
           </q-card-actions>
         </q-card>
       </q-dialog>
+    </div>
+    <div class="q-pa-md q-gutter-sm">
+      <q-btn @click="reveal(false)" color="primary" label="Deletar Registro" />
+      <q-btn
+        @click="reveal(true)"
+        color="primary"
+        label="Deletar todos os registros"
+      />
       <q-select
-        v-model="deleteRegID"
-        :options="mapping.options"
+        v-model="deleteRecordId"
+        :options="recordDeleteOptions"
+        :disable="recordDeleteOptions.length == 0"
         label="Selecione o ID do registro que será deletado"
       />
     </div>
     <q-table
       title="Adicionar Registro"
-      :rows="newReg"
+      :rows="newRecord"
       :columns="newColumns"
       row-key="id"
       binary-state-sort
@@ -251,21 +254,102 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="addMapReg" color="primary" label="Adicionar Registro" />
+      <q-btn
+        @click="addMappingRecord"
+        color="primary"
+        label="Adicionar Registro"
+      />
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import { useMapping } from 'stores/mapping';
-import {
-  map_add,
-  map_clear,
-  map_get,
-  map_SaveRuntime,
-} from 'src/utils/robot/commands/cmdParam';
-import { ref } from 'vue';
-import { useRobotQueue } from 'stores/robotQueue';
+<script lang="ts" setup>
+import useBluetooth from 'src/services/ble';
+import { useRobotMapping } from 'src/composables/mapping';
+import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
+import { useConfirmDialog } from '@vueuse/core';
+import { ref, computed, watchEffect } from 'vue';
+import { useIsTruthy } from 'src/composables/boolean';
+
+const { ble } = useBluetooth();
+const {
+  mappingRecords,
+  loading,
+  error,
+  hardDeleteRecords,
+  removeRecord,
+  addRecord,
+  sendMapping,
+  saveMapping,
+  fetchMapping,
+} = useRobotMapping(ble, 'UART_TX', 'UART_RX');
+const showErrorDialog = useIsTruthy(error);
+
+const showSuccessDialog = ref(false);
+const successDialogMessage = ref<string>();
+async function performAction(action: () => void, successMessage: string) {
+  try {
+    await action();
+    showSuccessDialog.value = true;
+    successDialogMessage.value = successMessage;
+  } catch (e) {
+    error.value = e;
+    showErrorDialog.value = true;
+  }
+}
+
+const deleteRecordId = ref(0);
+const recordDeleteOptions = computed(() =>
+  mappingRecords.value.map((record) => record.id)
+);
+watchEffect(() => {
+  if (mappingRecords.value.length > 0) {
+    deleteRecordId.value = mappingRecords.value.at(0).id;
+  } else {
+    deleteRecordId.value = null;
+  }
+});
+
+const DeleteDialogMessage = ref<string>();
+const isHardDeleteConfirm = ref<boolean>()
+const { isRevealed, reveal, confirm, cancel, onConfirm, onReveal } = useConfirmDialog();
+onConfirm((isHardDelete) => {
+  if(isHardDelete)
+  {
+    performAction(hardDeleteRecords, 'O mapeamento foi deletado.');
+  }
+  else
+  {
+    removeRecord(deleteRecordId.value);
+  }
+});
+
+onReveal((isHardDelete) => {
+  if(isHardDelete)
+  {
+    isHardDeleteConfirm.value = true;
+    DeleteDialogMessage.value = 'Tem certeza que deseja deletar todos os registros?';
+  }
+  else
+  {
+    isHardDeleteConfirm.value = false;
+    DeleteDialogMessage.value = 'Tem certeza que deseja deletar o registro ' + deleteRecordId.value + '?';
+  }
+});
+
+function addMappingRecord() {
+  const record = newRecord.value[0];
+  return addRecord(
+    record.time,
+    record.status,
+    record.encMedia,
+    record.encLeft,
+    record.encRight,
+    record.trackStatus,
+    record.offset
+  );
+}
+
 const columns = [
   {
     name: 'id',
@@ -273,7 +357,7 @@ const columns = [
     label: 'ID',
     align: 'left',
     field: (row: { name: string; label: string }) => row.name,
-    format: (val: number) => `${val}`,
+    format: (val: number) => val.toString(),
     sortable: true,
   },
   {
@@ -290,6 +374,10 @@ const columns = [
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
+const rows = computed(() =>
+  mappingRecords.value.map((record) => ({ ...record }))
+);
+
 const newColumns = [
   {
     name: 'EncMedia',
@@ -304,106 +392,16 @@ const newColumns = [
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
-const newReg: Robot.RegMap[] = ref([
+const newRecord = ref<Robot.MappingRecord[]>([
   {
     id: 1,
     encMedia: 100,
     time: 45,
     encRight: 566,
     encLeft: 123,
-    offset: 0,
-    status: 345,
+    status: 0,
+    offset: 5,
     trackStatus: 2,
   },
-]).value;
-
-const mapping = useMapping();
-const robotQueue = useRobotQueue();
-const deleteRegsDialog = ref(false);
-const deleteRegsDialogText = ref('');
-const deleteAllRegs = ref(false);
-const deleteRegID = ref(1);
-
-export default {
-  setup() {
-    return {
-      columns,
-      newColumns,
-      newReg,
-      deleteRegID,
-      deleteRegsDialog,
-      deleteRegsDialogText,
-      deleteAllRegs,
-      deleteMapReg,
-      deleteAllMapRegs,
-      openDeleteRegsDialog,
-      mapping,
-      robotQueue,
-      map_add,
-      map_clear,
-      map_get,
-      map_SaveRuntime,
-    };
-    function openDeleteRegsDialog(DialogText:string, DeleteAllRegs: boolean) {
-      deleteRegsDialog.value = true;
-      deleteRegsDialogText.value = DialogText;
-      if(DeleteAllRegs) deleteAllRegs.value = true;
-      else deleteAllRegs.value = false;
-
-    }
-    function deleteMapReg() {
-      mapping.deleteReg(deleteRegID.value);
-      while (mapping.options.length !== 0) mapping.options.pop();
-      for (var i = 0; i < mapping.totalRegs; i++)
-        mapping.options.push(mapping.mapRegs.at(i).id);
-      if (mapping.totalRegs > 0) deleteRegID.value = mapping.mapRegs.at(0).id;
-      else deleteRegID.value = 1;
-    }
-    function deleteAllMapRegs() {
-      mapping.clearMap();
-      robotQueue.addCommand(new map_clear(false));
-    }
-  },
-  created() {
-    while (mapping.options.length !== 0) mapping.options.pop();
-    for (var i = 0; i < mapping.totalRegs; i++)
-      mapping.options.push(mapping.mapRegs.at(i).id);
-  },
-  methods: {
-    sendMap() {
-      let tempMap = mapping.mapRegs;
-      tempMap.sort((d1, d2) => d1.encMedia - d2.encMedia);
-      console.log(mapping.getRegString(0));
-      mapping.mapSending = true;
-      console.log(JSON.stringify(mapping.mapRegs));
-      console.log(JSON.stringify(tempMap));
-      mapping.setRegToSend(0);
-      mapping.resendTries = 4;
-      mapping.regsSent = true;
-      mapping.regsString = '';
-      robotQueue.addCommands([new map_clear(), new map_add(tempMap)]);
-    },
-    saveMap() {
-      robotQueue.addCommand(new map_SaveRuntime());
-      mapping.mapSaving = true;
-    },
-    addMapReg() {
-      let newMapReg = {} as Robot.RegMap;
-      newMapReg.id = 0;
-      newMapReg.time = newReg[0].time;
-      newMapReg.status = newReg[0].status;
-      newMapReg.encMedia = newReg[0].encMedia;
-      newMapReg.encLeft = newReg[0].encLeft;
-      newMapReg.encRight = newReg[0].encRight;
-      newMapReg.offset = newReg[0].offset;
-      newMapReg.trackStatus = newReg[0].trackStatus;
-      mapping.addRegObj(newMapReg);
-      while (mapping.options.length !== 0) mapping.options.pop();
-      for (var i = 0; i < mapping.totalRegs; i++)
-        mapping.options.push(mapping.mapRegs.at(i).id);
-      if (mapping.totalRegs > 0) deleteRegID.value = mapping.mapRegs.at(0).id;
-      else deleteRegID.value = 1;
-    },
-  },
-};
+]);
 </script>

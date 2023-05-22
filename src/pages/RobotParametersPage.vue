@@ -1,11 +1,14 @@
 <template>
   <q-page>
+    <q-dialog v-model="showErrorDialog">
+      <CommandErrorCard :error="error" />
+    </q-dialog>
     <div class="q-pa-md">
       <q-table
         grid
         card-container-class="row wrap justify-start items-baseline"
         title="Classes"
-        :rows="classes.dataClasses"
+        :rows="rows"
         :columns="columns"
         row-key="name"
         :filter="filter"
@@ -14,9 +17,9 @@
       >
         <template v-slot:top-left>
           <q-btn
-            :loading="loadingParameters"
+            :loading="loading"
             :icon="mdiRefreshCircle"
-            @click="loadParameters"
+            @click="listParameters"
             color="primary"
           >
             <template v-slot:loading>
@@ -59,14 +62,17 @@
                         <q-popup-edit
                           :model-value="props.row.value"
                           @save="
-                            (val, initialValue) =>
-                              robotQueue.addCommands([
-                                new param_set(props.row, val, initialValue),
-                                new param_get(
-                                  props.row.class.name,
-                                  props.row.name
-                                ),
-                              ])
+                            async (newValue) => {
+                              await setParameter(
+                                props.row.class,
+                                props.row.name,
+                                newValue
+                              );
+                              await getParameter(
+                                props.row.class,
+                                props.row.name
+                              );
+                            }
                           "
                           :title="props.row.name"
                           buttons
@@ -92,72 +98,42 @@
   </q-page>
 </template>
 
-<script lang="ts">
-import { useRobotParameters } from 'stores/robotParameters';
-import {
-  param_set,
-  param_get,
-  param_list,
-} from 'src/utils/robot/commands/cmdParam';
-import { useRobotQueue } from 'stores/robotQueue';
-import { ref, computed, defineComponent } from 'vue';
-import { useQuasar } from 'quasar';
+<script lang="ts" setup>
+import { useRobotParameters } from 'src/composables/parameters';
+import { useIsTruthy } from 'src/composables/boolean';
 import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';
+import useBluetooth from 'src/services/ble';
+import CommandErrorCard from 'src/components/cards/CommandErrorCard.vue';
+import { ref, computed, onMounted } from 'vue';
 
-export default defineComponent({
-  name: 'IndexPage',
+const { ble } = useBluetooth();
+const {
+  dataClasses,
+  loading,
+  error,
+  listParameters,
+  getParameter,
+  setParameter,
+} = useRobotParameters(ble, 'UART_TX', 'UART_RX');
+const showErrorDialog = useIsTruthy(error);
+const filter = ref('');
 
-  setup() {
-    const loadingParameters = ref(false);
-    const robotQueue = useRobotQueue();
+const columns = [
+  { name: 'name', label: 'Name', field: 'name' },
+  { name: 'calories', label: 'Calories (g)', field: 'calories' },
+];
+const rows = computed(() =>
+  [...dataClasses.entries()].map(([className, parameters]) => ({
+    name: className,
+    parameters: [...parameters.entries()].map(([parameterName, value]) => ({
+      name: parameterName,
+      class: className,
+      value,
+    })),
+  }))
+);
 
-    function loadParameters() {
-      loadingParameters.value = true;
-      robotQueue.addCommand(new param_list());
-
-      setTimeout(() => {
-        loadingParameters.value = false;
-      }, 10000);
-    }
-
-    const classes = useRobotParameters();
-
-    classes.$onAction(() => {
-      loadingParameters.value = false;
-    }, true);
-
-    const $q = useQuasar();
-
-    const filter = ref('');
-
-    return {
-      mdiDatabaseSearch,
-      mdiRefreshCircle,
-      classes,
-      robotQueue,
-
-      filter,
-      loadingParameters,
-      loadParameters,
-
-      param_set,
-      param_get,
-
-      columns: [
-        { name: 'name', label: 'Name', field: 'name' },
-        { name: 'calories', label: 'Calories (g)', field: 'calories' },
-      ],
-
-      cardContainerClass: computed(() => {
-        return $q.screen.gt.xs
-          ? 'grid-masonry grid-masonry--' + ($q.screen.gt.sm ? '3' : '2')
-          : null;
-      }),
-
-      rowsPerPageOptions: computed(() => {
-        return $q.screen.gt.xs ? ($q.screen.gt.sm ? [3, 6, 9] : [3, 6]) : [3];
-      }),
-    };
-  },
+onMounted(async () => {
+  if (ble.connected) await listParameters();
 });
 </script>

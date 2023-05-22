@@ -1,22 +1,34 @@
 declare namespace Robot {
-  enum Status {
+  const enum Status {
     CAR_IN_CURVE = 0,
     CAR_IN_LINE = 1,
     CAR_STOPPED = 2,
   }
+
+  const enum MemoryDevices {
+    RAM,
+    FLASH,
+  }
+
+  enum BatteryLevel {
+    OK = 'OK',
+    LOW = 'LOW',
+    CRITIC = 'CRITIC',
+  }
+
+  type BatteryStatus = {
+    voltage: number; // em mV
+    time: Date;
+  };
+
+  type DataClass = Map<string, string | number>;
 
   interface Response<T> extends Record<string, unknown> {
     cmdExecd: string;
     data: T;
   }
 
-  type Parameter = {
-    class: DataClass;
-    name: string;
-    value: unknown;
-  };
-
-  type RegMap = {
+  type MappingRecord = {
     id: number;
     encMedia: number;
     time: number;
@@ -31,11 +43,6 @@ declare namespace Robot {
     name: string;
     value: number | string;
     Time: number;
-  };
-
-  type DataClass = {
-    name: string;
-    parameters: Parameter[];
   };
 
   type BluetoothConnectionConfig = {

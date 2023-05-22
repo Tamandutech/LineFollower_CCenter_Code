@@ -204,8 +204,8 @@ battery.$subscribe((_, state) => {
   }
 });
 
-function fetchBatteryVoltage() {
-  battery.fetchVoltage(ble, 'UART_TX', 'UART_RX');
+async function fetchBatteryVoltage() {
+  await battery.fetchVoltage(ble, 'UART_TX', 'UART_RX');
 }
 
 const { resume, pause } = useTimeoutPoll(

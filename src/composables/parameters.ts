@@ -1,44 +1,38 @@
 import { useLoading } from './loading';
 import { useErrorCapturing } from './error';
 import { RuntimeError, BleError } from 'src/services/ble/errors';
-import { reactive, ref } from 'vue';
-import type { Ref } from 'vue';
+import { ref } from 'vue';
+import {
+  mapToObject,
+  objectToMap,
+} from 'src/services/firebase/firestore/utils';
+
+export const profileConverter = { to: mapToObject, from: objectToMap };
 
 export const useRobotParameters = (
   ble: Bluetooth.BLEInterface,
   txCharacteristicId: string,
   rxCharacteristicId: string
-): {
-  dataClasses: Map<string, Robot.DataClass>;
-  loading: Ref<boolean>;
-  error: Ref<unknown>;
-  setParameter: (
-    className: string,
-    paramName: string,
-    value: string | number
-  ) => Promise<void>;
-  getParameter: (className: string, paramName: string) => Promise<void>;
-  listParameters: () => Promise<void>;
-} => {
-  const dataClasses = reactive(new Map<string, Robot.DataClass>());
+) => {
+  const dataClasses = ref<Robot.Parameters>(new Map());
   const error = ref<unknown>(null);
   const { loading, notifyLoading } = useLoading();
 
   function addDataClass(name: string, dataClass: Robot.DataClass): void {
-    dataClasses.set(name, dataClass);
+    dataClasses.value.set(name, dataClass);
   }
 
   function addParameter(
     className: string,
     parameterName: string,
-    value: string | number
+    value: Robot.ParameterValue
   ): void {
-    if (!dataClasses.has(className)) addDataClass(className, new Map());
+    if (!dataClasses.value.has(className)) addDataClass(className, new Map());
 
-    dataClasses.get(className).set(parameterName, value);
+    dataClasses.value.get(className).set(parameterName, value);
   }
 
-  const { routineWithErrorCapturing: listParameters } = useErrorCapturing(
+  const { listParameters } = useErrorCapturing(
     notifyLoading(async function () {
       const rawData = await ble.request<string>(
         txCharacteristicId,
@@ -54,41 +48,84 @@ export const useRobotParameters = (
         );
         addParameter(className, parameterName, value);
       });
-    }),
+    }, 'listParameters'),
     [BleError],
     error
   );
 
-  async function getParameter(className: string, paramName: string) {
-    const rawNewValue = await ble.request<string>(
-      txCharacteristicId,
-      rxCharacteristicId,
-      `param_get ${className}.${paramName}`
-    );
-    addParameter(className, paramName, rawNewValue);
-  }
+  const { routineWithErrorCapturing: getParameter } = useErrorCapturing(
+    async function (className: string, parameterName: string) {
+      const rawNewValue = await ble.request<string>(
+        txCharacteristicId,
+        rxCharacteristicId,
+        `param_get ${className}.${parameterName}`
+      );
+      addParameter(className, parameterName, rawNewValue);
+    },
+    [BleError],
+    error
+  );
 
   const { routineWithErrorCapturing: setParameter } = useErrorCapturing(
     async function (
       className: string,
-      paramName: string,
-      value: string | number
+      parameterName: string,
+      value: Robot.ParameterValue
     ) {
-      if (dataClasses.get(className).get(paramName) === value) return;
+      if (dataClasses.value.get(className).get(parameterName) === value) return;
 
       const status = await ble.request<string>(
         txCharacteristicId,
         rxCharacteristicId,
-        `param_set ${className}.${paramName} ${value.toString()}`
+        `param_set ${className}.${parameterName} ${value.toString()}`
       );
 
-      if (status !== 'OK')
+      if (status !== 'OK') {
         throw new RuntimeError({
-          message: `Ocorreu um erro durante a atualização do ${className}.${paramName}.`,
+          message: `Ocorreu um erro durante a atualização do ${className}.${parameterName}.`,
           action:
             'Recarregue os parâmetros na dashboard para checar o valor atual do parâmetro',
         });
+      }
     },
+    [BleError],
+    error
+  );
+
+  const { installParameters } = useErrorCapturing(
+    notifyLoading(async function (
+      dataClassesToInstall: Robot.Parameters
+    ): Promise<void> {
+      let status: string;
+      for (const [className, parameters] of dataClassesToInstall.entries()) {
+        for (const [parameterName, value] of parameters.entries()) {
+          if (dataClasses.value.get(className).get(parameterName) === value) {
+            continue;
+          }
+
+          status = await ble.request<string>(
+            txCharacteristicId,
+            rxCharacteristicId,
+            `param_set ${className}.${parameterName} ${value.toString()}`
+          );
+          if (status !== 'OK') {
+            throw new RuntimeError({
+              message: 'Ocorreu um erro durante a atualização dos parâmetros.',
+              action:
+                'A escrita dos parâmetros não foi completa. Recarregue os parâmetros na dashboard para checar os valores atuais.',
+            });
+          }
+
+          /**
+           * Dar um tempo para o robô concluir o processamento do último comando
+           */
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      await listParameters();
+    },
+    'installParameters'),
     [BleError],
     error
   );
@@ -100,5 +137,6 @@ export const useRobotParameters = (
     setParameter,
     getParameter,
     listParameters,
+    installParameters,
   };
 };

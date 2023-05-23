@@ -1,5 +1,5 @@
 <template>
-  <q-btn v-if="auth.user">
+  <q-btn v-if="auth.isAuthenticated">
     <q-avatar style="font-size: 42px">
       <img :src="auth.user.photoURL" />
     </q-avatar>
@@ -54,10 +54,10 @@
 </template>
 
 <script lang="ts" setup>
-import { User } from '@firebase/auth';
 import { mdiExport, mdiAccountOff } from '@quasar/extras/mdi-v6';
-import GitHubLoginButton from 'components/GitHubLoginButton.vue';
+import GitHubLoginButton from 'src/components/buttons/GitHubLoginButton.vue';
 import { useAuth } from 'src/stores/auth';
+import type { User } from '@firebase/auth';
 
 const emit = defineEmits<{
   (e: 'login', user: User): void;
@@ -69,8 +69,8 @@ const auth = useAuth();
 const logout = () => auth.logoutUser();
 auth.$onAction(({ name, store, after, onError }) => {
   after(() => {
-    if (name === 'setUser' && store.getCurrentUser) {
-      emit('login', store.getCurrentUser);
+    if (name === 'setUser' && store.user) {
+      emit('login', store.user);
     }
     if (name === 'blockUser') {
       emit('block');

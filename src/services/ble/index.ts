@@ -12,29 +12,6 @@ import type { App } from 'vue';
 
 export { BleError } from './errors';
 
-/**
- * Hardcodado pois os serviços para o envio de comandos via
- * bluetooth foram implementados apenas no Braia
- */
-const ROBOTS: Robot.BluetoothConnectionConfig[] = [
-  {
-    name: 'Braia Pro',
-    services: new Map([
-      [
-        '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-        new Map([
-          ['UART_RX', '6e400002-b5a3-f393-e0a9-e50e24dcca9e'],
-          ['UART_TX', '6e400003-b5a3-f393-e0a9-e50e24dcca9e'],
-        ]),
-      ],
-      [
-        '3a8328fb-3768-46d2-b371-b34864ce8025',
-        new Map([['STREAM_TX', '3a8328fc-3768-46d2-b371-b34864ce8025']]),
-      ],
-    ]),
-  },
-];
-
 export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();
   _observables: Map<string, ObservableCharacteristic> = new Map();
@@ -45,7 +22,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
 
   async connect(
     device: BluetoothDevice,
-    config: Required<Robot.BluetoothConnectionConfig> = ROBOTS[0]
+    config: Required<Robot.BluetoothConnectionConfig>
   ) {
     this._device = device;
     this._config = config;
@@ -57,9 +34,9 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
         this._onDisconnect()
       );
 
-      for (const [uuid, characteristics] of config.services.entries()) {
+      for (const [uuid, characteristics] of Object.entries(config.services)) {
         const uartService = await robotGattServer.getPrimaryService(uuid);
-        for (const [id, uuid] of characteristics.entries()) {
+        for (const [id, uuid] of Object.entries(characteristics)) {
           const characteristic = await uartService.getCharacteristic(uuid);
           this._characteristics.set(id, characteristic);
 
@@ -76,8 +53,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
 
       this._emitter.emit('connect');
     } catch (error) {
-      console.log(error);
-
+      console.error(error);
       if (error instanceof Error) {
         return Promise.reject(new ConnectionError({ cause: error }));
       }
@@ -217,13 +193,13 @@ export const plugin = {
       ble,
       connected: connected,
       connecting: connecting,
-      connect: async (config: Robot.BluetoothConnectionConfig = ROBOTS[0]) => {
+      connect: async (config: Robot.BluetoothConnectionConfig) => {
         connecting.value = true;
 
         try {
           const device = await navigator.bluetooth.requestDevice({
             filters: [{ namePrefix: 'TT_' }],
-            optionalServices: [...config.services.keys()],
+            optionalServices: [...Object.keys(config.services)],
           });
           if (!device) {
             throw new DeviceNotFoundError();

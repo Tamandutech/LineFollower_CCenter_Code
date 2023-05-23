@@ -169,35 +169,29 @@ const { ble, disconnect } = useBluetooth();
 
 const session = useSessionStore();
 const battery = useBattery();
-const { state: buttonIcon, next } = useCycleList(
-  [mdiRobotMower, mdiBatteryAlert],
-  { initialValue: mdiRobotMower }
-);
-const buttonColor = ref('teal-5');
 
-const batteryStatusUpdateIntervalOptions = ref(
-  [0, 30000, 60000, 90000, 120000].map((interval) => ({
-    label:
-      interval > 0
-        ? (interval / ONE_MINUTE_IN_MILLISECONDS).toPrecision(2)
-        : 'Nunca',
-    value: interval,
-  }))
-);
-const batteryStatusUpdateInterval = ref(0.5 * ONE_MINUTE_IN_MILLISECONDS);
-
-const batteryLowWarningThreshold = ref(7900);
 const batteryLowWarningThresholdOptions = ref(
   [7900, 7400, 7200, 6900, 6600].map((threshold) => ({
     label: (threshold / 1000).toPrecision(2) + 'V',
     value: threshold,
   }))
 );
+
 const batteryLowWarningIntervalOptions = ref(
   [0, 60000, 150000, 300000, 600000].map(getIntervalOption)
 );
-
+const { resume: resumeLowBatteryWarning, pause: pauseLowBatteryWarning } =
+  useTimeoutPoll(
+    () => emit('low-battery', battery.voltage),
+    session.settings.batteryLowWarningInterval,
+    { immediate: false }
+  );
 let batteryLowWarningIntervalId: number;
+const buttonColor = ref('teal-5');
+const { state: buttonIcon, next } = useCycleList(
+  [mdiRobotMower, mdiBatteryAlert],
+  { initialValue: mdiRobotMower }
+);
 battery.$subscribe((_, state) => {
   if (state.voltage <= session.settings.batteryLowWarningThreshold) {
     batteryLowWarningIntervalId = setInterval(
@@ -205,27 +199,28 @@ battery.$subscribe((_, state) => {
       ONE_MINUTE_IN_MILLISECONDS / 2
     );
     buttonColor.value = 'warning';
-    emit('low-battery', state.voltage);
+    resumeLowBatteryWarning();
   } else {
     clearInterval(batteryLowWarningIntervalId);
     buttonColor.value = 'teal-5';
+    pauseLowBatteryWarning();
     while (buttonIcon.value !== mdiRobotMower) next();
   }
 });
 
-async function fetchBatteryVoltage() {
-  await battery.fetchVoltage(ble, 'UART_TX', 'UART_RX');
-}
-
-const { resume, pause } = useTimeoutPoll(
-  fetchBatteryVoltage,
-  session.settings.batteryStatusUpdateInterval,
-  { immediate: false }
+const batteryStatusUpdateIntervalOptions = ref(
+  [0, 30000, 60000, 90000, 120000].map(getIntervalOption)
 );
+const { resume: resumeBatteryVoltageUpdate, pause: pauseBatteryVoltageUpdate } =
+  useTimeoutPoll(
+    battery.fetchVoltage.bind(battery, ble, 'UART_TX', 'UART_RX'),
+    session.settings.batteryStatusUpdateInterval,
+    { immediate: false }
+  );
 watchEffect(() => {
   return session.settings.batteryStatusUpdateInterval == 0
-    ? pause()
-    : ble.connected && resume();
+    ? pauseBatteryVoltageUpdate()
+    : ble.connected && resumeBatteryVoltageUpdate();
 });
 
 /**
@@ -240,10 +235,12 @@ const competitionsOptions = useArrayMap(
   })
 );
 
-const unlistenResumeOnConnect = ble.onConnect(resume);
-const unlistenPauseOnDisconnect = ble.onDisconnect(pause);
+const unlistenResumeOnConnect = ble.onConnect(resumeBatteryVoltageUpdate);
+const unlistenPauseOnDisconnect = ble.onDisconnect(pauseBatteryVoltageUpdate);
 onUnmounted(() => {
   unlistenPauseOnDisconnect();
   unlistenResumeOnConnect();
+  pauseBatteryVoltageUpdate();
+  pauseLowBatteryWarning();
 });
 </script>

@@ -1,12 +1,4 @@
 declare namespace Bluetooth {
-  type ErrorOptions = { message: string; action: string; cause?: Error };
-
-  interface BaseError extends Error {
-    readonly message: string;
-    readonly action: string;
-    readonly cause?: Error;
-  }
-
   type Message = Record<string, unknown>;
 
   type BleCharacteristicsMap = Map<string, string>;

@@ -1,6 +1,7 @@
 import { useLoading } from './loading';
 import { useErrorCapturing } from './error';
 import { RuntimeError, BleError } from 'src/services/ble/errors';
+import { getTimer } from 'src/services/ble/utils';
 import { ref } from 'vue';
 import {
   mapToObject,
@@ -33,22 +34,26 @@ export const useRobotParameters = (
   }
 
   const { listParameters } = useErrorCapturing(
-    notifyLoading(async function () {
-      const rawData = await ble.request<string>(
-        txCharacteristicId,
-        rxCharacteristicId,
-        'param_list'
-      );
-
-      const [, ...results] = rawData.slice(0, -1).split('\n');
-
-      results.forEach((line) => {
-        const [, className, parameterName, value] = line.match(
-          /^\s\d+\s-\s(\w+)\.(\w+):\s(.*)$/
+    notifyLoading(
+      async function () {
+        const rawData = await ble.request<string>(
+          txCharacteristicId,
+          rxCharacteristicId,
+          'param_list'
         );
-        addParameter(className, parameterName, value);
-      });
-    }, 'listParameters'),
+
+        const [, ...results] = rawData.slice(0, -1).split('\n');
+
+        results.forEach((line) => {
+          const [, className, parameterName, value] = line.match(
+            /^\s\d+\s-\s(\w+)\.(\w+):\s(.*)$/
+          );
+          addParameter(className, parameterName, value);
+        });
+      },
+      'listParameters',
+      getTimer(5)
+    ),
     [BleError],
     error
   );
@@ -93,39 +98,41 @@ export const useRobotParameters = (
   );
 
   const { installParameters } = useErrorCapturing(
-    notifyLoading(async function (
-      dataClassesToInstall: Robot.Parameters
-    ): Promise<void> {
-      let status: string;
-      for (const [className, parameters] of dataClassesToInstall.entries()) {
-        for (const [parameterName, value] of parameters.entries()) {
-          if (dataClasses.value.get(className).get(parameterName) === value) {
-            continue;
-          }
+    notifyLoading(
+      async function (dataClassesToInstall: Robot.Parameters): Promise<void> {
+        let status: string;
+        for (const [className, parameters] of dataClassesToInstall.entries()) {
+          for (const [parameterName, value] of parameters.entries()) {
+            if (dataClasses.value.get(className).get(parameterName) === value) {
+              continue;
+            }
 
-          status = await ble.request<string>(
-            txCharacteristicId,
-            rxCharacteristicId,
-            `param_set ${className}.${parameterName} ${value.toString()}`
-          );
-          if (status !== 'OK') {
-            throw new RuntimeError({
-              message: 'Ocorreu um erro durante a atualização dos parâmetros.',
-              action:
-                'A escrita dos parâmetros não foi completa. Recarregue os parâmetros na dashboard para checar os valores atuais.',
-            });
-          }
+            status = await ble.request<string>(
+              txCharacteristicId,
+              rxCharacteristicId,
+              `param_set ${className}.${parameterName} ${value.toString()}`
+            );
+            if (status !== 'OK') {
+              throw new RuntimeError({
+                message:
+                  'Ocorreu um erro durante a atualização dos parâmetros.',
+                action:
+                  'A escrita dos parâmetros não foi completa. Recarregue os parâmetros na dashboard para checar os valores atuais.',
+              });
+            }
 
-          /**
-           * Dar um tempo para o robô concluir o processamento do último comando
-           */
-          await new Promise((resolve) => setTimeout(resolve, 100));
+            /**
+             * Dar um tempo para o robô concluir o processamento do último comando
+             */
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
         }
-      }
 
-      await listParameters();
-    },
-    'installParameters'),
+        await listParameters();
+      },
+      'installParameters',
+      getTimer(5)
+    ),
     [BleError],
     error
   );

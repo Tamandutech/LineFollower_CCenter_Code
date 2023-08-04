@@ -73,11 +73,18 @@ export const useRobotParameters = (
       value: Robot.ParameterValue
     ) {
       if (dataClasses.value.get(className).get(parameterName) === value) return;
+      // Corrige problema com parâmetros negativos
+      let valueStr ='';
+      valueStr = value.toString();
+      if(value < 0)
+      {
+        valueStr = '!' + valueStr;
+      }
 
       const status = await ble.request<string>(
         txCharacteristicId,
         rxCharacteristicId,
-        `param_set ${className}.${parameterName} ${value.toString()}`
+        `param_set ${className}.${parameterName} ${valueStr}`
       );
 
       if (status !== 'OK') {
@@ -102,11 +109,17 @@ export const useRobotParameters = (
           if (dataClasses.value.get(className).get(parameterName) === value) {
             continue;
           }
-
+          // Corrige problema com parâmetros negativos
+          let valueStr ='';
+          valueStr = value.toString();
+          if(value < 0)
+          {
+            valueStr = '!' + valueStr;
+          }
           status = await ble.request<string>(
             txCharacteristicId,
             rxCharacteristicId,
-            `param_set ${className}.${parameterName} ${value.toString()}`
+            `param_set ${className}.${parameterName} ${valueStr}`
           );
           if (status !== 'OK') {
             throw new RuntimeError({

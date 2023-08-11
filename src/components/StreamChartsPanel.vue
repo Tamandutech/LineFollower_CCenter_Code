@@ -90,7 +90,7 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
         sum: currentValue,
         receivedValuesCount: 1,
         StreamFullDataCsv:
-          'Values; Time\n' +
+          'Values;Time\n' +
           currentValue.toString() +
           ';' +
           TreatedTime.toString() +

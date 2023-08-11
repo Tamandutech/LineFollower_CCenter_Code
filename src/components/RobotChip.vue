@@ -188,7 +188,7 @@ const session = useSessionStore();
 const battery = useBattery();
 
 const batteryLowWarningThresholdOptions = ref(
-  [7900, 7400, 7200, 6900, 6600].map((threshold) => ({
+  [7900, 7600, 7400, 7200, 6900, 6600].map((threshold) => ({
     label: (threshold / 1000).toPrecision(2) + 'V',
     value: threshold,
   }))

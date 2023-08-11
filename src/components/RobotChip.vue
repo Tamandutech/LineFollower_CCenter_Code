@@ -117,11 +117,25 @@
 
           <q-separator inset spaced />
 
+          <q-item-label header>Sistema</q-item-label>
+
           <q-item clickable @click="disconnect">
             <q-item-section avatar>
               <q-avatar :icon="mdiBluetoothOff"></q-avatar>
             </q-item-section>
             <q-item-section>Desconectar</q-item-section>
+          </q-item>
+          <q-item clickable :disable="loading !== null" @click="pause">
+            <q-item-section avatar>
+              <q-avatar :icon="mdiCloseCircleOutline"></q-avatar>
+            </q-item-section>
+            <q-item-section>Parar</q-item-section>
+          </q-item>
+          <q-item clickable :disable="loading !== null" @click="resume">
+            <q-item-section avatar>
+              <q-avatar :icon="mdiArrowTopRightThinCircleOutline"></q-avatar>
+            </q-item-section>
+            <q-item-section>Andar</q-item-section>
           </q-item>
         </q-list>
       </div>
@@ -142,12 +156,15 @@ import {
   mdiBluetoothOff,
   mdiBatteryChargingWirelessAlert,
   mdiTrophy,
+  mdiCloseCircleOutline,
+  mdiArrowTopRightThinCircleOutline,
 } from '@quasar/extras/mdi-v6';
 import { onUnmounted, ref, watchEffect } from 'vue';
 import { useTimeoutPoll, useCycleList } from '@vueuse/core';
 import { useArrayMap } from '@vueuse/shared';
 import useFirebase from 'src/services/firebase';
 import { useCompetitions } from 'src/composables/competitions';
+import { useRobotSystem } from 'src/composables/system';
 
 const emit = defineEmits<{
   (e: 'low-battery', currentVoltage: number): void;
@@ -171,7 +188,7 @@ const session = useSessionStore();
 const battery = useBattery();
 
 const batteryLowWarningThresholdOptions = ref(
-  [7900, 7400, 7200, 6900, 6600].map((threshold) => ({
+  [7900, 7600, 7400, 7200, 6900, 6600].map((threshold) => ({
     label: (threshold / 1000).toPrecision(2) + 'V',
     value: threshold,
   }))
@@ -243,4 +260,6 @@ onUnmounted(() => {
   pauseBatteryVoltageUpdate();
   pauseLowBatteryWarning();
 });
+
+const { resume, pause, loading } = useRobotSystem(ble, 'UART_TX', 'UART_RX');
 </script>

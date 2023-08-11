@@ -17,4 +17,12 @@ declare namespace Dashboard {
     robot: Robot.BluetoothConnectionConfig;
     settings: Settings;
   }
+
+  type ErrorOptions = { message: string; action: string; cause?: Error };
+
+  interface ErrorInterface extends Error {
+    readonly message: string;
+    readonly action: string;
+    readonly cause?: Error;
+  }
 }

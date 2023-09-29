@@ -6,7 +6,7 @@
   "author": "Raphael Henrique Nunes de Freitas <raphaeldefreitas2009@gmail.com>",
   "private": true,
   "scripts": {
-    "dev": "QENV=development quasar dev",
+    "dev": "set \"QENV=development\" && quasar dev",
     "build:stage": "QENV=staging quasar build -m pwa && firebase deploy -P tt-linefollower-dev",
     "build:prod": "QENV=production quasar build -m pwa && firebase deploy -P tt-linefollower",
     "lint": "eslint --ext .js,.ts,.vue ./",

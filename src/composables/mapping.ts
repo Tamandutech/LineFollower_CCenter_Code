@@ -77,20 +77,14 @@ export const useRobotMapping = (
 
   function addRecord(
     time: Robot.MappingRecord['time'],
-    status: Robot.MappingRecord['status'],
     encMedia: Robot.MappingRecord['encMedia'],
-    encLeft: Robot.MappingRecord['encLeft'],
-    encRight: Robot.MappingRecord['encRight'],
     trackStatus: Robot.MappingRecord['trackStatus'],
     offset: Robot.MappingRecord['offset'],
     id?: Robot.MappingRecord['id']
   ) {
     mappingRecords.value.push({
       id: id || mappingRecords.value.length,
-      status,
-      encLeft,
       encMedia,
-      encRight,
       trackStatus,
       offset,
       time,

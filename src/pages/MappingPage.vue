@@ -94,7 +94,9 @@
               buttons
               v-slot="scope"
             >
-              <q-input type="number" v-model="scope.value" dense autofocus />
+            
+            <q-select filled v-model="scope.value" :options="trackStatusOptions" emit-value map-options/>
+
             </q-popup-edit>
           </q-td>
         </q-tr>

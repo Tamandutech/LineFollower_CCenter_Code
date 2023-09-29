@@ -75,17 +75,7 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="Status" :props="props">
-            {{ props.row.status }}
-            <q-popup-edit
-              v-model="props.row.status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
+
           <q-td key="TrackStatus" :props="props">
 
             {{ sectionOftheTrackToText(props.row.trackStatus) }}
@@ -432,7 +422,6 @@ const columns = [
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 const newColumns = [

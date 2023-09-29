@@ -352,6 +352,7 @@ import {
 import { ref, computed, watchEffect } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { mdiSourceBranch } from '@quasar/extras/mdi-v6';
+import { trackStatusOptions } from 'src/utils/trackStatusOptions';
 
 const { ble } = useBluetooth();
 const {
@@ -456,4 +457,12 @@ const newRecord = ref<Robot.MappingRecord[]>([
     trackStatus: 2,
   },
 ]);
+
+
+const sectionOftheTrackToText = (trackStatus: number) => {
+  const option = trackStatusOptions.find((option) => option.value == trackStatus);
+  return option ? option.label : 'Desconhecido';
+}
+
+
 </script>

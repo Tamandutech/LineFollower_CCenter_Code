@@ -166,12 +166,26 @@ import useFirebase from 'src/services/firebase';
 import { useCompetitions } from 'src/composables/competitions';
 import { useRobotSystem } from 'src/composables/system';
 
+const ONE_MINUTE_IN_MILLISECONDS = 60000;
+
 const emit = defineEmits<{
   (e: 'low-battery', currentVoltage: number): void;
   (e: 'bluetooth-connection-error', message: string): void;
 }>();
 
-const ONE_MINUTE_IN_MILLISECONDS = 60000;
+const { ble, disconnect } = useBluetooth();
+const session = useSessionStore();
+const battery = useBattery();
+
+const batteryLowWarningThresholdOptions = ref(
+  [7900, 7600, 7400, 7200, 6900, 6600].map((threshold) => ({
+    label: (threshold / 1000).toPrecision(2) + 'V',
+    value: threshold,
+  }))
+);
+const batteryLowWarningIntervalOptions = ref(
+  [0, 60000, 150000, 300000, 600000].map(getIntervalOption)
+);
 function getIntervalOption(interval: number): { value: number; label: string } {
   return {
     label:
@@ -182,43 +196,31 @@ function getIntervalOption(interval: number): { value: number; label: string } {
   };
 }
 
-const { ble, disconnect } = useBluetooth();
-
-const session = useSessionStore();
-const battery = useBattery();
-
-const batteryLowWarningThresholdOptions = ref(
-  [7900, 7600, 7400, 7200, 6900, 6600].map((threshold) => ({
-    label: (threshold / 1000).toPrecision(2) + 'V',
-    value: threshold,
-  }))
-);
-
-const batteryLowWarningIntervalOptions = ref(
-  [0, 60000, 150000, 300000, 600000].map(getIntervalOption)
-);
 const { resume: resumeLowBatteryWarning, pause: pauseLowBatteryWarning } =
   useTimeoutPoll(
     () => emit('low-battery', battery.voltage),
     session.settings.batteryLowWarningInterval,
     { immediate: false }
   );
-let batteryLowWarningIntervalId: number;
+
 const buttonColor = ref('teal-5');
 const { state: buttonIcon, next } = useCycleList(
   [mdiRobotMower, mdiBatteryAlert],
   { initialValue: mdiRobotMower }
 );
+
+const batteryLowWarningIntervalId = ref<number | null>(null);
 battery.$subscribe((_, state) => {
+  clearInterval(batteryLowWarningIntervalId.value);
   if (state.voltage <= session.settings.batteryLowWarningThreshold) {
-    batteryLowWarningIntervalId = setInterval(
+    batteryLowWarningIntervalId.value = setInterval(
       next,
       ONE_MINUTE_IN_MILLISECONDS / 2
     );
     buttonColor.value = 'warning';
     resumeLowBatteryWarning();
   } else {
-    clearInterval(batteryLowWarningIntervalId);
+    clearInterval(batteryLowWarningIntervalId.value);
     buttonColor.value = 'teal-5';
     pauseLowBatteryWarning();
     while (buttonIcon.value !== mdiRobotMower) next();

@@ -2,11 +2,13 @@ import { defineStore } from 'pinia';
 
 export const useBattery = defineStore('battery', {
   state: (): Partial<Robot.BatteryStatus> & {
-    historic: Robot.BatteryStatus[];
+    historic: Omit<Robot.BatteryStatus, 'historic'>[];
+    error: Dashboard.ErrorInterface;
   } => ({
     voltage: null,
     time: null,
     historic: [] /** TODO: mostrar isso em um gráfico */,
+    error: null,
   }),
 
   getters: {
@@ -27,19 +29,35 @@ export const useBattery = defineStore('battery', {
       txCharacteristicId: string,
       rxCharacteristicId: string
     ): Promise<void> {
-      const rawValue = await ble.request<string>(
-        txCharacteristicId,
-        rxCharacteristicId,
-        'bat_voltage'
-      );
-
-      const [, measurement] = rawValue.match(/(\d+\.*\d+)\w+/);
-
-      return this.$patch((state) => {
-        state.voltage = Number(measurement);
-        state.time = new Date();
-        state.historic.push(JSON.parse(JSON.stringify(state)));
-      });
+      try {
+        const rawValue = await ble.request<string>(
+          txCharacteristicId,
+          rxCharacteristicId,
+          'bat_voltage'
+        );
+        const [, measurement] = rawValue.match(/(\d+\.*\d+)\w+/);
+        this.$patch((state) => {
+          state.voltage = Number(measurement);
+          state.time = new Date();
+        });
+      } catch (error) {
+        this.$patch((state) => {
+          state.error = error as Dashboard.ErrorInterface;
+          state.time = new Date();
+        });
+      } finally {
+        this.$patch((state) => {
+          state.historic.push(
+            JSON.parse(
+              JSON.stringify({
+                time: state.time,
+                voltage: state.voltage,
+                error: state.error,
+              })
+            )
+          );
+        });
+      }
     },
   },
 });

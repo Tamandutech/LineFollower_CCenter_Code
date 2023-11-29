@@ -1,11 +1,14 @@
 <template>
   <q-page>
+    <q-dialog v-model="showErrorDialog">
+      <CommandErrorCard :error="error" />
+    </q-dialog>
     <div class="q-pa-md">
       <q-table
         grid
         card-container-class="row wrap justify-start items-baseline"
         title="Classes"
-        :rows="classes.dataClasses"
+        :rows="rows"
         :columns="columns"
         row-key="name"
         :filter="filter"
@@ -13,16 +16,23 @@
         hide-bottom
       >
         <template v-slot:top-left>
-          <q-btn
-            :loading="loadingParameters"
-            :icon="mdiRefreshCircle"
-            @click="loadParameters"
-            color="primary"
-          >
-            <template v-slot:loading>
-              <q-spinner-hourglass class="on-center" />
-            </template>
-          </q-btn>
+          <q-btn-group>
+            <q-btn
+              :loading="loading === listParameters.name"
+              :icon="mdiRefreshCircle"
+              @click="listParameters"
+              color="primary"
+            >
+              <template v-slot:loading>
+                <q-spinner-hourglass class="on-center" />
+              </template>
+            </q-btn>
+            <q-btn
+              :icon="mdiSourceBranch"
+              @click="toogleVersionsDialog(true)"
+              :disable="!ble.connected"
+            />
+          </q-btn-group>
         </template>
 
         <template v-slot:top-right>
@@ -34,7 +44,7 @@
             placeholder="Procurar"
           >
             <template v-slot:append>
-              <q-icon :name="mdiDatabaseSearch" />
+              <q-icon :name="mdiMagnify" />
             </template>
           </q-input>
         </template>
@@ -59,14 +69,17 @@
                         <q-popup-edit
                           :model-value="props.row.value"
                           @save="
-                            (val, initialValue) =>
-                              robotQueue.addCommands([
-                                new param_set(props.row, val, initialValue),
-                                new param_get(
-                                  props.row.class.name,
-                                  props.row.name
-                                ),
-                              ])
+                            async (newValue: Robot.ParameterValue) => {
+                              await setParameter(
+                                props.row.class,
+                                props.row.name,
+                                newValue
+                              );
+                              await getParameter(
+                                props.row.class,
+                                props.row.name
+                              );
+                            }
                           "
                           :title="props.row.name"
                           buttons
@@ -89,75 +102,144 @@
         </template>
       </q-table>
     </div>
+    <ProfileVersionsDialog
+      collection="parameters"
+      title="Parâmetros"
+      :data="dataClasses"
+      :converter="profileConverter"
+      @install-request="
+        (version: Robot.ProfileVersion<Robot.Parameters>) =>
+          performAction(
+            withSuccessFeedback(
+              installParameters,
+              {message: 'Versão instalada com sucesso!', summary: 'Parâmetros instalados'}
+            ),
+            [version.data],
+            {
+              title: 'Instalar Versão',
+              question: 'Tem certeza que deseja instalar a versão selecionada dos parâmetros?'
+            }
+          )
+      "
+      installable
+      v-model="showVersionsDialog"
+      v-slot="{ version }"
+      v-if="showVersionsDialog"
+    >
+      <q-list separator>
+        <q-expansion-item
+          v-for="[dataclass, parameters] of version.data"
+          :key="dataclass"
+          :label="dataclass"
+          :caption="`${parameters.size} parâmetros`"
+        >
+          <q-list separator>
+            <q-item v-for="[parameter, value] of parameters" :key="parameter">
+              <q-item-section>{{ parameter }}</q-item-section>
+              <q-item-section side>{{ value }}</q-item-section>
+            </q-item>
+          </q-list>
+        </q-expansion-item>
+      </q-list>
+    </ProfileVersionsDialog>
+    <ConfirmActionDialog
+      :confirm="confirm"
+      :cancel="cancel"
+      v-model="isRevealed"
+      v-if="isRevealed"
+    >
+      <template #title>{{ confirmDialogState.title }}</template>
+      <template #question>{{ confirmDialogState.question }}</template>
+    </ConfirmActionDialog>
+    <SuccessDialog
+      :title="successDialogState.summary"
+      :message="successDialogState.message"
+      v-model="showSuccessDialog"
+      v-if="showSuccessDialog"
+    />
   </q-page>
 </template>
 
-<script lang="ts">
-import { useRobotParameters } from 'stores/robotParameters';
+<script lang="ts" setup>
 import {
-  param_set,
-  param_get,
-  param_list,
-} from 'src/utils/robot/commands/cmdParam';
-import { useRobotQueue } from 'stores/robotQueue';
-import { ref, computed, defineComponent } from 'vue';
+  useRobotParameters,
+  profileConverter,
+} from 'src/composables/parameters';
+import { useIsTruthy } from 'src/composables/boolean';
+import useBluetooth from 'src/services/ble';
+import CommandErrorCard from 'src/components/cards/CommandErrorCard.vue';
+import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
+import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
+import SuccessDialog from 'src/components/dialogs/SuccessDialog.vue';
+import {
+  usePerformActionDialog,
+  useSuccessFeedback,
+} from 'src/composables/actions';
+import {
+  mdiSourceBranch,
+  mdiRefreshCircle,
+  mdiMagnify,
+} from '@quasar/extras/mdi-v6';
 import { useQuasar } from 'quasar';
-import { mdiDatabaseSearch, mdiRefreshCircle } from '@quasar/extras/mdi-v6';
+import { ref, computed, onMounted, watchEffect } from 'vue';
+import { useToggle } from '@vueuse/core';
 
-export default defineComponent({
-  name: 'IndexPage',
+const { ble } = useBluetooth();
+const {
+  dataClasses,
+  loading,
+  error,
+  listParameters,
+  getParameter,
+  setParameter,
+  installParameters,
+} = useRobotParameters(ble, 'UART_TX', 'UART_RX');
 
-  setup() {
-    const loadingParameters = ref(false);
-    const robotQueue = useRobotQueue();
+const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
+const showErrorDialog = useIsTruthy(error);
 
-    function loadParameters() {
-      loadingParameters.value = true;
-      robotQueue.addCommand(new param_list());
+const filter = ref('');
 
-      setTimeout(() => {
-        loadingParameters.value = false;
-      }, 10000);
-    }
+const columns = [
+  { name: 'name', label: 'Name', field: 'name' },
+  { name: 'calories', label: 'Calories (g)', field: 'calories' },
+];
+const rows = computed(() =>
+  [...dataClasses.value.entries()].map(([className, parameters]) => ({
+    name: className,
+    parameters: [...parameters.entries()].map(([parameterName, value]) => ({
+      name: parameterName,
+      class: className,
+      value,
+    })),
+  }))
+);
 
-    const classes = useRobotParameters();
+const {
+  isRevealed,
+  confirm,
+  cancel,
+  performAction,
+  state: confirmDialogState,
+} = usePerformActionDialog();
+const { feedback: successDialogState, withSuccessFeedback } =
+  useSuccessFeedback();
+const showSuccessDialog = useIsTruthy(successDialogState);
 
-    classes.$onAction(() => {
-      loadingParameters.value = false;
-    }, true);
+const $q = useQuasar();
+watchEffect(() => {
+  if (loading.value === installParameters.name) {
+    $q.loading.show({
+      message: 'Instalando parâmetros...',
+      boxClass: 'bg-grey-2 text-grey-9',
+      spinnerColor: 'teal',
+    });
+  } else if ($q.loading.isActive) {
+    $q.loading.hide();
+  }
+});
 
-    const $q = useQuasar();
-
-    const filter = ref('');
-
-    return {
-      mdiDatabaseSearch,
-      mdiRefreshCircle,
-      classes,
-      robotQueue,
-
-      filter,
-      loadingParameters,
-      loadParameters,
-
-      param_set,
-      param_get,
-
-      columns: [
-        { name: 'name', label: 'Name', field: 'name' },
-        { name: 'calories', label: 'Calories (g)', field: 'calories' },
-      ],
-
-      cardContainerClass: computed(() => {
-        return $q.screen.gt.xs
-          ? 'grid-masonry grid-masonry--' + ($q.screen.gt.sm ? '3' : '2')
-          : null;
-      }),
-
-      rowsPerPageOptions: computed(() => {
-        return $q.screen.gt.xs ? ($q.screen.gt.sm ? [3, 6, 9] : [3, 6]) : [3];
-      }),
-    };
-  },
+onMounted(async () => {
+  if (ble.connected) await listParameters();
 });
 </script>

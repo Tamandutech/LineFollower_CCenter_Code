@@ -1,90 +1,81 @@
 import { v4 as uuidv4 } from 'uuid';
 import { inject, markRaw, ref } from 'vue';
+import {
+  ConnectionError,
+  DeviceNotFoundError,
+  CharacteristicWriteError,
+} from './errors';
+import { ObservableCharacteristic } from './observers';
+import { EventEmitter } from './events';
 import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
 
-/**
- * Hardcodado pois os serviços para o envio de comandos via
- * bluetooth foram implementados apenas no Braia
- */
-const ROBOTS: LFCommandCenter.RobotBluetoothId[] = [
-  {
-    name: 'Braia Pro',
-    services: new Map([
-      [
-        '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-        new Map([
-          ['UART_RX', '6e400002-b5a3-f393-e0a9-e50e24dcca9e'],
-          ['UART_TX', '6e400003-b5a3-f393-e0a9-e50e24dcca9e'],
-          // ['STREAM_TX', '3A8328FC-3768-46D2-B371-B34864CE8025'],
-        ]),
-      ],
-    ]),
-    device: null,
-  },
-];
+export { BleError } from './errors';
 
-export class BLE {
-  _characteristics: Map<string, BluetoothRemoteGATTCharacteristic>;
-  _data = '';
-  _txObservers: LFCommandCenter.TxObservers;
-  _robot: LFCommandCenter.RobotBluetoothId;
+export class RobotBLEAdapter implements Bluetooth.BLEInterface {
+  _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();
+  _observables: Map<string, ObservableCharacteristic> = new Map();
+  _encoder = new TextEncoder();
+  _device: BluetoothDevice;
+  _emitter: EventEmitter = new EventEmitter(['connect', 'disconnect']);
+  _config: Required<Robot.BluetoothConnectionConfig>;
 
-  constructor() {
-    this._characteristics = new Map();
-    this._data = '';
-    this._txObservers = new Map();
-  }
-
-  async connect(robot: LFCommandCenter.RobotBluetoothId = ROBOTS[0]) {
-    this._robot = robot;
+  async connect(
+    device: BluetoothDevice,
+    config: Required<Robot.BluetoothConnectionConfig>
+  ) {
+    this._device = device;
+    this._config = config;
 
     try {
-      this._robot.device = await navigator.bluetooth.requestDevice({
-        filters: [{ namePrefix: 'TT_' }],
-        optionalServices: [...robot.services.keys()],
-      });
-      if (!this._robot.device) {
-        throw new Error('Seguidor de Linha não encontrado.');
-      }
+      const robotGattServer = await device.gatt.connect();
 
-      this._robot.device.addEventListener(
-        'gattserverdisconnected',
-        this._onDisconnect
+      device.addEventListener('gattserverdisconnected', () =>
+        this._onDisconnect()
       );
-      const robotGattServer = await this._robot.device.gatt.connect();
 
-      robot.services.forEach(async (characteristics, uuid) => {
+      for (const [uuid, characteristics] of Object.entries(config.services)) {
         const uartService = await robotGattServer.getPrimaryService(uuid);
-        characteristics.forEach(async (uuid, id) => {
+        for (const [id, uuid] of Object.entries(characteristics)) {
           const characteristic = await uartService.getCharacteristic(uuid);
           this._characteristics.set(id, characteristic);
 
           if (id.endsWith('TX')) {
-            await characteristic.startNotifications();
-
-            characteristic.addEventListener(
-              'characteristicvaluechanged',
-              this._onTxCharacteristicValueChanged.bind(this)
+            this._observables.set(
+              id,
+              new ObservableCharacteristic(
+                await characteristic.startNotifications()
+              )
             );
-
-            this._txObservers.set(id, new Map());
           }
-        });
-      });
+        }
+      }
+
+      this._emitter.emit('connect');
     } catch (error) {
-      return Promise.reject(error);
+      console.error(error);
+      if (error instanceof Error) {
+        return Promise.reject(new ConnectionError({ cause: error }));
+      }
     }
   }
 
   get connected() {
-    return this._robot?.device?.gatt.connected;
+    return this._device?.gatt.connected;
   }
 
-  disconnect() {
-    if (!this._robot.device.gatt.connected) return;
+  get name() {
+    return this._config.name;
+  }
 
-    this._robot.device.gatt.disconnect();
+  disconnect(): void {
+    if (!this._device.gatt.connected) return;
+    this._device.gatt.disconnect();
+    this._emitter.emit('disconnect');
+  }
+
+  _encode(message: string) {
+    return this._encoder.encode(message);
   }
 
   /**
@@ -92,81 +83,83 @@ export class BLE {
    *
    * @param id Id da characterística pela qual a mensagem será enviada.
    * @param message Mensagem a ser enviada.
-   * @param observer Caso fornecido, será adicionado como observer da característica .
-   * @param uuid Caso fornecido, será usado como uuid do observer.
-   * @returns `Promise<BLE>`
+   * @returns `Promise<never>`
    */
-  async send(
-    id: string,
-    message: string,
-    observer: LFCommandCenter.CharacteristicObserver = undefined,
-    uuid: string = undefined
-  ) {
+  async send(rxCharacteristicId: string, message: string) {
+    if (!this._characteristics.has(rxCharacteristicId)) {
+      throw new ConnectionError({
+        message: 'Característica RX não encontrada.',
+        action: 'Verifique se as características estão disponíveis no robô.',
+      });
+    }
+
     try {
-      if (!this._characteristics) {
-        throw new Error('Característica RX não encontrada.');
-      }
-
       await this._characteristics
-        .get('UART_RX')
-        .writeValueWithoutResponse(new TextEncoder().encode(message));
-
-      if (observer) {
-        this.addTxObserver(id, observer, uuid);
-      }
-
-      Promise.resolve(this);
+        .get(rxCharacteristicId)
+        .writeValueWithoutResponse(this._encode(message));
     } catch (error) {
-      return Promise.reject(error);
+      if (error instanceof Error) {
+        return Promise.reject(new CharacteristicWriteError({ cause: error }));
+      }
     }
   }
 
-  messageFinished() {
-    return this._data.slice(-1) === '\0';
-  }
+  /**
+   * @param txCharacteristicId Característica onde o robô escreverá a resposta
+   * @param rxCharacteristicId Caraterística onde o comando será escrito
+   * @param command Comando a ser enviado
+   * @returns Uma `Promise` que resolve com o novo valor da característica `txCharacteristicId`
+   * quando o robô a altera como resposta ao comando enviado. Não chame esse método de forma
+   * concorrente (em `.forEach(async () => ...)` ou `Promise.all(...)` por exemplo) pois o robô pode não conseguir processar diversas alterações da característica RX em sequência.
+   */
+  async request<T>(
+    txCharacteristicId: string,
+    rxCharacteristicId: string,
+    command: string
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const observerUuid = uuidv4();
+      this.addTxObserver(
+        txCharacteristicId,
+        (response: Robot.Response<T>) => {
+          resolve(response.data ?? (response as unknown as T));
+          this.removeTxObserver(txCharacteristicId, observerUuid);
+        },
+        observerUuid
+      );
 
-  get data() {
-    return this._data;
-  }
-
-  clearData() {
-    this._data = '';
+      this.send(rxCharacteristicId, command).catch(reject);
+    });
   }
 
   _onDisconnect() {
-    this._data = '';
-    if (this._txObservers) {
-      this._txObservers.clear();
-    }
-    if (this._characteristics) {
-      this._characteristics.clear();
-    }
-
-    this._robot = null;
+    this._characteristics.clear();
+    this._emitter.emit('disconnect');
   }
 
-  _handleChunck(characteristicValue: DataView): string {
-    const receivedData = [];
-    for (let i = 0; i < characteristicValue.byteLength; i++) {
-      receivedData.push(characteristicValue.getUint8(i));
-    }
-
-    this._data += String.fromCharCode.apply(null, receivedData);
-    return this._data;
-  }
-
-  addTxObserver(
+  addTxObserver<T>(
     txCharacteristicId: string,
-    observer: LFCommandCenter.CharacteristicObserver,
-    uuid: string = undefined
-  ) {
-    if (!uuid) {
-      uuid = uuidv4();
+    observer: Bluetooth.CharacteristicObserver<T>,
+    observerUuid: string
+  ): () => boolean {
+    if (!this.connected) {
+      throw new ConnectionError({
+        message: 'Não há conexão bluetooth.',
+        action: 'Conecte a dashboard a um seguidor de linha.',
+      });
     }
 
-    this._txObservers.get(txCharacteristicId).set(uuid, observer);
+    if (!this._observables.has(txCharacteristicId)) {
+      throw new ConnectionError({
+        message: 'Foram encontrados problemas na comunicação com o robô.',
+        action:
+          'Verifique se as configurações da interface bluetooth do robô estão corretas.',
+      });
+    }
 
-    return this.removeTxObserver.bind(this, uuid, txCharacteristicId);
+    this._observables.get(txCharacteristicId).subscribe(observer, observerUuid);
+
+    return this.removeTxObserver.bind(this, txCharacteristicId, observerUuid);
   }
 
   /**
@@ -176,46 +169,47 @@ export class BLE {
    * @param txCharacteristicId Id da characterística (e.g. UART_TX)
    * @returns `true` caso o observer tenha sido removido, `false` caso contrário
    */
-  removeTxObserver(observerUuid: string, txCharacteristicId: string) {
-    console.log('removed');
-
-    return this._txObservers.get(txCharacteristicId).delete(observerUuid);
+  removeTxObserver(txCharacteristicId: string, observerUuid: string): boolean {
+    return this._observables.get(txCharacteristicId).unsubscribe(observerUuid);
   }
 
-  _onTxCharacteristicValueChanged(event: Event) {
-    const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
-    const data = this._handleChunck(characteristic.value);
+  onConnect(listener: () => void): () => void {
+    return this._emitter.listen('connect', listener);
+  }
 
-    console.log(this._txObservers.get('UART_TX'));
-
-    const [id] = [...this._characteristics.entries()].find(([, tx]) => {
-      return tx.uuid === characteristic.uuid;
-    });
-
-    this._txObservers.get(id).forEach((observer) => observer(data));
+  onDisconnect(listener: () => void): () => void {
+    return this._emitter.listen('disconnect', listener);
   }
 }
 
 export const plugin = {
   install(app: App) {
-    const ble = new BLE();
+    const ble = new RobotBLEAdapter();
     app.config.globalProperties.$ble = ble;
+
     const connected = ref(false);
     const connecting = ref(false);
-    const error = ref('');
-    app.provide<LFCommandCenter.UseBLE>(key, {
+    app.provide<Bluetooth.UseBLE>(key, {
       ble,
       connected: connected,
       connecting: connecting,
-      error: error,
-      connect: async () => {
+      connect: async (config: Robot.BluetoothConnectionConfig) => {
         connecting.value = true;
+
         try {
-          await ble.connect();
+          const device = await navigator.bluetooth.requestDevice({
+            filters: [{ namePrefix: 'TT_' }],
+            optionalServices: [...Object.keys(config.services)],
+          });
+          if (!device) {
+            throw new DeviceNotFoundError();
+          }
+
+          await ble.connect(device, config);
           connected.value = true;
-        } catch (e) {
+        } catch (error) {
           connected.value = false;
-          error.value = e.toString();
+          throw error;
         } finally {
           connecting.value = false;
         }
@@ -229,9 +223,9 @@ export const plugin = {
   },
 };
 
-export const piniaPlugin = (service: BLE): PiniaPlugin => {
+export const piniaPlugin = (service: RobotBLEAdapter): PiniaPlugin => {
   return () => ({ ble: markRaw(service) });
 };
 
 const key = Symbol('ble');
-export default () => inject<LFCommandCenter.UseBLE>(key);
+export default () => inject<Bluetooth.UseBLE>(key);

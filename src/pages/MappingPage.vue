@@ -2,11 +2,19 @@
   <div class="q-pa-md">
     <q-table
       title="Mapeamento"
-      :rows="mapping.mapRegs"
+      :rows="mappingRecords"
       :columns="columns"
       row-key="id"
       binary-state-sort
     >
+      <template v-slot:top-left>
+        <q-btn
+          :icon="mdiSourceBranch"
+          flat
+          @click="toogleVersionsDialog(true)"
+          :disable="!ble.connected"
+        />
+      </template>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="id" :props="props">
@@ -56,6 +64,17 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="Offset" :props="props">
+            {{ props.row.offset }}
+            <q-popup-edit
+              v-model="props.row.offset"
+              title="Atualizar Offset"
+              buttons
+              v-slot="scope"
+            >
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.status }}
             <q-popup-edit
@@ -83,59 +102,145 @@
     </q-table>
     <div class="q-pa-md q-gutter-sm">
       <q-btn
-        @click="sendMap"
+        @click="
+          withSuccessFeedback(sendMapping, {
+            summary: 'Mapeamento Enviado',
+            message: 'O mapeamento foi enviado para o robô com sucesso!',
+          })()
+        "
         color="primary"
         label="Enviar mapeamento"
-        :disable="mapping.mapSending || mapping.mapRegs.length === 0"
+        :disable="loading !== null || mappingRecords.length === 0"
       />
       <q-btn
-        @click="() => robotQueue.addCommand(new map_get())"
+        @click="fetchMapping(false)"
         color="primary"
         label="Ler mapeamento"
       />
       <q-btn
-        @click="() => robotQueue.addCommand(new map_get(true))"
+        @click="fetchMapping(true)"
         color="primary"
         label="Ler mapeamento na Ram"
       />
       <q-btn
-        @click="saveMap"
+        @click="
+          performAction(
+            withSuccessFeedback(saveMapping, {
+              summary: 'Mapeamento Salvo',
+              message: 'O mapeamento enviado foi registrado com sucesso!',
+            }),
+            [],
+            {
+              title: 'Salvar Mapeamento',
+              question: 'Tem certeza que deseja salvar o mapeamento atual?',
+            }
+          )
+        "
         color="primary"
         label="Salvar mapeamento"
-        :disable="mapping.mapSaving"
+        :disable="loading !== null"
       />
-      <q-dialog v-model="mapping.mapSent">
-        <q-card style="width: 300px">
-          <q-card-section>
-            <div class="text-h6">Mapeamento</div>
-          </q-card-section>
-
-          <q-card-section class="q-pt-none">
-            {{ mapping.mapStringDialog }}
-          </q-card-section>
-
-          <q-card-actions align="right" class="bg-white text-teal">
-            <q-btn flat label="OK" v-close-popup />
-          </q-card-actions>
-        </q-card>
+      <q-dialog v-model="showErrorDialog">
+        <CommandErrorCard :error="error" />
       </q-dialog>
+      <SuccessDialog
+        v-model="showSuccessDialog"
+        v-if="showSuccessDialog"
+        :title="successDialogState.summary"
+        :message="successDialogState.message"
+      />
+      <ConfirmActionDialog
+        :confirm="confirm"
+        v-if="isRevealed"
+        :cancel="cancel"
+        v-model="isRevealed"
+      >
+        <template #title>{{ confirmDialogState.title }}</template>
+        <template #question>{{ confirmDialogState.question }}</template>
+      </ConfirmActionDialog>
+
+      <ProfileVersionsDialog
+        collection="mappings"
+        title="Mapeamentos"
+        :data="mappingRecords"
+        @install-request="
+        (version: Robot.ProfileVersion<Robot.Mapping>) =>
+          performAction(
+            withSuccessFeedback(
+              sendMapping,
+              {summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.'}
+            ),
+            [version.data],
+            {
+              title: 'Instalar Versão',
+              question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
+            }
+          )
+      "
+        installable
+        v-model="showVersionsDialog"
+        v-slot="{ version }"
+        v-if="showVersionsDialog"
+      >
+        <q-list separator>
+          <q-expansion-item
+            switch-toggle-side
+            v-for="(record, index) of version.data"
+            :key="index"
+            :caption="Number(index) || '0'"
+          >
+            <q-list separator>
+              <q-item v-for="(value, key) in record" :key="key">
+                <q-item-section>{{ key }}</q-item-section>
+                <q-item-section side>{{ value }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
+        </q-list>
+      </ProfileVersionsDialog>
     </div>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="deleteMapReg" color="primary" label="Deletar Registro" />
       <q-btn
-        @click="deleteAllMapRegs"
+        @click="
+          performAction(
+            async (id: number) => removeRecord(id),
+            [deleteRecordId],
+            {
+              title: 'Deletar Registro',
+              question: `Tem certeza que deseja deletar o registro ${deleteRecordId}`,
+            }
+          )
+        "
+        color="primary"
+        label="Deletar Registro"
+      />
+      <q-btn
+        @click="
+          performAction(
+            withSuccessFeedback(hardDeleteRecords, {
+              summary: 'Mapeamento Deletado',
+              message: 'O mapeamento salvo na flash foi deletado com sucesso.',
+            }),
+            [],
+            {
+              title: 'Deletar Mapeamento',
+              question: 'Tem certeza que deseja deletar o mapeamento atual?',
+            }
+          )
+        "
         color="primary"
         label="Deletar todos os registros"
       />
       <q-select
-        v-model="deleteRegID"
-        :options="mapping.options"
+        v-model="deleteRecordId"
+        :options="recordDeleteOptions"
+        :disable="recordDeleteOptions.length == 0"
         label="Selecione o ID do registro que será deletado"
       />
     </div>
     <q-table
       title="Adicionar Registro"
-      :rows="newReg"
+      :rows="newRecord"
       :columns="newColumns"
       row-key="id"
       binary-state-sort
@@ -186,6 +291,17 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
+          <q-td key="Offset" :props="props">
+            {{ props.row.offset }}
+            <q-popup-edit
+              v-model="props.row.offset"
+              title="Atualizar Offset"
+              buttons
+              v-slot="scope"
+            >
+              <q-input type="number" v-model="scope.value" dense autofocus />
+            </q-popup-edit>
+          </q-td>
           <q-td key="Status" :props="props">
             {{ props.row.status }}
             <q-popup-edit
@@ -212,21 +328,84 @@
       </template>
     </q-table>
     <div class="q-pa-md q-gutter-sm">
-      <q-btn @click="addMapReg" color="primary" label="Adicionar Registro" />
+      <q-btn
+        @click="addMappingRecord"
+        color="primary"
+        label="Adicionar Registro"
+      />
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import { useMapping } from 'stores/mapping';
+<script lang="ts" setup>
+import useBluetooth from 'src/services/ble';
+import { useRobotMapping } from 'src/composables/mapping';
+import { useIsTruthy } from 'src/composables/boolean';
+import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
+import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
+import SuccessDialog from 'src/components/dialogs/SuccessDialog.vue';
+import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
 import {
-  map_add,
-  map_clear,
-  map_get,
-  map_SaveRuntime,
-} from 'src/utils/robot/commands/cmdParam';
-import { ref } from 'vue';
-import { useRobotQueue } from 'stores/robotQueue';
+  usePerformActionDialog,
+  useSuccessFeedback,
+} from 'src/composables/actions';
+import { ref, computed, watchEffect } from 'vue';
+import { useToggle } from '@vueuse/core';
+import { mdiSourceBranch } from '@quasar/extras/mdi-v6';
+
+const { ble } = useBluetooth();
+const {
+  mappingRecords,
+  loading,
+  error,
+  hardDeleteRecords,
+  removeRecord,
+  addRecord,
+  sendMapping,
+  saveMapping,
+  fetchMapping,
+} = useRobotMapping(ble, 'UART_TX', 'UART_RX');
+const showErrorDialog = useIsTruthy(error);
+
+const {
+  isRevealed,
+  confirm,
+  cancel,
+  performAction,
+  state: confirmDialogState,
+} = usePerformActionDialog();
+
+const { feedback: successDialogState, withSuccessFeedback } =
+  useSuccessFeedback();
+const showSuccessDialog = useIsTruthy(successDialogState);
+
+const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
+
+const deleteRecordId = ref(0);
+const recordDeleteOptions = computed(() =>
+  mappingRecords.value.map((record) => record.id)
+);
+watchEffect(() => {
+  if (mappingRecords.value.length > 0) {
+    deleteRecordId.value = mappingRecords.value.at(0).id;
+  } else {
+    deleteRecordId.value = null;
+  }
+});
+
+function addMappingRecord() {
+  const record = newRecord.value[0];
+  return addRecord(
+    record.time,
+    record.status,
+    record.encMedia,
+    record.encLeft,
+    record.encRight,
+    record.trackStatus,
+    record.offset
+  );
+}
+
 const columns = [
   {
     name: 'id',
@@ -234,7 +413,7 @@ const columns = [
     label: 'ID',
     align: 'left',
     field: (row: { name: string; label: string }) => row.name,
-    format: (val: number) => `${val}`,
+    format: (val: number) => val.toString(),
     sortable: true,
   },
   {
@@ -247,6 +426,7 @@ const columns = [
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
+  { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
@@ -260,89 +440,20 @@ const newColumns = [
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
   { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
+  { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
   { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
-const newReg: LFCommandCenter.RegMap[] = ref([
+const newRecord = ref<Robot.MappingRecord[]>([
   {
     id: 1,
     encMedia: 100,
     time: 45,
     encRight: 566,
     encLeft: 123,
-    status: 345,
+    status: 0,
+    offset: 5,
     trackStatus: 2,
   },
-]).value;
-
-const mapping = useMapping();
-const robotQueue = useRobotQueue();
-
-export default {
-  setup() {
-    const deleteRegID = ref(0);
-
-    return {
-      columns,
-      newColumns,
-      newReg,
-      deleteRegID,
-      deleteMapReg,
-      deleteAllMapRegs,
-      mapping,
-      robotQueue,
-      map_add,
-      map_clear,
-      map_get,
-      map_SaveRuntime,
-    };
-    function deleteMapReg() {
-      mapping.deleteReg(deleteRegID.value);
-      while (mapping.options.length !== 0) mapping.options.pop();
-      for (var i = 0; i < mapping.totalRegs; i++)
-        mapping.options.push(mapping.mapRegs.at(i).id);
-      if (mapping.totalRegs > 0) deleteRegID.value = mapping.mapRegs.at(0).id;
-      else deleteRegID.value = 1;
-    }
-    function deleteAllMapRegs() {
-      mapping.clearMap();
-      robotQueue.addCommand(new map_clear(false));
-    }
-  },
-  created() {
-    while (mapping.options.length !== 0) mapping.options.pop();
-    for (var i = 0; i < mapping.totalRegs; i++)
-      mapping.options.push(mapping.mapRegs.at(i).id);
-  },
-  methods: {
-    sendMap() {
-      let tempMap = mapping.mapRegs;
-      tempMap.sort((d1, d2) => d1.encMedia - d2.encMedia);
-      console.log(mapping.getRegString(0));
-      mapping.mapSending = true;
-      console.log(JSON.stringify(mapping.mapRegs));
-      console.log(JSON.stringify(tempMap));
-      mapping.setRegToSend(0);
-      mapping.resendTries = 4;
-      mapping.regsSent = true;
-      mapping.regsString = '';
-      robotQueue.addCommands([new map_clear(), new map_add(tempMap)]);
-    },
-    saveMap() {
-      robotQueue.addCommand(new map_SaveRuntime());
-      mapping.mapSaving = true;
-    },
-    addMapReg() {
-      let newMapReg = {} as LFCommandCenter.RegMap;
-      newMapReg.id = 0;
-      newMapReg.time = newReg[0].time;
-      newMapReg.status = newReg[0].status;
-      newMapReg.encMedia = newReg[0].encMedia;
-      newMapReg.encLeft = newReg[0].encLeft;
-      newMapReg.encRight = newReg[0].encRight;
-      newMapReg.trackStatus = newReg[0].trackStatus;
-      mapping.addRegObj(newMapReg);
-    },
-  },
-};
+]);
 </script>

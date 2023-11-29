@@ -7,15 +7,15 @@ import {
   getRedirectResult,
 } from 'firebase/auth';
 import type { User, AuthError } from 'firebase/auth';
-import type { Router } from 'vue-router';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
-    user: null as User,
-    blocked: false,
+    _user: null as User,
+    _blocked: false,
   }),
   getters: {
-    getCurrentUser: (state) => state.user,
+    user: (state) => state._user,
+    isAuthenticated: (state) => state._user !== null,
   },
   actions: {
     async isMemberTTGithub(userCredential: UserCredential): Promise<boolean> {
@@ -33,9 +33,8 @@ export const useAuth = defineStore('auth', {
           }
         );
 
-        const membership = (await response.json()) as { state: string };
-        if (membership.state === 'active') return Promise.resolve(true);
-        return Promise.resolve(false);
+        const membership = await response.json();
+        return membership.state === 'active';
       } catch (error) {
         return Promise.reject(error);
       }
@@ -51,24 +50,22 @@ export const useAuth = defineStore('auth', {
       this.setUser(null);
       return signOut(this.service);
     },
-    async handleAuthStateChange(
-      user: User | null,
-      router: Router,
-      successRouteName: string
-    ) {
+    async handleAuthStateChange(user: User | null) {
       try {
         const result = await getRedirectResult(this.service);
 
+        // Usuário identificado via cookies salvos pelo navegador (já estava logado)
         if (!result) {
           if (user) this.setUser(user);
 
-          return Promise.resolve()
-        };
+          return Promise.resolve();
+        }
 
+        // Usuário se autenticou após ser redirecionado na página do Github
         if (await this.isMemberTTGithub(result)) {
           this.setUser(user);
-          router.push({ name: successRouteName });
-          return Promise.resolve(this.getCurrentUser);
+          this.router.push({ name: 'index' });
+          return Promise.resolve(this._user);
         }
         this.blockUser();
         return Promise.resolve(null);
@@ -77,10 +74,10 @@ export const useAuth = defineStore('auth', {
       }
     },
     setUser(user: User | null) {
-      this.$patch({ user });
+      this._user = user;
     },
     blockUser() {
-      this.$patch({ user: null, blocked: true });
+      this.$patch({ _user: null, _blocked: true });
       return signOut(this.service);
     },
   },

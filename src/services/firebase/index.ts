@@ -2,6 +2,7 @@ import { inject } from 'vue';
 import type { App } from 'vue';
 import initFirebaseApp from './app';
 import getAuthService from './auth';
+import getFirestoreService from './firestore';
 
 export const plugin = {
   install(app: App) {
@@ -9,6 +10,7 @@ export const plugin = {
     const firebase = {
       app: firebaseApp,
       auth: getAuthService(firebaseApp),
+      db: getFirestoreService(firebaseApp, app),
     };
 
     // Adiciona aplicação do firebase no escopo global da dashboard
@@ -19,4 +21,4 @@ export const plugin = {
 
 // Definir hook para injetar aplicação do firebase em qualquer componente
 const key = Symbol('firebase');
-export default () => inject<LFCommandCenter.FirebaseBackend>(key);
+export default () => inject<Firebase.Backend>(key);

@@ -6,25 +6,23 @@
         <q-toolbar-title>LF Dash</q-toolbar-title>
         <!-- <q-space></q-space> -->
         <div class="q-px-md q-gutter-sm">
-          <q-btn
-            color="secondary"
-            round
-            @click="connected ? disconnect() : connect()"
-            :icon="connected ? mdiBluetoothOff : mdiBluetoothConnect"
-            :loading="connecting"
-          >
-            <template v-slot:loading>
-              <q-spinner-radio class="on-center" />
-            </template>
-          </q-btn>
-          <RobotChip></RobotChip>
+          <ConnectBluetoothButton
+            v-if="!connected"
+            @bluetooth-connection-error="notifyBluetoothError"
+          />
+          <RobotChip
+            v-else
+            @low-battery="
+              (currentVoltage: number) => lowBatteryDialog.warn(currentVoltage)
+            "
+          />
           <UserChip
             color="secondary"
             round
             @login="welcomeUser"
             @block="notifyBlock"
             @error="notifyError"
-          ></UserChip>
+          />
         </div>
       </q-toolbar>
     </q-header>
@@ -67,6 +65,12 @@
               </q-item-section>
               <q-item-section> Mapeamento </q-item-section>
             </q-item>
+            <q-item clickable :to="'/robot/stream'" exact>
+              <q-item-section avatar>
+                <q-icon :name="mdiChartLine" />
+              </q-item-section>
+              <q-item-section> Transmissão </q-item-section>
+            </q-item>
           </q-expansion-item>
         </q-list>
       </q-scroll-area>
@@ -75,19 +79,24 @@
     <q-page-container>
       <router-view @navigation-guard="notifyAuthenticationRequired" />
     </q-page-container>
+
+    <q-dialog v-model="lowBatteryDialog.show">
+      <BatteryWarningCard
+        :current-voltage="lowBatteryDialog.voltage"
+      ></BatteryWarningCard>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref, reactive } from 'vue';
 import {
   mdiTableLarge,
   mdiTune,
   mdiMenu,
   mdiHome,
   mdiRobotMowerOutline,
-  mdiBluetoothConnect,
-  mdiBluetoothOff,
+  mdiChartLine,
   mdiAccountCheck,
   mdiCloseOctagon,
   mdiAlertCircle,
@@ -95,23 +104,32 @@ import {
   mdiAlertBox,
 } from '@quasar/extras/mdi-v6';
 import { useQuasar } from 'quasar';
-import useBluetooth from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
 import RobotChip from 'src/components/RobotChip.vue';
+import BatteryWarningCard from 'src/components/cards/BatteryWarningCard.vue';
+import ConnectBluetoothButton from 'src/components/buttons/ConnectBluetoothButton.vue';
+import useBluetooth from 'src/services/ble';
 import type { User, AuthError } from 'firebase/auth';
 
+const { connected } = useBluetooth();
+
 const drawer = ref(false);
+const lowBatteryDialog = reactive({
+  show: false,
+  voltage: null,
+  warned: false,
+  warn(currentVoltage: number) {
+    if (!this.warned) {
+      this.voltage = currentVoltage;
+      this.show = true;
+    }
+  },
+});
 const $q = useQuasar();
 
-const { connected, connecting, error, connect, disconnect } = useBluetooth();
-
-watch(error, () =>
-  $q.notify({
-    message: 'Ocorreu um erro durante a conexão com o robô. Tente novamente.',
-    color: 'negative',
-    icon: mdiAlertBox,
-  })
-);
+function notifyBluetoothError(message: string) {
+  return $q.notify({ message, color: 'negative', icon: mdiAlertBox });
+}
 
 function welcomeUser(user: User) {
   return $q.notify({
@@ -120,6 +138,7 @@ function welcomeUser(user: User) {
     icon: mdiAccountCheck,
   });
 }
+
 function notifyBlock() {
   return $q.notify({
     message:
@@ -128,6 +147,7 @@ function notifyBlock() {
     color: 'negative',
   });
 }
+
 function notifyError(error: AuthError) {
   let message: string;
   if (error.hasOwnProperty('code')) {
@@ -145,6 +165,7 @@ function notifyError(error: AuthError) {
     icon: mdiAlertCircle,
   });
 }
+
 function notifyAuthenticationRequired() {
   return $q.notify({
     message:

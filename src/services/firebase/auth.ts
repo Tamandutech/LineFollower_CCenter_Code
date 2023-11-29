@@ -1,8 +1,7 @@
-import { Auth, getAuth, GithubAuthProvider } from 'firebase/auth';
-import type { Router } from 'vue-router';
+import { getAuth, GithubAuthProvider, onAuthStateChanged } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
-import type { User } from 'firebase/auth';
-import { PiniaPlugin, PiniaPluginContext } from 'pinia';
+import type { PiniaPlugin, PiniaPluginContext } from 'pinia';
 
 const provider = new GithubAuthProvider();
 provider.addScope('repo');
@@ -13,7 +12,7 @@ provider.setCustomParameters({
   redirect_uri: process.env.OAUTH_REDIRECT_URI,
 });
 
-export default (app: FirebaseApp): LFCommandCenter.AuthService => ({
+export default (app: FirebaseApp): Firebase.AuthService => ({
   service: getAuth(app),
   github_provider: provider,
 });
@@ -25,29 +24,18 @@ export default (app: FirebaseApp): LFCommandCenter.AuthService => ({
  *
  * @param service Serviço de autenticação associado a um app do Firebase
  * @param github_provider Provedor de Open Auth
- * @param storeId ID da store que gerencia os usuários
- * @param router Vue Router
- * @param successRouteName Nome da rota para qual o usuário será redirecionado após se autenticar
- * @returns PiniaPlugin
+ * @returns `PiniaPlugin`
  */
 export function piniaPlugin(
   service: Auth,
-  github_provider: GithubAuthProvider,
-  storeId: string,
-  router: Router,
-  successRouteName = 'index'
+  github_provider: GithubAuthProvider
 ): PiniaPlugin {
   return ({ store, options }: PiniaPluginContext) => {
-    if (store.$id !== storeId) return;
+    if (options.actions.handleAuthStateChange === undefined) return;
 
-    store.setUser(service.currentUser);
-
-    service.onAuthStateChanged((user: User | null) =>
-      options.actions.handleAuthStateChange.bind(store)(
-        user,
-        router,
-        successRouteName
-      )
+    onAuthStateChanged(
+      service,
+      options.actions.handleAuthStateChange.bind(store)
     );
 
     return { service, github_provider };

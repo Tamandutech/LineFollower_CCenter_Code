@@ -1,64 +1,28 @@
-declare namespace LFCommandCenter {
-  interface RobotResponse extends Record<string, unknown> {
-    cmdExecd: string;
-    data: string;
+declare namespace Dashboard {
+  interface Settings {
+    batteryStatusUpdateInterval: number; // ms
+    batteryLowWarningThreshold: number; // mV
+    batteryLowWarningInterval: number; // ms
   }
 
-  enum RobotStatus {
-    CAR_IN_CURVE = 0,
-    CAR_IN_LINE = 1,
-    CAR_STOPPED = 2,
+  interface Competition {
+    id: string;
+    name: string;
+    year: string;
   }
 
-  type RegMap = {
-    id: number;
-    encMedia: number;
-    time: number;
-    encRight: number;
-    encLeft: number;
-    status: RobotStatus;
-    trackStatus: number;
-  };
+  interface Session {
+    competitionId: Competition['id'];
+    userId: string;
+    robot: Robot.BluetoothConnectionConfig;
+    settings: Settings;
+  }
 
-  type DataClass = {
-    name: string;
-    parameters: RobotParameter[];
-  };
+  type ErrorOptions = { message: string; action: string; cause?: Error };
 
-  type RobotParameter = {
-    class: DataClass;
-    name: string;
-    value: unknown;
-  };
-
-  type AuthService = {
-    service: import('firebase/auth').Auth;
-    github_provider: import('firebase/auth').GithubAuthProvider;
-  };
-
-  type FirebaseBackend = {
-    app: import('firebase/app').FirebaseApp;
-    auth: AuthService;
-  };
-
-  type RobotBleCharacteristicsHashMap = Map<string, string>;
-  type RobotBleServicesHashMap = Map<string, RobotBleCharacteristicsHashMap>;
-
-  type CharacteristicObserver = (data: string) => Promise<void>;
-  type ObserversHashMap = Map<string, CharacteristicObserver>;
-  type TxObservers = Map<string, ObserversHashMap>;
-  type UseBLE = {
-    ble: import('src/services/ble').BLE;
-    connected: import('vue').Ref<boolean>;
-    connecting: import('vue').Ref<boolean>;
-    error: import('vue').Ref<string>;
-    connect: () => Promise<void>;
-    disconnect: () => void;
-  };
-
-  type RobotBluetoothId = {
-    name: string;
-    services: RobotBleServicesHashMap;
-    device: BluetoothDevice | null;
-  };
+  interface ErrorInterface extends Error {
+    readonly message: string;
+    readonly action: string;
+    readonly cause?: Error;
+  }
 }

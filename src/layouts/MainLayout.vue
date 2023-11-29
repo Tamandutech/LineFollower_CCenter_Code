@@ -6,23 +6,25 @@
         <q-toolbar-title>LF Dash</q-toolbar-title>
         <!-- <q-space></q-space> -->
         <div class="q-px-md q-gutter-sm">
-          <ConnectBluetoothButton
-            v-if="!connected"
-            @bluetooth-connection-error="notifyBluetoothError"
-          />
-          <RobotChip
-            v-else
-            @low-battery="
-              (currentVoltage: number) => lowBatteryDialog.warn(currentVoltage)
-            "
-          />
+          <q-btn
+            color="secondary"
+            round
+            @click="connected ? disconnect() : performConnect()"
+            :icon="connected ? mdiBluetoothOff : mdiBluetoothConnect"
+            :loading="connecting"
+          >
+            <template v-slot:loading>
+              <q-spinner-radio class="on-center" />
+            </template>
+          </q-btn>
+          <RobotChip></RobotChip>
           <UserChip
             color="secondary"
             round
             @login="welcomeUser"
             @block="notifyBlock"
             @error="notifyError"
-          />
+          ></UserChip>
         </div>
       </q-toolbar>
     </q-header>
@@ -79,23 +81,19 @@
     <q-page-container>
       <router-view @navigation-guard="notifyAuthenticationRequired" />
     </q-page-container>
-
-    <q-dialog v-model="lowBatteryDialog.show">
-      <BatteryWarningCard
-        :current-voltage="lowBatteryDialog.voltage"
-      ></BatteryWarningCard>
-    </q-dialog>
   </q-layout>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import {
   mdiTableLarge,
   mdiTune,
   mdiMenu,
   mdiHome,
   mdiRobotMowerOutline,
+  mdiBluetoothConnect,
+  mdiBluetoothOff,
   mdiChartLine,
   mdiAccountCheck,
   mdiCloseOctagon,
@@ -104,31 +102,31 @@ import {
   mdiAlertBox,
 } from '@quasar/extras/mdi-v6';
 import { useQuasar } from 'quasar';
+import useBluetooth, { BleError } from 'src/services/ble';
 import UserChip from 'src/components/UserChip.vue';
 import RobotChip from 'src/components/RobotChip.vue';
-import BatteryWarningCard from 'src/components/cards/BatteryWarningCard.vue';
-import ConnectBluetoothButton from 'src/components/buttons/ConnectBluetoothButton.vue';
-import useBluetooth from 'src/services/ble';
 import type { User, AuthError } from 'firebase/auth';
 
-const { connected } = useBluetooth();
-
 const drawer = ref(false);
-const lowBatteryDialog = reactive({
-  show: false,
-  voltage: null,
-  warned: false,
-  warn(currentVoltage: number) {
-    if (!this.warned) {
-      this.voltage = currentVoltage;
-      this.show = true;
-    }
-  },
-});
 const $q = useQuasar();
 
-function notifyBluetoothError(message: string) {
-  return $q.notify({ message, color: 'negative', icon: mdiAlertBox });
+const { connected, connecting, connect, disconnect } = useBluetooth();
+
+async function performConnect() {
+  try {
+    await connect();
+  } catch (error) {
+    const message =
+      error instanceof BleError
+        ? error.message
+        : 'Ocorreu um erro durante a conexão com o robô. Tente novamente.';
+
+    $q.notify({
+      message,
+      color: 'negative',
+      icon: mdiAlertBox,
+    });
+  }
 }
 
 function welcomeUser(user: User) {

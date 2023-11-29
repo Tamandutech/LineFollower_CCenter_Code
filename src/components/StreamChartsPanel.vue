@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import {
   onUnmounted,
+  watchEffect,
   onBeforeMount,
   shallowRef,
   triggerRef,
@@ -27,7 +28,6 @@ import { useRobotDataStream } from 'src/composables/stream';
 import StreamChart from 'components/StreamChart.vue';
 import useBluetooth from 'src/services/ble';
 import { randomColorGenerator } from 'src/utils/colors';
-import { whenever } from '@vueuse/core';
 import type { ComputedRef } from 'vue';
 import type { ChartData } from 'chart.js';
 
@@ -79,7 +79,12 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
     if (!streamsValues.has(parameter)) return;
 
     const TreatedTime = time - parametersFirstTimeValue.get(parameter);
-    streamsValues.get(parameter).value.push([TreatedTime, currentValue]);
+    streamsValues
+      .get(parameter)
+      .value.push([
+        TreatedTime,
+        currentValue,
+      ]);
 
     if (!streamsLoaded.has(parameter)) {
       streamsLoaded.set(parameter, {
@@ -89,21 +94,17 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
         min: currentValue,
         sum: currentValue,
         receivedValuesCount: 1,
-        StreamFullDataCsv:
-          'Values;Time\n' +
-          currentValue.toString() +
-          ';' +
-          TreatedTime.toString() +
-          '\n',
+        StreamFullDataCsv: 'Values; Time\n' +
+        currentValue.toString() + ';' + TreatedTime.toString() + '\n',
         get mean() {
           return this.sum / this.receivedValuesCount;
         },
       });
+
     } else {
       const streamStatus = streamsLoaded.get(parameter);
-      streamStatus.StreamFullDataCsv +=
-        currentValue.toString() + ';' + TreatedTime.toString() + '\n';
-
+      streamStatus.StreamFullDataCsv += currentValue.toString() + ';' + TreatedTime.toString() + '\n';
+      
       if (currentValue > streamStatus.max) {
         streamStatus.max = currentValue;
       } else if (currentValue < streamStatus.min) {
@@ -134,7 +135,7 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
       computed(() => {
         const valuesCount = streamsValues.get(parameter).value.length;
         let offset = props.parameters.get(parameter).range;
-        if (offset > valuesCount) offset = valuesCount;
+        if(offset > valuesCount) offset = valuesCount;
         return {
           labels: streamsValues
             .get(parameter)
@@ -145,8 +146,7 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
               label: parameter,
               data: streamsValues
                 .get(parameter)
-                .value.map(([, value]) => value)
-                .slice(valuesCount - offset),
+                .value.map(([, value]) => value).slice(valuesCount - offset),
             },
           ],
         };
@@ -166,11 +166,14 @@ const gracefullyStopStreams = async () => {
   try {
     await stopAllStreams();
   } catch (error) {
+    emit('error', error);
     disconnectBluetooth();
   }
 };
 
-whenever(error, () => emit('error', error.value));
+watchEffect(() => {
+  if (error.value) emit('error', error.value);
+});
 
 onBeforeMount(async () => {
   try {
@@ -180,6 +183,7 @@ onBeforeMount(async () => {
       }
     }
   } catch (error) {
+    emit('error', error);
     await gracefullyStopStreams();
   }
 });

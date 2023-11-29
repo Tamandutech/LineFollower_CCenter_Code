@@ -121,8 +121,6 @@ module.exports = configure(function (/* ctx */) {
         },
       },
 
-      cssAddon: true,
-
       iconSet: 'svg-mdi-v6', // Quasar icon set
       lang: 'pt-BR', // Quasar language pack
 

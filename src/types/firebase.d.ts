@@ -7,6 +7,5 @@ declare namespace Firebase {
   type Backend = {
     app: import('firebase/app').FirebaseApp;
     auth: AuthService;
-    db: import('firebase/firestore').Firestore;
   };
 }

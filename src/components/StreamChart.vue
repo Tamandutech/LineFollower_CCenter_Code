@@ -28,13 +28,13 @@ onMounted(() => {
         mode: 'nearest',
       },
       scales: {
-        x: {
+         x: {
           ticks: {
-            callback(value) {
-              return Number(this.getLabelForValue(Number(value))) / 1000 + 's';
+              callback(value) {
+                return (Number(this.getLabelForValue(value))/1000) + 's';
+              },
             },
-          },
-        },
+         },
       },
       animation: false,
       borderColor: colors.getPaletteColor(props.color),

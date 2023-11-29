@@ -1,7 +1,8 @@
-import { getAuth, GithubAuthProvider, onAuthStateChanged } from 'firebase/auth';
-import type { Auth } from 'firebase/auth';
+import { Auth, getAuth, GithubAuthProvider } from 'firebase/auth';
+import type { Router } from 'vue-router';
 import type { FirebaseApp } from 'firebase/app';
-import type { PiniaPlugin, PiniaPluginContext } from 'pinia';
+import type { User } from 'firebase/auth';
+import { PiniaPlugin, PiniaPluginContext } from 'pinia';
 
 const provider = new GithubAuthProvider();
 provider.addScope('repo');
@@ -24,18 +25,29 @@ export default (app: FirebaseApp): Firebase.AuthService => ({
  *
  * @param service Serviço de autenticação associado a um app do Firebase
  * @param github_provider Provedor de Open Auth
- * @returns `PiniaPlugin`
+ * @param storeId ID da store que gerencia os usuários
+ * @param router Vue Router
+ * @param successRouteName Nome da rota para qual o usuário será redirecionado após se autenticar
+ * @returns PiniaPlugin
  */
 export function piniaPlugin(
   service: Auth,
-  github_provider: GithubAuthProvider
+  github_provider: GithubAuthProvider,
+  storeId: string,
+  router: Router,
+  successRouteName = 'index'
 ): PiniaPlugin {
   return ({ store, options }: PiniaPluginContext) => {
-    if (options.actions.handleAuthStateChange === undefined) return;
+    if (store.$id !== storeId) return;
 
-    onAuthStateChanged(
-      service,
-      options.actions.handleAuthStateChange.bind(store)
+    store.setUser(service.currentUser);
+
+    service.onAuthStateChanged((user: User | null) =>
+      options.actions.handleAuthStateChange.bind(store)(
+        user,
+        router,
+        successRouteName
+      )
     );
 
     return { service, github_provider };

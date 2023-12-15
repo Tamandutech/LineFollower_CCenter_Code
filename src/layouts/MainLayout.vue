@@ -122,6 +122,7 @@ const lowBatteryDialog = reactive({
     if (!this.warned) {
       this.voltage = currentVoltage;
       this.show = true;
+      this.warned = true;
     }
   },
 });

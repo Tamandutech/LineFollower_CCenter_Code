@@ -18,7 +18,7 @@
         <template v-slot:top-left>
           <q-btn-group>
             <q-btn
-              :loading="loading === listParameters.name"
+              :loading="listingParameters"
               :icon="mdiRefreshCircle"
               @click="listParameters"
               color="primary"
@@ -30,7 +30,7 @@
             <q-btn
               :icon="mdiSourceBranch"
               @click="toogleVersionsDialog(true)"
-              :disable="!ble.connected"
+              :disable="!connected"
             />
           </q-btn-group>
         </template>
@@ -106,18 +106,19 @@
       collection="parameters"
       title="Parâmetros"
       :data="dataClasses"
-      :converter="profileConverter"
+      :converter="(profileConverter as ProfileConverter<Robot.Parameters>)"
       @install-request="
-        (version: Robot.ProfileVersion<Robot.Parameters>) =>
+        (version: Robot.ProfileVersion<unknown>) =>
           performAction(
-            withSuccessFeedback(
-              installParameters,
-              {message: 'Versão instalada com sucesso!', summary: 'Parâmetros instalados'}
-            ),
-            [version.data],
+            withSuccessFeedback(installParameters, {
+              message: 'Versão instalada com sucesso!',
+              summary: 'Parâmetros instalados',
+            }),
+            [version.data as Robot.Parameters],
             {
               title: 'Instalar Versão',
-              question: 'Tem certeza que deseja instalar a versão selecionada dos parâmetros?'
+              question:
+                'Tem certeza que deseja instalar a versão selecionada dos parâmetros?',
             }
           )
       "
@@ -128,7 +129,7 @@
     >
       <q-list separator>
         <q-expansion-item
-          v-for="[dataclass, parameters] of version.data"
+          v-for="[dataclass, parameters] of (version.data as Robot.Parameters)"
           :key="dataclass"
           :label="dataclass"
           :caption="`${parameters.size} parâmetros`"
@@ -166,7 +167,7 @@ import {
   profileConverter,
 } from 'src/composables/parameters';
 import { useIsTruthy } from 'src/composables/boolean';
-import useBluetooth from 'src/services/ble';
+import useBluetooth, { BleError } from 'src/services/ble';
 import CommandErrorCard from 'src/components/cards/CommandErrorCard.vue';
 import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
 import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
@@ -183,17 +184,37 @@ import {
 import { useQuasar } from 'quasar';
 import { ref, computed, onMounted, watchEffect } from 'vue';
 import { useToggle } from '@vueuse/core';
+import type { ProfileConverter } from 'src/composables/profile-versions';
+import { useLoading } from 'src/composables/loading';
+import { useErrorCapturing } from 'src/composables/error';
 
-const { ble } = useBluetooth();
+const { ble, connected } = useBluetooth();
+const error = ref<BleError | null>(null);
 const {
   dataClasses,
-  loading,
-  error,
-  listParameters,
-  getParameter,
-  setParameter,
-  installParameters,
+  listParameters: _listParameters,
+  getParameter: _getParameter,
+  setParameter: _setParameter,
+  installParameters: _installParameters,
 } = useRobotParameters(ble, 'UART_TX', 'UART_RX');
+const [getParameter] = useErrorCapturing(_getParameter, [BleError], error);
+const [setParameter] = useErrorCapturing(_setParameter, [BleError], error);
+const [_protectedListParameters] = useErrorCapturing(
+  _listParameters,
+  [BleError],
+  error
+);
+const [listParameters, listingParameters] = useLoading(
+  _protectedListParameters
+);
+const [_protectedInstallParameters] = useErrorCapturing(
+  _installParameters,
+  [BleError],
+  error
+);
+const [installParameters, installingParameters] = useLoading(
+  _protectedInstallParameters
+);
 
 const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
 const showErrorDialog = useIsTruthy(error);
@@ -228,7 +249,7 @@ const showSuccessDialog = useIsTruthy(successDialogState);
 
 const $q = useQuasar();
 watchEffect(() => {
-  if (loading.value === installParameters.name) {
+  if (installingParameters.value) {
     $q.loading.show({
       message: 'Instalando parâmetros...',
       boxClass: 'bg-grey-2 text-grey-9',
@@ -240,6 +261,6 @@ watchEffect(() => {
 });
 
 onMounted(async () => {
-  if (ble.connected) await listParameters();
+  if (connected.value) await listParameters();
 });
 </script>

@@ -1,51 +1,39 @@
-import { ref } from 'vue';
+import { type Ref, ref } from 'vue';
 
-// TODO: Implementar timeout (lançar erro quando estourar)
-export const useLoading = () => {
-  const loading = ref<string | null>(null);
+export type UseLoadingReturn<This, Args extends unknown[], Return> = readonly [
+  (this: This, ...args: Args) => Promise<Return>,
+  Ref<boolean>
+];
+
+/**
+ * Retorna uma referência para o estado de execução de uma função.
+ *
+ * @param {Function} routine Função para notificar o estado de execução
+ * @returns {UseLoadingReturn} Função cuja execução pode ser notificada e referência para o estado de execução
+ */
+export const useLoading = <This, Args extends unknown[], Return>(
+  routine: (this: This, ...args: Args) => Promise<Return>
+): UseLoadingReturn<This, Args, Return> => {
+  /**
+   * Estado de execução da função
+   */
+  const loading = ref<boolean>(false);
 
   /**
-   * Retorna uma função, com o nome fornecido, para que a variável de estado
-   * `loading` possa ser utilizada em templates comparando-se o seu valor atual com
-   * o nome de um procedimento em execução
-   * @example :loading="loading.value === listParameters.name"
-   * @param routine Função para notificar a execução
-   * @param routineName Nome da função. Por padrão se utiliza a propriedade (`.name`)
-   * @param timeout Uma função que retorna uma `Promise`, que sempre rejeita, para concorrer com a execução a ser notificada, possibilitando o cancelamento da espera através do lançamento de um erro, por exemplo.
-   * @returns Função cuja execução pode ser notificada através da ref `loading`
+   * Função cuja execução pode ser notificada
    */
-  function notifyLoading<This, Args extends unknown[], Return>(
-    routine: (this: This, ...args: Args) => Promise<Return>,
-    routineName?: string,
-    timeout?: () => Promise<Error>
-  ) {
-    routineName = routineName || routine.name;
-
-    return {
-      [routineName]: async function (
-        this: This,
-        ...args: Args
-      ): Promise<Return> {
-        loading.value = routineName || routine.name;
-
-        try {
-          const promises: Array<Promise<Return> | Promise<Error>> = [
-            routine.call(this, ...args),
-          ];
-          if (timeout) promises.push(timeout());
-
-          const result = await Promise.race(promises);
-          if (result instanceof Error) {
-            throw result;
-          }
-
-          return Promise.resolve(result);
-        } finally {
-          loading.value = null;
-        }
-      },
-    }[routineName];
+  async function notifiedRoutine(this: This, ...args: Args): Promise<Return> {
+    loading.value = true;
+    try {
+      const result = await routine.call(this, ...args);
+      if (result instanceof Error) {
+        throw result;
+      }
+      return result;
+    } finally {
+      loading.value = false;
+    }
   }
 
-  return { loading, notifyLoading };
+  return [notifiedRoutine, loading] as const;
 };

@@ -110,7 +110,7 @@
       v-if="renderStreamsPanel"
       :parameters="parametersToStream"
       v-slot="{ loading, streams }"
-      @error="(e) => (error = e)"
+      @error="(e: unknown) => (error = e as BleError)"
       @all-stopped="closeStreamsPanel"
     >
       <q-inner-loading
@@ -245,7 +245,7 @@
 <script lang="ts" setup>
 import { useQuasar, exportFile } from 'quasar';
 import { useRobotRuntime } from 'src/composables/runtime';
-import useBluetooth from 'src/services/ble';
+import useBluetooth, { BleError } from 'src/services/ble';
 import {
   mdiCog,
   mdiReload,
@@ -264,12 +264,20 @@ import StreamChartsPanel from 'components/StreamChartsPanel.vue';
 import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import StreamsConfigCard from 'src/components/cards/StreamsConfigCard.vue';
 import { useIsTruthy } from 'src/composables/boolean';
+import { useLoading } from 'src/composables/loading';
+import { useErrorCapturing } from 'src/composables/error';
 
 const { ble } = useBluetooth();
-const { parameters, error, updateParameters } = useRobotRuntime(
+const error = ref<BleError | null>(null);
+const { parameters, fetchParameters: _fetchParameters } = useRobotRuntime(
   ble,
   'UART_TX',
   'UART_RX'
+);
+const [fetchParameters] = useErrorCapturing(
+  _fetchParameters,
+  [BleError],
+  error
 );
 const showErrorDialog = useIsTruthy(error);
 
@@ -277,7 +285,6 @@ const showConfigDialog = ref(false);
 const showInvalidConfigMessage = ref(false);
 const showControlsDialog = ref(false);
 const configForm = ref<quasar.QForm>(null);
-const updatingParameters = ref(false);
 const parametersToStream = reactive<
   Map<string, { interval: number; range: number }>
 >(new Map());
@@ -293,16 +300,14 @@ const loadConfigDialog = async function () {
   }
 };
 
-const updateRuntimeParameters = async function () {
-  updatingParameters.value = true;
-
-  await updateParameters();
-  parameters.value.forEach((_, parameter) =>
-    parametersToStream.set(parameter, { interval: 0, range: 20 })
-  );
-
-  updatingParameters.value = false;
-};
+const [updateRuntimeParameters, updatingParameters] = useLoading(
+  async function () {
+    await fetchParameters();
+    parameters.value.forEach((_, parameter) =>
+      parametersToStream.set(parameter, { interval: 0, range: 20 })
+    );
+  }
+);
 
 const submitConfigForm = () => {
   if ([...parametersToStream.values()].some(({ interval }) => interval > 0)) {

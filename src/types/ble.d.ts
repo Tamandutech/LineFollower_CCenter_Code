@@ -11,7 +11,11 @@ declare namespace Bluetooth {
     ble: import('src/services/ble').RobotBLEAdapter;
     connected: import('vue').Ref<boolean>;
     connecting: import('vue').Ref<boolean>;
-    connect: (config?: Robot.BluetoothConnectionConfig) => Promise<void>;
+    connect: (
+      device: BluetoothDevice,
+      config: Robot.BluetoothConnectionConfig
+    ) => Promise<void>;
+    requestDevice: () => Promise<BluetoothDevice>;
     disconnect: () => void;
   };
 

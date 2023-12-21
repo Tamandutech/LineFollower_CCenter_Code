@@ -193,18 +193,21 @@ export const plugin = {
       ble,
       connected: connected,
       connecting: connecting,
-      connect: async (config: Robot.BluetoothConnectionConfig) => {
-        connecting.value = true;
-
-        try {
+      requestDevice: async () => {
           const device = await navigator.bluetooth.requestDevice({
             filters: [{ namePrefix: 'TT_' }],
-            optionalServices: [...Object.keys(config.services)],
           });
           if (!device) {
             throw new DeviceNotFoundError();
           }
-
+        return device;
+      },
+      connect: async (
+        device: BluetoothDevice,
+        config: Robot.BluetoothConnectionConfig
+      ) => {
+        connecting.value = true;
+        try {
           await ble.connect(device, config);
           connected.value = true;
         } catch (error) {

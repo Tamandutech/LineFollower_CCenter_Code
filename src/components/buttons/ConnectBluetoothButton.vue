@@ -42,7 +42,7 @@ const emit = defineEmits<{
   (e: 'connect', robot: Robot.BluetoothConnectionConfig): void;
 }>();
 
-const { connect: _connect } = useBluetooth();
+const { connect: _connect, requestDevice } = useBluetooth();
 const session = useSessionStore();
 const [connect] = useRetry(_connect, [ConnectionError, BleError], {
   maxRetries: 3,
@@ -52,7 +52,8 @@ const [performConnect, loading] = useLoading(async function (
   config: Robot.BluetoothConnectionConfig
 ) {
   try {
-    await connect(config);
+    const device = requestDevice();
+    await connect(device, config);
     session.robot = config;
     emit('connect', config);
   } catch (error) {

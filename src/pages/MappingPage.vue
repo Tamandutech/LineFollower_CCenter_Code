@@ -379,6 +379,7 @@ const [_protectedSendMappingWithRetry] = useRetry(
   {
     maxRetries: 3,
     delay: 1000,
+    exponentialBackoff: true,
   }
 );
 const [sendMapping, sendingMapping] = useLoading(

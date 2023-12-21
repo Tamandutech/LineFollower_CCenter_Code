@@ -12,6 +12,11 @@ export type RetryOptions = {
    */
   delay?: number;
 
+  /**
+   * Aplicar o algoritmo de [backoff exponencial](https://en.wikipedia.org/wiki/Exponential_backoff)
+   * no atraso entre as tentativas
+   */
+  exponentialBackoff?: boolean;
 };
 
 export type UseRetryReturn<This, Args extends unknown[], Return> = readonly [
@@ -43,30 +48,33 @@ export const useRetry = <This, Args extends unknown[], Return>(
    * Função com retry automático
    */
   const autoRetriedRoutine = async function (
-      this: This,
-      ...args: Args
-    ): Promise<Return> {
+    this: This,
+    ...args: Args
+  ): Promise<Return> {
     let tries = unref(options.maxRetries);
-      while (true) {
-        tries -= 1;
-        try {
-          const result = await routine.call(this, ...args);
-          return Promise.resolve(result);
-        } catch (error) {
-          if (
-            tries == 0 ||
-            !retryFor.some((errorType) => error instanceof errorType)
-          ) {
-            throw error;
-          }
+    let currentDelay = unref(retryDelay);
+    while (true) {
+      tries -= 1;
+      try {
+        const result = await routine.call(this, ...args);
+        return Promise.resolve(result);
+      } catch (error) {
+        if (
+          tries == 0 ||
+          !retryFor.some((errorType) => error instanceof errorType)
+        ) {
+          throw error;
+        }
 
-          if (retryDelay.value > 0) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, retryDelay.value)
-            );
-          }
+        if (currentDelay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, currentDelay));
+        }
+
+        if (options.exponentialBackoff) {
+          currentDelay *= 2;
         }
       }
+    }
   };
 
   return [autoRetriedRoutine, retryDelay] as const;

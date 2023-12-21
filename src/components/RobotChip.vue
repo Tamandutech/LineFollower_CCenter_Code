@@ -125,13 +125,13 @@
             </q-item-section>
             <q-item-section>Desconectar</q-item-section>
           </q-item>
-          <q-item clickable :disable="loading !== null" @click="pause">
+          <q-item clickable :disable="isCommandRunning" @click="notifiedPause">
             <q-item-section avatar>
               <q-avatar :icon="mdiCloseCircleOutline"></q-avatar>
             </q-item-section>
             <q-item-section>Parar</q-item-section>
           </q-item>
-          <q-item clickable :disable="loading !== null" @click="resume">
+          <q-item clickable :disable="isCommandRunning" @click="notifiedResume">
             <q-item-section avatar>
               <q-avatar :icon="mdiArrowTopRightThinCircleOutline"></q-avatar>
             </q-item-section>
@@ -159,12 +159,13 @@ import {
   mdiCloseCircleOutline,
   mdiArrowTopRightThinCircleOutline,
 } from '@quasar/extras/mdi-v6';
-import { onUnmounted, ref, watchEffect } from 'vue';
+import { computed, onUnmounted, ref, watchEffect } from 'vue';
 import { useTimeoutPoll, useCycleList } from '@vueuse/core';
 import { useArrayMap } from '@vueuse/shared';
 import useFirebase from 'src/services/firebase';
 import { useCompetitions } from 'src/composables/competitions';
 import { useRobotSystem } from 'src/composables/system';
+import { useLoading } from 'src/composables/loading';
 
 const ONE_MINUTE_IN_MILLISECONDS = 60000;
 
@@ -263,5 +264,12 @@ onUnmounted(() => {
   pauseLowBatteryWarning();
 });
 
-const { resume, pause, loading } = useRobotSystem(ble, 'UART_TX', 'UART_RX');
+const { resume: _resume, pause: _pause } = useRobotSystem(
+  ble,
+  'UART_TX',
+  'UART_RX'
+);
+const [notifiedPause, isPausing] = useLoading(_pause);
+const [notifiedResume, isResuming] = useLoading(_resume);
+const isCommandRunning = computed(() => isPausing.value || isResuming.value);
 </script>

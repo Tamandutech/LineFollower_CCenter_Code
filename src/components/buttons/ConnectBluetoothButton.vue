@@ -52,7 +52,7 @@ const [performConnect, loading] = useLoading(async function (
   config: Robot.BluetoothConnectionConfig
 ) {
   try {
-    const device = requestDevice();
+    const device = await requestDevice();
     await connect(device, config);
     session.robot = config;
     emit('connect', config);

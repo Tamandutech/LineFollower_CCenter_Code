@@ -220,13 +220,21 @@ export const useRobotMapping = (
       fromRam ? 'map_getRuntime' : 'map_get'
     );
 
-    mappingRecords.value =
-      rawMapping === ''
-        ? []
-        : rawMapping
-            .slice(0, -1) // Ignora '\n' no final
-            .split('\n')
-            .map(deserializeRecord);
+    try {
+      mappingRecords.value =
+        rawMapping === ''
+          ? []
+          : rawMapping
+              .slice(0, -1) // Ignora '\n' no final
+              .split('\n')
+              .map(deserializeRecord);
+    } catch {
+      throw new RuntimeError({
+        message: 'Ocorreu um erro durante a leitura do mapeamento.',
+        action:
+          'Verifique se há problemas na leitura de mapeamento da memória flash do robô.',
+      });
+    }
   }
 
   return {

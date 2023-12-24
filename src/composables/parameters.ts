@@ -128,7 +128,7 @@ export const useRobotParameters = (
     parameterName: string,
     value: Robot.ParameterValue
   ) {
-    if (dataClasses.value.get(className).get(parameterName) === value) return;
+    if (dataClasses.value.get(className)?.get(parameterName) === value) return;
 
     const status = await ble.request<string>(
       txCharacteristicId,
@@ -147,30 +147,26 @@ export const useRobotParameters = (
   async function installParameters(
     dataClassesToInstall: Robot.Parameters
   ): Promise<void> {
-    let status: string;
     for (const [className, parameters] of dataClassesToInstall.entries()) {
       for (const [parameterName, value] of parameters.entries()) {
-        if (dataClasses.value.get(className).get(parameterName) === value) {
-          continue;
-        }
-
-        status = await ble.request<string>(
-          txCharacteristicId,
-          rxCharacteristicId,
-          `param_set ${className}.${parameterName} ${valueToString(value)}`
-        );
-        if (status !== 'OK') {
-          throw new RuntimeError({
-            message: 'Ocorreu um erro durante a atualização dos parâmetros.',
-            action:
-              'A escrita dos parâmetros não foi completa. Recarregue os parâmetros na dashboard para checar os valores atuais.',
-          });
+        try {
+          await setParameter(className, parameterName, value);
+        } catch (error) {
+          if (error instanceof RuntimeError) {
+            throw new RuntimeError({
+              message: 'Ocorreu um erro durante a atualização dos parâmetros.',
+              action:
+                'A escrita dos parâmetros não foi completa. Recarregue os parâmetros na dashboard para checar os valores atuais.',
+            });
+          } else {
+            throw error;
+          }
         }
 
         /**
          * Dar um tempo para o robô concluir o processamento do último comando
          */
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 

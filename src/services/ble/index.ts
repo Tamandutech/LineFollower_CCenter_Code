@@ -53,7 +53,6 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
 
       this._emitter.emit('connect');
     } catch (error) {
-      console.error(error);
       if (error instanceof Error) {
         return Promise.reject(new ConnectionError({ cause: error }));
       }
@@ -194,12 +193,12 @@ export const plugin = {
       connected: connected,
       connecting: connecting,
       requestDevice: async () => {
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: 'TT_' }],
-          });
-          if (!device) {
-            throw new DeviceNotFoundError();
-          }
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: 'TT_' }],
+        });
+        if (!device) {
+          throw new DeviceNotFoundError();
+        }
         return device;
       },
       connect: async (

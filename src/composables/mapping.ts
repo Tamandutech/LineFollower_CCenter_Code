@@ -18,12 +18,12 @@ export const useRobotMapping = (
 
   function deserializeRecord(record: string): Robot.MappingRecord {
     return record.match(
-      /(?<id>\d+)\,(?<time>\d+)\,(?<encMedia>\d+)\,(?<encLeft>\d+)\,(?<encRight>\d+)\,(?<status>\d+)\,(?<trackStatus>\d+)\,(?<offset>\d+)/
+      /(?<id>\d+)\,(?<time>\d+)\,(?<encMedia>\d+)\,(?<trackStatus>\d+)\,(?<offset>\d+)/
     ).groups as unknown as Robot.MappingRecord;
   }
 
   function serializeRecord(record: Robot.MappingRecord): string {
-    return `${record.id},${record.time},${record.encMedia},${record.encLeft},${record.encRight},${record.status},${record.trackStatus},${record.offset}`;
+    return `${record.id},${record.time},${record.encMedia},${record.trackStatus},${record.offset}`;
   }
 
   async function clearRecords(inRam: boolean): Promise<void> {
@@ -77,20 +77,14 @@ export const useRobotMapping = (
 
   function addRecord(
     time: Robot.MappingRecord['time'],
-    status: Robot.MappingRecord['status'],
     encMedia: Robot.MappingRecord['encMedia'],
-    encLeft: Robot.MappingRecord['encLeft'],
-    encRight: Robot.MappingRecord['encRight'],
     trackStatus: Robot.MappingRecord['trackStatus'],
     offset: Robot.MappingRecord['offset'],
     id?: Robot.MappingRecord['id']
   ) {
     mappingRecords.value.push({
       id: id || mappingRecords.value.length,
-      status,
-      encLeft,
       encMedia,
-      encRight,
       trackStatus,
       offset,
       time,

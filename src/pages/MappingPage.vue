@@ -42,28 +42,7 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="EncRight" :props="props">
-            {{ props.row.encRight }}
-            <q-popup-edit
-              v-model="props.row.encRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
-          <q-td key="EncLeft" :props="props">
-            {{ props.row.encLeft }}
-            <q-popup-edit
-              v-model="props.row.encLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
+
           <q-td key="Offset" :props="props">
             {{ props.row.offset }}
             <q-popup-edit
@@ -75,26 +54,22 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="Status" :props="props">
-            {{ props.row.status }}
-            <q-popup-edit
-              v-model="props.row.status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
+
           <q-td key="TrackStatus" :props="props">
-            {{ props.row.trackStatus }}
+            {{ sectionOftheTrackToText(props.row.trackStatus) }}
             <q-popup-edit
               v-model="props.row.trackStatus"
               title="Atualizar o Trackstatus"
               buttons
               v-slot="scope"
             >
-              <q-input type="number" v-model="scope.value" dense autofocus />
+              <q-select
+                filled
+                v-model="scope.value"
+                :options="trackStatusOptions"
+                emit-value
+                map-options
+              />
             </q-popup-edit>
           </q-td>
         </q-tr>
@@ -163,20 +138,19 @@
         collection="mappings"
         title="Mapeamentos"
         :data="mappingRecords"
-        @install-request="
-        (version: Robot.ProfileVersion<Robot.Mapping>) =>
-          performAction(
-            withSuccessFeedback(
-              sendMapping,
-              {summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.'}
-            ),
-            [version.data],
-            {
-              title: 'Instalar Versão',
-              question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
-            }
-          )
-      "
+        @install-request="(version: Robot.ProfileVersion<Robot.Mapping>) =>
+        performAction(
+          withSuccessFeedback(
+            sendMapping,
+            { summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.' }
+          ),
+          [version.data],
+          {
+            title: 'Instalar Versão',
+            question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
+          }
+        )
+        "
         installable
         v-model="showVersionsDialog"
         v-slot="{ version }"
@@ -269,28 +243,7 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="EncRight" :props="props">
-            {{ props.row.encRight }}
-            <q-popup-edit
-              v-model="props.row.encRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
-          <q-td key="EncLeft" :props="props">
-            {{ props.row.encLeft }}
-            <q-popup-edit
-              v-model="props.row.encLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
+
           <q-td key="Offset" :props="props">
             {{ props.row.offset }}
             <q-popup-edit
@@ -302,26 +255,21 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="Status" :props="props">
-            {{ props.row.status }}
-            <q-popup-edit
-              v-model="props.row.status"
-              title="Atualizar o status"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
           <q-td key="TrackStatus" :props="props">
-            {{ props.row.trackStatus }}
+            {{ sectionOftheTrackToText(props.row.trackStatus) }}
             <q-popup-edit
               v-model="props.row.trackStatus"
               title="Atualizar o Trackstatus"
               buttons
               v-slot="scope"
             >
-              <q-input type="number" v-model="scope.value" dense autofocus />
+              <q-select
+                filled
+                v-model="scope.value"
+                :options="trackStatusOptions"
+                emit-value
+                map-options
+              />
             </q-popup-edit>
           </q-td>
         </q-tr>
@@ -352,6 +300,7 @@ import {
 import { ref, computed, watchEffect } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { mdiSourceBranch } from '@quasar/extras/mdi-v6';
+import { trackStatusOptions } from 'src/utils/trackStatusOptions';
 
 const { ble } = useBluetooth();
 const {
@@ -397,10 +346,7 @@ function addMappingRecord() {
   const record = newRecord.value[0];
   return addRecord(
     record.time,
-    record.status,
     record.encMedia,
-    record.encLeft,
-    record.encRight,
     record.trackStatus,
     record.offset
   );
@@ -424,10 +370,7 @@ const columns = [
     sortable: true,
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
-  { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
-  { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 const newColumns = [
@@ -438,10 +381,7 @@ const newColumns = [
     field: 'EncMedia',
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
-  { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
-  { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 const newRecord = ref<Robot.MappingRecord[]>([
@@ -449,11 +389,15 @@ const newRecord = ref<Robot.MappingRecord[]>([
     id: 1,
     encMedia: 100,
     time: 45,
-    encRight: 566,
-    encLeft: 123,
-    status: 0,
     offset: 5,
     trackStatus: 2,
   },
 ]);
+
+const sectionOftheTrackToText = (trackStatus: number) => {
+  const option = trackStatusOptions.find(
+    (option) => option.value == trackStatus
+  );
+  return option ? option.label : 'Desconhecido';
+};
 </script>

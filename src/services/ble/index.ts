@@ -10,7 +10,7 @@ import { EventEmitter } from './events';
 import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
 
-export { BleError } from './errors';
+export * from './errors';
 
 export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();

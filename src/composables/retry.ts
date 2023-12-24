@@ -53,17 +53,19 @@ export const useRetry = <This, Args extends unknown[], Return>(
   ): Promise<Return> {
     let tries = unref(options.maxRetries);
     let currentDelay = unref(retryDelay);
+    let error: unknown = null;
     while (true) {
       tries -= 1;
       try {
         const result = await routine.call(this, ...args);
         return Promise.resolve(result);
-      } catch (error) {
+      } catch (e) {
+        error = e;
         if (
           tries == 0 ||
-          !retryFor.some((errorType) => error instanceof errorType)
+          !retryFor.some((errorType) => e instanceof errorType)
         ) {
-          throw error;
+          break;
         }
 
         if (currentDelay > 0) {
@@ -74,6 +76,9 @@ export const useRetry = <This, Args extends unknown[], Return>(
           currentDelay *= 2;
         }
       }
+    }
+    if (error) {
+      throw error;
     }
   };
 

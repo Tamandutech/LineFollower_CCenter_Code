@@ -38,5 +38,10 @@ declare namespace Bluetooth {
     ): Promise<T>;
     removeTxObserver: typeof removeTxObserver;
     connected: boolean;
+    connect: (
+      device: BluetoothDevice,
+      config: Robot.BluetoothConnectionConfig
+    ) => Promise<void>;
+    disconnect: () => void;
   }
 }

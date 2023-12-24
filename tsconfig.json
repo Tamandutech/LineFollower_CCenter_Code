@@ -19,5 +19,13 @@
     "forceConsistentCasingInFileNames": true,
     "lib": ["es6", "dom"]
   },
-  "include": ["src/**/*.ts", "src/types/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": [
+    "src/**/*.ts",
+    "src/types/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "tests/**/*.ts",
+    "tests/**/*.d.ts",
+    "tests/**/*.tsx"
+  ]
 }

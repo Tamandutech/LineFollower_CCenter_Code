@@ -79,10 +79,9 @@ export const useRobotParameters = (
     ) {
       if (dataClasses.value.get(className).get(parameterName) === value) return;
       // Corrige problema com parâmetros negativos
-      let valueStr ='';
+      let valueStr = '';
       valueStr = value.toString();
-      if(value < 0)
-      {
+      if (value < 0) {
         valueStr = '!' + valueStr;
       }
 
@@ -114,10 +113,9 @@ export const useRobotParameters = (
               continue;
             }
             // Corrige problema com parâmetros negativos
-            let valueStr ='';
+            let valueStr = '';
             valueStr = value.toString();
-            if(value < 0)
-            {
+            if (value < 0) {
               valueStr = '!' + valueStr;
             }
             status = await ble.request<string>(

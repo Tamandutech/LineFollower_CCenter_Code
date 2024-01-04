@@ -56,13 +56,10 @@ describe('useRobotMapping', () => {
   describe('addRecord', () => {
     it('should add a record to the mappingRecords', () => {
       const recordDto: NewRecordDto = {
-        encMedia: 0,
-        time: 0,
-        encLeft: 0,
-        encRight: 0,
-        offset: 0,
-        status: 0,
-        trackStatus: 0,
+        encMedia: '0',
+        time: '0',
+        offset: '0',
+        trackStatus: '0',
       };
       const { addRecord, mappingRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
@@ -72,7 +69,7 @@ describe('useRobotMapping', () => {
       addRecord(recordDto);
       expect(mappingRecords.value).toEqual([
         {
-          id: 0,
+          id: '0',
           ...recordDto,
         },
       ]);
@@ -82,13 +79,10 @@ describe('useRobotMapping', () => {
   describe('removeRecord', () => {
     it('should remove a record from the mapping records if it exists', () => {
       const recordDto: NewRecordDto = {
-        encMedia: 0,
-        time: 0,
-        encLeft: 0,
-        encRight: 0,
-        offset: 0,
-        status: 0,
-        trackStatus: 0,
+        encMedia: '0',
+        time: '0',
+        offset: '0',
+        trackStatus: '0',
       };
       const { addRecord, removeRecord, mappingRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
@@ -98,9 +92,9 @@ describe('useRobotMapping', () => {
 
       addRecord(recordDto);
 
-      const removed = removeRecord(0);
+      const removed = removeRecord('0');
       expect(mappingRecords.value).toEqual([]);
-      expect(removed).toEqual({ id: 0, ...recordDto });
+      expect(removed).toEqual({ id: '0', ...recordDto });
     });
 
     it('should return null if the record does not exist', () => {
@@ -109,7 +103,7 @@ describe('useRobotMapping', () => {
         'test',
         'test'
       );
-      const removed = removeRecord(1);
+      const removed = removeRecord('1');
       expect(removed).toEqual(null);
     });
   });
@@ -139,30 +133,24 @@ describe('useRobotMapping', () => {
 
       await sendMapping([
         {
-          id: 0,
-          encMedia: 0,
-          time: 0,
-          encLeft: 0,
-          encRight: 0,
-          offset: 0,
-          status: 0,
-          trackStatus: 0,
+          id: '0',
+          encMedia: '0',
+          time: '0',
+          offset: '0',
+          trackStatus: '0',
         },
         {
-          id: 1,
-          encMedia: 1,
-          time: 1,
-          encLeft: 1,
-          encRight: 1,
-          offset: 1,
-          status: 1,
-          trackStatus: 1,
+          id: '1',
+          encMedia: '1',
+          time: '1',
+          offset: '1',
+          trackStatus: '1',
         },
       ]);
       expect(requestMock).toHaveBeenCalledWith(
         'test',
         'test',
-        'map_add 0,0,0,0,0,0,0,0;1,1,1,1,1,1,1,1;'
+        'map_add 0,0,0,0,0;1,1,1,1,1;'
       );
     });
   });
@@ -196,7 +184,7 @@ describe('useRobotMapping', () => {
 
   describe('fetchMapping', () => {
     beforeEach(() => {
-      bleMock.request.mockResolvedValue('0,0,0,0,0,0,0,0\n1,1,1,1,1,1,1,1\n');
+      bleMock.request.mockResolvedValue('0,0,0,0,0\n1,1,1,1,1\n2,-2,-2,-2,-2\n');
     });
 
     it('should fetch the mapping records from RAM', async () => {
@@ -230,27 +218,28 @@ describe('useRobotMapping', () => {
         'test'
       );
       await fetchMapping(false);
-      expect(mappingRecords.value).toEqual([
+      expect(mappingRecords.value).toEqual<Robot.MappingRecord[]>([
         {
           id: '0',
           encMedia: '0',
           time: '0',
-          encLeft: '0',
-          encRight: '0',
           offset: '0',
-          status: '0',
           trackStatus: '0',
         },
         {
           id: '1',
           encMedia: '1',
           time: '1',
-          encLeft: '1',
-          encRight: '1',
           offset: '1',
-          status: '1',
           trackStatus: '1',
         },
+        {
+          id: '2',
+          encMedia: '-2',
+          time: '-2',
+          offset: '-2',
+          trackStatus: '-2',
+        }
       ]);
     });
 

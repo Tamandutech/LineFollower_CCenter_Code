@@ -42,44 +42,11 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="EncRight" :props="props">
-            {{ props.row.encRight }}
-            <q-popup-edit
-              v-model="props.row.encRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
-          <q-td key="EncLeft" :props="props">
-            {{ props.row.encLeft }}
-            <q-popup-edit
-              v-model="props.row.encLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
           <q-td key="Offset" :props="props">
             {{ props.row.offset }}
             <q-popup-edit
               v-model="props.row.offset"
               title="Atualizar Offset"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
-          <q-td key="Status" :props="props">
-            {{ props.row.status }}
-            <q-popup-edit
-              v-model="props.row.status"
-              title="Atualizar o status"
               buttons
               v-slot="scope"
             >
@@ -269,44 +236,11 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-          <q-td key="EncRight" :props="props">
-            {{ props.row.encRight }}
-            <q-popup-edit
-              v-model="props.row.encRight"
-              title="Atualizar Encoder direito"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
-          <q-td key="EncLeft" :props="props">
-            {{ props.row.encLeft }}
-            <q-popup-edit
-              v-model="props.row.encLeft"
-              title="Atualizar Encoder esquerdo"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
           <q-td key="Offset" :props="props">
             {{ props.row.offset }}
             <q-popup-edit
               v-model="props.row.offset"
               title="Atualizar Offset"
-              buttons
-              v-slot="scope"
-            >
-              <q-input type="number" v-model="scope.value" dense autofocus />
-            </q-popup-edit>
-          </q-td>
-          <q-td key="Status" :props="props">
-            {{ props.row.status }}
-            <q-popup-edit
-              v-model="props.row.status"
-              title="Atualizar o status"
               buttons
               v-slot="scope"
             >
@@ -465,10 +399,7 @@ const columns = [
     sortable: true,
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
-  { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
-  { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 const newColumns: QTableColumn[] = [
@@ -479,10 +410,7 @@ const newColumns: QTableColumn[] = [
     field: 'EncMedia',
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
-  { name: 'EncRight', label: 'Encoder direito (pulsos)', field: 'EncRight' },
-  { name: 'EncLeft', label: 'Encoder esquerdo (pulsos)', field: 'EncLeft' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'Status', label: 'Status', field: 'Status' },
   { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
 ];
 const newRecord = ref<Omit<Robot.MappingRecord, 'id'>[]>([

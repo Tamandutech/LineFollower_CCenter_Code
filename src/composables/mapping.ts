@@ -17,8 +17,7 @@ export const useRobotMapping = (
   const { undo, redo } = useRefHistory(mappingRecords, { deep: true });
 
   function deserializeRecord(record: string): Robot.MappingRecord {
-    return record.match(
-      /(?<id>\d+)\,(?<time>\d+)\,(?<encMedia>\d+)\,(?<trackStatus>\d+)\,(?<offset>\d+)/
+    return record.match(/(?<id>-?\d+(\.\d+)?),(?<time>-?\d+(\.\d+)?),(?<encMedia>-?\d+(\.\d+)?),(?<trackStatus>-?\d+(\.\d+)?),(?<offset>-?\d+(\.\d+)?)/
     ).groups as unknown as Robot.MappingRecord;
   }
 

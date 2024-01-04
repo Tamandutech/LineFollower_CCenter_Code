@@ -203,7 +203,7 @@
       <q-btn
         @click="
           performAction(
-            async (id: number) => removeRecord(id),
+            async (id: string) => removeRecord(id),
             [deleteRecordId],
             {
               title: 'Deletar Registro',
@@ -430,7 +430,7 @@ const showSuccessDialog = useIsTruthy(successDialogState);
 
 const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
 
-const deleteRecordId = ref(0);
+const deleteRecordId = ref('0');
 const recordDeleteOptions = computed(() =>
   mappingRecords.value.map((record) => record.id)
 );
@@ -487,13 +487,10 @@ const newColumns: QTableColumn[] = [
 ];
 const newRecord = ref<Omit<Robot.MappingRecord, 'id'>[]>([
   {
-    encMedia: 100,
-    time: 45,
-    encRight: 566,
-    encLeft: 123,
-    status: 0,
-    offset: 5,
-    trackStatus: 2,
+    encMedia: '100',
+    time: '45',
+    offset: '5',
+    trackStatus: '2',
   },
 ]);
 </script>

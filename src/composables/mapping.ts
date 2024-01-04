@@ -155,7 +155,7 @@ export const useRobotMapping = (
   ) {
     mappingRecords.value.push({
       ...record,
-      id: record.id || mappingRecords.value.length,
+      id: (record.id || Number(mappingRecords.value.length)).toString(),
     });
   }
 
@@ -164,7 +164,7 @@ export const useRobotMapping = (
 
     records = [
       ...(records || mappingRecords.value).sort(
-        (r1, r2) => r1.encMedia - r2.encMedia
+        (r1, r2) => Number(r1.encMedia) - Number(r2.encMedia)
       ),
     ];
 

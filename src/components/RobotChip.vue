@@ -244,7 +244,7 @@ watchEffect(() => {
 });
 
 /**
- * TODO: utilizar filtro de ano e tratar erros durante a leitura dos dados do Firestore
+ * TODO: tratar erros durante a leitura dos dados do Firestore
  */
 const { competitions } = useCompetitions(useFirebase().db);
 const competitionsOptions = useArrayMap(

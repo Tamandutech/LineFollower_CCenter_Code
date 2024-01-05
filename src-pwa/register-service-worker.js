@@ -1,5 +1,5 @@
-import { Notify } from 'quasar'
-import { register } from 'register-service-worker'
+import { Notify } from 'quasar';
+import { register } from 'register-service-worker';
 import { mdiCloudDownload } from '@quasar/extras/mdi-v6';
 
 // The ready(), registered(), cached(), updatefound() and updated()
@@ -32,8 +32,8 @@ register(process.env.SERVICE_WORKER_FILE, {
       color: 'info',
       icon: mdiCloudDownload,
       timeout: 5,
-      spinner: true
-    })
+      spinner: true,
+    });
   },
 
   updated(/* registration */) {
@@ -43,21 +43,27 @@ register(process.env.SERVICE_WORKER_FILE, {
       color: 'info',
       icon: mdiCloudDownload,
       actions: [
-        { label: 'Atualizar', color: 'white', handler: () => { location.reload(true) } }
+        {
+          label: 'Atualizar',
+          color: 'white',
+          handler: () => {
+            location.reload(true);
+          },
+        },
       ],
-      timeout: 0
-    })
+      timeout: 0,
+    });
   },
 
   offline() {
     // console.log('No internet connection found. App is running in offline mode.')
     Notify.create({
       type: 'warning',
-      message: 'Sem conexão com a internet. Dash em modo offline.'
-    })
+      message: 'Sem conexão com a internet. Dash em modo offline.',
+    });
   },
 
   error(/* err */) {
     // console.error('Error during service worker registration:', err)
-  }
-})
+  },
+});

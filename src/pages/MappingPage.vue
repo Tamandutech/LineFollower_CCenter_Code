@@ -54,14 +54,20 @@
             </q-popup-edit>
           </q-td>
           <q-td key="TrackStatus" :props="props">
-            {{ props.row.trackStatus }}
+            {{ sectionOftheTrackToText(props.row.trackStatus) }}
             <q-popup-edit
               v-model="props.row.trackStatus"
               title="Atualizar o Trackstatus"
               buttons
               v-slot="scope"
             >
-              <q-input type="number" v-model="scope.value" dense autofocus />
+              <q-select
+                filled
+                v-model="scope.value"
+                :options="trackStatusOptions"
+                emit-value
+                map-options
+              />
             </q-popup-edit>
           </q-td>
         </q-tr>
@@ -248,14 +254,20 @@
             </q-popup-edit>
           </q-td>
           <q-td key="TrackStatus" :props="props">
-            {{ props.row.trackStatus }}
+            {{ sectionOftheTrackToText(props.row.trackStatus) }}
             <q-popup-edit
               v-model="props.row.trackStatus"
               title="Atualizar o Trackstatus"
               buttons
               v-slot="scope"
             >
-              <q-input type="number" v-model="scope.value" dense autofocus />
+              <q-select
+                filled
+                v-model="scope.value"
+                :options="trackStatusOptions"
+                emit-value
+                map-options
+              />
             </q-popup-edit>
           </q-td>
         </q-tr>
@@ -421,4 +433,11 @@ const newRecord = ref<Omit<Robot.MappingRecord, 'id'>[]>([
     trackStatus: '2',
   },
 ]);
+
+const sectionOftheTrackToText = (trackStatus: number) => {
+  const option = trackStatusOptions.find(
+    (option) => option.value == trackStatus
+  );
+  return option ? option.label : 'Desconhecido';
+};
 </script>

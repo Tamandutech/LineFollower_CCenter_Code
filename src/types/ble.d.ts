@@ -15,7 +15,7 @@ declare namespace Bluetooth {
       device: BluetoothDevice,
       config: Robot.BluetoothConnectionConfig
     ) => Promise<void>;
-    requestDevice: () => Promise<BluetoothDevice>;
+    requestDevice: (optionalServices?: string[]) => Promise<BluetoothDevice>;
     disconnect: () => void;
   };
 

@@ -192,9 +192,10 @@ export const plugin = {
       ble,
       connected: connected,
       connecting: connecting,
-      requestDevice: async () => {
+      requestDevice: async (optionalServices: string[]) => {
         const device = await navigator.bluetooth.requestDevice({
           filters: [{ namePrefix: 'TT_' }],
+          optionalServices,
         });
         if (!device) {
           throw new DeviceNotFoundError();

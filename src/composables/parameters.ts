@@ -81,7 +81,7 @@ export const useRobotParameters = (
   function valueToString(value: Robot.ParameterValue): string {
     let valueStr = '';
     valueStr = value.toString();
-    if (typeof value === 'number' && value < 0) {
+    if (Number(value) < 0) {
       valueStr = '!' + valueStr;
     }
     return valueStr;

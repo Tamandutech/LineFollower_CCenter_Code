@@ -166,7 +166,7 @@ export const useRobotParameters = (
         /**
          * Dar um tempo para o robô concluir o processamento do último comando
          */
-        // await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 

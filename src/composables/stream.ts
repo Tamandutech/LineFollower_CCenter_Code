@@ -75,7 +75,7 @@ export const useRobotDataStream = (
       if (status === 'OK') {
         parametersInStream.value.delete(parameter);
         if (parametersInStream.value.size === 0) {
-          ble.removeTxObserver(streamObserverUuid, streamCharacteristicId);
+          ble.removeTxObserver(streamCharacteristicId, streamObserverUuid);
         }
 
         return;

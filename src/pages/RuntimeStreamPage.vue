@@ -307,15 +307,16 @@ const updateRuntimeParameters = async function () {
 const submitConfigForm = () => {
   if ([...parametersToStream.values()].some(({ interval }) => interval > 0)) {
     configForm.value.submit(new Event('submit'));
-    showConfigDialog.value = false;
   } else {
     showInvalidConfigMessage.value = true;
   }
 };
 
 const loadStreamsPanel = () => {
-  setTimeout(() => (renderStreamsPanel.value = true), 10);
+  renderStreamsPanel.value = true;
+  showConfigDialog.value = false;
 };
+
 const closeStreamsPanel = () => {
   renderStreamsPanel.value = false;
   showControlsDialog.value = false;

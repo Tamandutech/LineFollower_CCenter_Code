@@ -291,6 +291,7 @@ import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
 import SuccessDialog from 'src/components/dialogs/SuccessDialog.vue';
 import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
+import { trackStatusOptions } from 'src/utils/trackStatusOptions';
 import {
   usePerformActionDialog,
   useSuccessFeedback,

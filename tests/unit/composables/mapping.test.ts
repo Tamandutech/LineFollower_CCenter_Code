@@ -184,7 +184,9 @@ describe('useRobotMapping', () => {
 
   describe('fetchMapping', () => {
     beforeEach(() => {
-      bleMock.request.mockResolvedValue('0,0,0,0,0\n1,1,1,1,1\n2,-2,-2,-2,-2\n');
+      bleMock.request.mockResolvedValue(
+        '0,0,0,0,0\n1,1,1,1,1\n2,-2,-2,-2,-2\n'
+      );
     });
 
     it('should fetch the mapping records from RAM', async () => {
@@ -239,7 +241,7 @@ describe('useRobotMapping', () => {
           time: '-2',
           offset: '-2',
           trackStatus: '-2',
-        }
+        },
       ]);
     });
 

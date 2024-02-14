@@ -10,7 +10,7 @@ import { EventEmitter } from './events';
 import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
 
-export { BleError } from './errors';
+export * from './errors';
 
 export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();
@@ -53,7 +53,6 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
 
       this._emitter.emit('connect');
     } catch (error) {
-      console.error(error);
       if (error instanceof Error) {
         return Promise.reject(new ConnectionError({ cause: error }));
       }
@@ -193,18 +192,22 @@ export const plugin = {
       ble,
       connected: connected,
       connecting: connecting,
-      connect: async (config: Robot.BluetoothConnectionConfig) => {
+      requestDevice: async (optionalServices: string[]) => {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: 'TT_' }],
+          optionalServices,
+        });
+        if (!device) {
+          throw new DeviceNotFoundError();
+        }
+        return device;
+      },
+      connect: async (
+        device: BluetoothDevice,
+        config: Robot.BluetoothConnectionConfig
+      ) => {
         connecting.value = true;
-
         try {
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: 'TT_' }],
-            optionalServices: [...Object.keys(config.services)],
-          });
-          if (!device) {
-            throw new DeviceNotFoundError();
-          }
-
           await ble.connect(device, config);
           connected.value = true;
         } catch (error) {

@@ -3,7 +3,7 @@
     <q-table
       title="Mapeamento"
       :rows="mappingRecords"
-      :columns="columns"
+      :columns="(columns as QTableProps['columns'])"
       row-key="id"
       binary-state-sort
     >
@@ -42,7 +42,6 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-
           <q-td key="Offset" :props="props">
             {{ props.row.offset }}
             <q-popup-edit
@@ -54,7 +53,6 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-
           <q-td key="TrackStatus" :props="props">
             {{ sectionOftheTrackToText(props.row.trackStatus) }}
             <q-popup-edit
@@ -85,7 +83,7 @@
         "
         color="primary"
         label="Enviar mapeamento"
-        :disable="loading !== null || mappingRecords.length === 0"
+        :disable="isCommandRunning || mappingRecords.length === 0"
       />
       <q-btn
         @click="fetchMapping(false)"
@@ -113,7 +111,7 @@
         "
         color="primary"
         label="Salvar mapeamento"
-        :disable="loading !== null"
+        :disable="isCommandRunning"
       />
       <q-dialog v-model="showErrorDialog">
         <CommandErrorCard :error="error" />
@@ -138,19 +136,20 @@
         collection="mappings"
         title="Mapeamentos"
         :data="mappingRecords"
-        @install-request="(version: Robot.ProfileVersion<Robot.Mapping>) =>
-        performAction(
-          withSuccessFeedback(
-            sendMapping,
-            { summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.' }
-          ),
-          [version.data],
-          {
-            title: 'Instalar Versão',
-            question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
-          }
-        )
-        "
+        @install-request="
+        (version: Robot.ProfileVersion<unknown>) =>
+          performAction(
+            withSuccessFeedback(
+              sendMapping,
+              {summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.'}
+            ),
+            [version.data as Robot.MappingRecord[]],
+            {
+              title: 'Instalar Versão',
+              question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
+            }
+          )
+      "
         installable
         v-model="showVersionsDialog"
         v-slot="{ version }"
@@ -161,7 +160,7 @@
             switch-toggle-side
             v-for="(record, index) of version.data"
             :key="index"
-            :caption="Number(index) || '0'"
+            :caption="(Number(index) || '0').toString()"
           >
             <q-list separator>
               <q-item v-for="(value, key) in record" :key="key">
@@ -177,7 +176,7 @@
       <q-btn
         @click="
           performAction(
-            async (id: number) => removeRecord(id),
+            async (id: string) => removeRecord(id),
             [deleteRecordId],
             {
               title: 'Deletar Registro',
@@ -215,7 +214,7 @@
     <q-table
       title="Adicionar Registro"
       :rows="newRecord"
-      :columns="newColumns"
+      :columns="(newColumns as QTableProps['columns'])"
       row-key="id"
       binary-state-sort
     >
@@ -243,7 +242,6 @@
               <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </q-td>
-
           <q-td key="Offset" :props="props">
             {{ props.row.offset }}
             <q-popup-edit
@@ -286,13 +284,14 @@
 </template>
 
 <script lang="ts" setup>
-import useBluetooth from 'src/services/ble';
+import useBluetooth, { BleError } from 'src/services/ble';
 import { useRobotMapping } from 'src/composables/mapping';
 import { useIsTruthy } from 'src/composables/boolean';
 import CommandErrorCard from 'components/cards/CommandErrorCard.vue';
 import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
 import SuccessDialog from 'src/components/dialogs/SuccessDialog.vue';
 import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
+import { trackStatusOptions } from 'src/utils/trackStatusOptions';
 import {
   usePerformActionDialog,
   useSuccessFeedback,
@@ -300,20 +299,68 @@ import {
 import { ref, computed, watchEffect } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { mdiSourceBranch } from '@quasar/extras/mdi-v6';
-import { trackStatusOptions } from 'src/utils/trackStatusOptions';
+import { useErrorCapturing } from 'src/composables/error';
+import { useLoading } from 'src/composables/loading';
+import { useRetry } from 'src/composables/retry';
+import type { QTableColumn, QTableProps } from 'quasar';
 
 const { ble } = useBluetooth();
+const error = ref<BleError | null>(null);
 const {
   mappingRecords,
-  loading,
-  error,
-  hardDeleteRecords,
+  hardDeleteRecords: _hardDeleteRecords,
   removeRecord,
   addRecord,
-  sendMapping,
-  saveMapping,
-  fetchMapping,
+  sendMapping: _sendMapping,
+  saveMapping: _saveMapping,
+  fetchMapping: _fetchMapping,
 } = useRobotMapping(ble, 'UART_TX', 'UART_RX');
+const [_protectedSendMapping] = useErrorCapturing(
+  _sendMapping,
+  [BleError],
+  error
+);
+const [_protectedSendMappingWithRetry] = useRetry(
+  _protectedSendMapping,
+  [BleError],
+  {
+    maxRetries: 3,
+    delay: 1000,
+    exponentialBackoff: true,
+  }
+);
+const [sendMapping, sendingMapping] = useLoading(
+  _protectedSendMappingWithRetry
+);
+const [_protectedHardDeleteRecords] = useErrorCapturing(
+  _hardDeleteRecords,
+  [BleError],
+  error
+);
+const [hardDeleteRecords, deletingRecords] = useLoading(
+  _protectedHardDeleteRecords
+);
+const [_protectedSaveMapping] = useErrorCapturing(
+  _saveMapping,
+  [BleError],
+  error
+);
+const [saveMapping, savingMapping] = useLoading(_protectedSaveMapping);
+const [_protectedFetchMapping] = useErrorCapturing(
+  _fetchMapping,
+  [BleError],
+  error
+);
+const [fetchMapping, fetchingMapping] = useLoading(_protectedFetchMapping);
+
+const isCommandRunning = computed(
+  () =>
+    sendingMapping.value ||
+    deletingRecords.value ||
+    savingMapping.value ||
+    fetchingMapping.value
+);
+
 const showErrorDialog = useIsTruthy(error);
 
 const {
@@ -330,7 +377,7 @@ const showSuccessDialog = useIsTruthy(successDialogState);
 
 const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
 
-const deleteRecordId = ref(0);
+const deleteRecordId = ref('0');
 const recordDeleteOptions = computed(() =>
   mappingRecords.value.map((record) => record.id)
 );
@@ -344,12 +391,7 @@ watchEffect(() => {
 
 function addMappingRecord() {
   const record = newRecord.value[0];
-  return addRecord(
-    record.time,
-    record.encMedia,
-    record.trackStatus,
-    record.offset
-  );
+  return addRecord(record);
 }
 
 const columns = [
@@ -371,9 +413,9 @@ const columns = [
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
+  { name: 'TrackStatus', label: 'Trecho anterior', field: 'TrackStatus' },
 ];
-const newColumns = [
+const newColumns: QTableColumn[] = [
   {
     name: 'EncMedia',
     align: 'center',
@@ -382,15 +424,14 @@ const newColumns = [
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
+  { name: 'TrackStatus', label: 'Trecho anterior', field: 'TrackStatus' },
 ];
-const newRecord = ref<Robot.MappingRecord[]>([
+const newRecord = ref<Omit<Robot.MappingRecord, 'id'>[]>([
   {
-    id: 1,
-    encMedia: 100,
-    time: 45,
-    offset: 5,
-    trackStatus: 2,
+    encMedia: '100',
+    time: '0',
+    offset: '0',
+    trackStatus: '2',
   },
 ]);
 

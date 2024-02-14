@@ -77,7 +77,7 @@ export class ConnectionError extends BleError {
   ) {
     super(
       {
-        message: message || 'Houve um erro durante a conexão com o robô',
+        message: message || 'Ocorreu um erro durante a conexão com o robô',
         action: action || 'Verifique a conexão com o robô.',
         cause,
       },
@@ -93,7 +93,7 @@ export class CharacteristicWriteError extends BleError {
   ) {
     super(
       {
-        message: message || 'Houve um erro durante o envio de dados ao robô',
+        message: message || 'Ocorreu um erro durante o envio de dados ao robô',
         action: action || 'Verifique a configuração da conexão com o robô.',
         cause,
       },

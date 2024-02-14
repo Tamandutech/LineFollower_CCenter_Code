@@ -22,14 +22,16 @@ import {
   triggerRef,
   computed,
   reactive,
+  ref,
 } from 'vue';
 import { useRobotDataStream } from 'src/composables/stream';
 import StreamChart from 'components/StreamChart.vue';
-import useBluetooth from 'src/services/ble';
+import useBluetooth, { RuntimeError } from 'src/services/ble';
 import { randomColorGenerator } from 'src/utils/colors';
 import { whenever } from '@vueuse/core';
 import type { ComputedRef } from 'vue';
 import type { ChartData } from 'chart.js';
+import { useErrorCapturing } from 'src/composables/error';
 
 const props = defineProps<{
   parameters: Map<string, { interval: number; range: number }>;
@@ -120,7 +122,7 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
 const stopStreamReading = async (parameter: string) => {
   streamsValues.delete(parameter);
   data.delete(parameter);
-  await stopStream(parameter);
+  await protectedStopStream(parameter);
 
   streamsLoaded.delete(parameter);
   if (streamsLoaded.size == 0) emit('all-stopped');
@@ -155,16 +157,33 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
 );
 
 const { ble, disconnect: disconnectBluetooth } = useBluetooth();
+const error = ref<unknown | null>(null);
 const {
   start: startStream,
   stopAll: stopAllStreams,
   stop: stopStream,
-  error,
 } = useRobotDataStream(ble, 'STREAM_TX', 'UART_TX', 'UART_RX', streamReader);
+const [protectedStartStream] = useErrorCapturing(
+  startStream,
+  [RuntimeError],
+  error,
+  true
+);
+const [protectedStopStream] = useErrorCapturing(
+  stopStream,
+  [RuntimeError],
+  error
+);
+const [protectedStopAllStreams] = useErrorCapturing(
+  stopAllStreams,
+  [RuntimeError],
+  error,
+  true
+);
 
 const gracefullyStopStreams = async () => {
   try {
-    await stopAllStreams();
+    await protectedStopAllStreams();
   } catch (error) {
     disconnectBluetooth();
   }
@@ -176,7 +195,7 @@ onBeforeMount(async () => {
   try {
     for (const [parameter, { interval }] of props.parameters.entries()) {
       if (interval > 0) {
-        await startStream(parameter, interval * 1000);
+        await protectedStartStream(parameter, interval * 1000);
       }
     }
   } catch (error) {

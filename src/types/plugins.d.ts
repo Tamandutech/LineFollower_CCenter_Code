@@ -8,6 +8,8 @@ declare module 'pinia' {
     firestore: import('firebase/firestore').Firestore;
     router: import('vue-router').Router;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   export interface DefineStoreOptionsBase<S, Store> {
     sync?: {
       collection: string;

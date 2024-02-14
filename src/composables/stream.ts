@@ -84,19 +84,19 @@ export const useRobotDataStream = (
       return;
     }
 
-    const status = await ble.request(
-      txCharacteristicId,
-      rxCharacteristicId,
-      `start_stream ${parameter} 0`
-    );
-    if (status === 'OK') {
-      parametersInStream.value.delete(parameter);
-      if (parametersInStream.value.size === 0) {
-        ble.removeTxObserver(streamObserverUuid, streamCharacteristicId);
-      }
+      const status = await ble.request(
+        txCharacteristicId,
+        rxCharacteristicId,
+        `start_stream ${parameter} 0`
+      );
+      if (status === 'OK') {
+        parametersInStream.value.delete(parameter);
+        if (parametersInStream.value.size === 0) {
+          ble.removeTxObserver(streamCharacteristicId, streamObserverUuid);
+        }
 
-      return;
-    }
+        return;
+      }
 
     throw new RuntimeError({
       message: 'Ocorreu um erro durante a finalização da transmissão.',

@@ -31,14 +31,11 @@ declare namespace Robot {
   }
 
   type MappingRecord = {
-    id: number;
-    encMedia: number;
-    time: number;
-    encRight: number;
-    encLeft: number;
-    offset: number;
-    status: Status;
-    trackStatus: number;
+    id: string;
+    encMedia: string;
+    time: string;
+    offset: string;
+    trackStatus: string;
   };
   type Mapping = MappingRecord[];
 

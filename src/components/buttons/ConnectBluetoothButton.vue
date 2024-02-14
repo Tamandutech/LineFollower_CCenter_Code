@@ -1,10 +1,5 @@
 <template>
-  <q-btn
-    color="secondary"
-    round
-    :icon="mdiBluetoothConnect"
-    :loading="loading === performConnect.name"
-  >
+  <q-btn color="secondary" round :icon="mdiBluetoothConnect" :loading="loading">
     <template v-slot:loading>
       <q-spinner-radio class="on-center" />
     </template>
@@ -38,34 +33,38 @@ import {
 } from '@quasar/extras/mdi-v6';
 import { useSessionStore } from 'src/stores/session';
 import useFirebase from 'src/services/firebase';
-import useBluetooth, { BleError } from 'src/services/ble';
+import useBluetooth, { BleError, ConnectionError } from 'src/services/ble';
 import { useLoading } from 'src/composables/loading';
+import { useRetry } from 'src/composables/retry';
 
 const emit = defineEmits<{
   (e: 'bluetooth-connection-error', message: string): void;
   (e: 'connect', robot: Robot.BluetoothConnectionConfig): void;
 }>();
 
+const { connect: _connect, requestDevice } = useBluetooth();
 const session = useSessionStore();
-const { connect } = useBluetooth();
-const { loading, notifyLoading } = useLoading();
-const performConnect = notifyLoading(async function (
+const [connect] = useRetry(_connect, [ConnectionError, BleError], {
+  maxRetries: 3,
+  delay: 1000,
+});
+const [performConnect, loading] = useLoading(async function (
   config: Robot.BluetoothConnectionConfig
 ) {
   try {
-    await connect(config);
+    const device = await requestDevice(Object.keys(config.services));
+    await connect(device, config);
     session.robot = config;
     emit('connect', config);
   } catch (error) {
     emit(
       'bluetooth-connection-error',
-      error instanceof BleError
+      error instanceof ConnectionError
         ? error.message
         : 'Ocorreu um erro durante a conexão com o robô. Tente novamente.'
     );
   }
-},
-'performConnect');
+});
 
 const robots = ref<Robot.BluetoothConnectionConfig[]>([]);
 onMounted(async () => {

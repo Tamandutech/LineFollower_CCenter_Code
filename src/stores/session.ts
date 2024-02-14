@@ -27,23 +27,18 @@ export const useSessionStore = defineStore('session', {
 
       const userDocRef = doc(this.firestore, 'users', this.userId);
       const userDocSnapshot = await getDoc(userDocRef);
-      const data = userDocSnapshot.data();
-      if (!userDocSnapshot.exists() || data.settings == undefined) {
-        await setDoc(userDocRef, {
-          userId: this.userId,
-          settings: defaultSettings,
-        });
-        return this.$patch({ settings: defaultSettings });
+      if (userDocSnapshot.exists()) {
+        const data = userDocSnapshot.data();
+        return this.$patch({ settings: data.settings, competitionId: data.competition?.id });
       }
 
-      /**
-       * TODO: fazer com que o plugin ignore esse patch (talvez adicionando um campo
-       * protegido no estado para monitorar mudanças que precisam ser sincronizadas)
-       */
-      return this.$patch({
-        settings: data.settings,
-        competitionId: data.competition.id,
-      });
+      const session: Omit<Dashboard.Session, 'robot'> = {
+        userId: this.userId,
+        settings: defaultSettings,
+        competitionId: null,
+      }
+      setDoc(userDocRef, session);
+      return this.$patch(session);
     },
     async handleAuthStateChange(user: User | null) {
       if (user) {
@@ -57,6 +52,7 @@ export const useSessionStore = defineStore('session', {
     collection: 'users',
     doc: 'userId',
     fields: new Map([
+      ['userId', { field: 'userId' }],
       ['settings', { field: 'settings' }],
       ['competitionId', { field: 'competition', ref: 'competitions' }],
     ]),

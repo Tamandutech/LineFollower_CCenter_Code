@@ -1,4 +1,3 @@
-import { useLoading } from './loading';
 import { v4 as uuidv4 } from 'uuid';
 import { computed } from 'vue';
 import {
@@ -23,12 +22,62 @@ import type { Ref } from 'vue';
 import { useFirestore } from '@vueuse/firebase';
 
 export type ProfileConverter<T> = {
+  /**
+   * Converte uma versão da configuração em um objeto a ser persistido no banco de dados.
+   *
+   * @param profile Versão da configuração a ser convertida
+   * @returns {DocumentData} Objeto a ser persistido no banco de dados
+   */
   to: (
     profile: WithFieldValue<T> | FieldValue | PartialWithFieldValue<T>
   ) => DocumentData;
+
+  /**
+   * Converte um objeto persistido no banco de dados em uma versão da configuração.
+   *
+   * @param data Objeto persistido no banco de dados
+   * @returns {T} Versão da configuração
+   */
   from: (data: DocumentData) => T;
 };
 
+export type UseProfileVersionsReturn<T> = {
+  /**
+   * Versões de alguma configuração do robô (como parâmetros ou mapeamento).
+   */
+  versions: ReturnType<typeof useFirestore>;
+
+  /**
+   * Persiste uma versão da configuração do robô.
+   *
+   * @param data Versão da configuração a ser persistida
+   * @param id Id da versão da configuração a ser persistida
+   * @param description Descrição da versão da configuração a ser persistida
+   * @returns {Promise<void>} `Promise` vazia que resolve quando a versão da configuração é persistida
+   */
+  persistVersion: (
+    data: WithFieldValue<T> | FieldValue,
+    id?: string,
+    description?: string
+  ) => Promise<void>;
+
+  /**
+   * Deleta uma versão da configuração do robô.
+   *
+   * @param id Id da versão da configuração a ser deletada
+   * @returns {Promise<void>} `Promise` vazia que resolve quando a versão da configuração é deletada
+   */
+  deleteVersion: (id: string) => Promise<void>;
+};
+
+/**
+ * Retorna o objeto que converte as versões da configuração para o formato esperado pelo banco de dados.
+ *
+ * @param {DocumentReference} robotDocRef Referência do documento com as informações do robô
+ * @param {DocumentReference} competitionDocRef Referência do documento com as informações da competição
+ * @param {ProfileConverter<T>} [profileConverter] Conversor para a versão da configuração
+ * @returns {FirestoreDataConverter<Robot.ProfileVersion<T>>}
+ */
 const getFirestoreConverter = <T>(
   robotDocRef: DocumentReference,
   competitionDocRef: DocumentReference,
@@ -60,6 +109,17 @@ const getFirestoreConverter = <T>(
   },
 });
 
+/**
+ * Hook para gerenciar as versões de alguma configuração do robô (como parâmetros ou mapeamento).
+ *
+ * @param {Firestore} firestore Instância do Firestore
+ * @param {string} collectionName Nome da coleção onde as versões da configuração serão persistidas
+ * @param {Ref<Robot.BluetoothConnectionConfig>} robotRef Referência para as informações do robô
+ * @param {Ref<Dashboard.Competition['id']>} competitionIdRef Referência para o Id da competição da sessão atual
+ * @param {ProfileConverter<T>} [profileConverter] Conversor para a versão da configuração
+ * @param {Function} [errorHandler] Função para tratar erros durante as operações no banco de dados
+ * @returns {UseProfileVersionsReturn<T>}
+ */
 export const useProfileVersions = <T>(
   firestore: Firestore,
   collectionName: string,
@@ -67,9 +127,7 @@ export const useProfileVersions = <T>(
   competitionIdRef: Ref<Dashboard.Competition['id']>,
   profileConverter?: ProfileConverter<T>,
   errorHandler?: (e: Error) => void
-) => {
-  const { loading, notifyLoading } = useLoading();
-
+): UseProfileVersionsReturn<T> => {
   const robotDocRef = computed(() =>
     doc(firestore, 'robots', robotRef.value.id)
   );
@@ -98,7 +156,7 @@ export const useProfileVersions = <T>(
     autoDispose: false,
   });
 
-  const persistVersion = notifyLoading(async function (
+  async function persistVersion(
     data: WithFieldValue<T> | FieldValue,
     id?: string,
     description?: string
@@ -120,13 +178,11 @@ export const useProfileVersions = <T>(
         updated: timestamp,
       })
     );
-  });
+  }
 
-  const deleteVersion = notifyLoading(async function (
-    id: string
-  ): Promise<void> {
+  async function deleteVersion(id: string): Promise<void> {
     await deleteDoc(doc(firestore, collectionName, id));
-  });
+  }
 
-  return { versions, loading, persistVersion, deleteVersion };
+  return { versions, persistVersion, deleteVersion };
 };

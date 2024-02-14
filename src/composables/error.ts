@@ -1,13 +1,22 @@
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
+export type UseErrorCapturingReturn<
+  This,
+  Args extends unknown[],
+  Return
+> = readonly [(this: This, ...args: Args) => Promise<Return>, Ref<unknown>];
+
 /**
+ * Retorna uma função que captura erros predefinidos durante a execução da função fornecida,
+ * e armazena o erro em uma variável de estado.
  *
  * @param routine Função de entrada
- * @param errorsToCatch Erros a serem capturados
- * @param errorRef variável de estado para se armazenar os erros ocorridos
- * @param mustReThrow Relançar os erros capturados (`false` por padrão)
- * @returns Objeto com a função modificada na propriedade com o nome da função de entrada caso ela possua um nome, ou na propriedade `routineWithErrorCapturing` caso contrário, e a variável de estado onde será armazenado o erro (será utilizado o parâmetro caso ele seja fornecido).
+ * @param {Function[]} errorsToCatch Erros a serem capturados. Deve ser uma lista de classes de erro.
+ * @param {Ref<unknown>} errorRef variável de estado para se armazenar os erros ocorridos
+ * @param {boolean} [mustReThrow=false] Relançar os erros capturados (`false` por padrão)
+ * @returns {UseErrorCapturingReturn<This, Args, Return>} A função de entrada com captura de erros
+ * e a variável de estado.
  */
 export const useErrorCapturing = <This, Args extends unknown[], Return>(
   routine: (this: This, ...args: Args) => Promise<Return>,
@@ -15,31 +24,31 @@ export const useErrorCapturing = <This, Args extends unknown[], Return>(
   errorsToCatch: Function[],
   errorRef?: Ref<unknown>,
   mustReThrow = false
-): {
-  [key: string]: (this: This, ...args: Args) => Promise<Return>;
-} & {
-  error: Ref<unknown>;
-} => {
+): UseErrorCapturingReturn<This, Args, Return> => {
+  /**
+   * Variável de estado para se armazenar os erros ocorridos
+   */
   const error = errorRef || ref(null);
 
-  return {
-    [routine.name || 'routineWithErrorCapturing']: async function (
-      this: This,
-      ...args: Args
-    ): Promise<Return> {
-      try {
-        const result = await routine.call(this, ...args);
-        error.value = null;
-        return Promise.resolve(result);
-      } catch (e) {
-        if (!errorsToCatch.some((errorType) => e instanceof errorType)) {
-          throw e;
-        }
-
-        error.value = e;
-        if (mustReThrow) throw e;
+  /**
+   * Função de entrada com captura de erros
+   */
+  async function routineWithErrorCapturing(
+    this: This,
+    ...args: Args
+  ): Promise<Return> {
+    try {
+      const result = await routine.call(this, ...args);
+      error.value = null;
+      return Promise.resolve(result);
+    } catch (e) {
+      if (!errorsToCatch.some((errorType) => e instanceof errorType)) {
+        throw e;
       }
-    },
-    error,
-  };
+      error.value = e;
+      if (mustReThrow) throw e;
+    }
+  }
+
+  return [routineWithErrorCapturing, error] as const;
 };

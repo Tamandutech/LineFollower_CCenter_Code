@@ -86,6 +86,7 @@
                       required
                       class="col"
                       hint="Identificador da versão"
+                      :loading="persisting"
                     >
                       <template v-slot:after>
                         <q-btn
@@ -146,7 +147,16 @@
                   round
                   flat
                   :icon="mdiDelete"
-                  @click="performAction(deleteVersion, [selectedVersion.id])"
+                  @click="
+                    performAction(deleteVersion, [selectedVersion.id], {
+                      title: 'Deletar Versão',
+                      question:
+                        'Tem certeza que deseja deletar a versão ' +
+                        selectedVersion.id +
+                        '?',
+                    })
+                  "
+                  :loading="deleting"
                 />
               </div>
             </div>
@@ -170,11 +180,9 @@
       v-model="isRevealed"
       v-if="isRevealed"
     >
-      <template #title> Deletar Versão </template>
+      <template #title>{{ actionDialogState.title }}</template>
       <template #question>
-        Tem certeza que deseja deletar a versão
-        <strong>{{ selectedVersion.id }}</strong
-        >?
+        {{ actionDialogState.question }}
       </template>
     </ConfirmActionDialog>
   </q-dialog>
@@ -200,11 +208,12 @@ import useFirebase from 'src/services/firebase';
 import type { ProfileConverter } from 'src/composables/profile-versions';
 import ConfirmActionDialog from './ConfirmActionDialog.vue';
 import { timeDistance } from 'src/utils/dates';
+import { useLoading } from 'src/composables/loading';
 
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
-    title: string;
+    title?: string;
     collection: string;
     data: unknown;
     installable: boolean;
@@ -231,7 +240,11 @@ const show = computed({
 
 const session = useSessionStore();
 const { robot, competitionId } = storeToRefs(session);
-const { versions, persistVersion, deleteVersion } = useProfileVersions(
+const {
+  versions,
+  persistVersion: _persistVersion,
+  deleteVersion: _deleteVersion,
+} = useProfileVersions(
   useFirebase().db,
   collection.value,
   robot,
@@ -239,6 +252,8 @@ const { versions, persistVersion, deleteVersion } = useProfileVersions(
   converter.value
   // TODO: implementar tratamento de erros do Firebase
 );
+const [persistVersion, persisting] = useLoading(_persistVersion);
+const [deleteVersion, deleting] = useLoading(_deleteVersion);
 
 const newVersion = reactive({ id: '', description: '' });
 async function uploadVersion(): Promise<void> {
@@ -258,7 +273,13 @@ const searchResults = useArrayFilter(
     version.id.includes(searchInput.value)
 );
 
-const { isRevealed, performAction, confirm, cancel } = usePerformActionDialog();
+const {
+  isRevealed,
+  performAction,
+  confirm,
+  cancel,
+  state: actionDialogState,
+} = usePerformActionDialog();
 
 const $q = useQuasar();
 </script>

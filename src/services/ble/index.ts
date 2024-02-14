@@ -11,7 +11,7 @@ import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
 import { getTimer } from './utils';
 
-export { BleError } from './errors';
+export * from './errors';
 
 export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   private DEFAULT_TIMEOUT = 5000;
@@ -213,18 +213,22 @@ export const plugin = {
       ble,
       connected: connected,
       connecting: connecting,
-      connect: async (config: Robot.BluetoothConnectionConfig) => {
+      requestDevice: async (optionalServices: string[]) => {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: 'TT_' }],
+          optionalServices,
+        });
+        if (!device) {
+          throw new DeviceNotFoundError();
+        }
+        return device;
+      },
+      connect: async (
+        device: BluetoothDevice,
+        config: Robot.BluetoothConnectionConfig
+      ) => {
         connecting.value = true;
-
         try {
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: 'TT_' }],
-            optionalServices: [...Object.keys(config.services)],
-          });
-          if (!device) {
-            throw new DeviceNotFoundError();
-          }
-
           await ble.connect(device, config);
           connected.value = true;
         } catch (error) {

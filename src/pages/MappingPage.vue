@@ -413,7 +413,7 @@ const columns = [
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
+  { name: 'TrackStatus', label: 'Trecho anterior', field: 'TrackStatus' },
 ];
 const newColumns: QTableColumn[] = [
   {
@@ -424,13 +424,13 @@ const newColumns: QTableColumn[] = [
   },
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
-  { name: 'TrackStatus', label: 'TrackStatus', field: 'TrackStatus' },
+  { name: 'TrackStatus', label: 'Trecho anterior', field: 'TrackStatus' },
 ];
 const newRecord = ref<Omit<Robot.MappingRecord, 'id'>[]>([
   {
     encMedia: '100',
-    time: '45',
-    offset: '5',
+    time: '0',
+    offset: '0',
     trackStatus: '2',
   },
 ]);

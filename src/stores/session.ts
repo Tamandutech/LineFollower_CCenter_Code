@@ -32,7 +32,7 @@ export const useSessionStore = defineStore('session', {
         return this.$patch({ settings: data.settings, competitionId: data.competition?.id });
       }
 
-      const session: Omit<Dashboard.Session, "robot"> = {
+      const session: Omit<Dashboard.Session, 'robot'> = {
         userId: this.userId,
         settings: defaultSettings,
         competitionId: null,

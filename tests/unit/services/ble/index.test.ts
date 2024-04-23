@@ -1,6 +1,7 @@
 import { describe, vi } from 'vitest';
 
 export const bleMock: MockType<Bluetooth.BLEInterface> = {
+  name: 'mock',
   request: vi.fn(),
   send: vi.fn(),
   addTxObserver: vi.fn(),

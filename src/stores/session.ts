@@ -29,14 +29,17 @@ export const useSessionStore = defineStore('session', {
       const userDocSnapshot = await getDoc(userDocRef);
       if (userDocSnapshot.exists()) {
         const data = userDocSnapshot.data();
-        return this.$patch({ settings: data.settings, competitionId: data.competition?.id });
+        return this.$patch({
+          settings: data.settings,
+          competitionId: data.competition?.id,
+        });
       }
 
       const session: Omit<Dashboard.Session, 'robot'> = {
         userId: this.userId,
         settings: defaultSettings,
         competitionId: null,
-      }
+      };
       setDoc(userDocRef, session);
       return this.$patch(session);
     },

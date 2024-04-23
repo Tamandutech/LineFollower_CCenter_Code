@@ -8,7 +8,7 @@ declare namespace Bluetooth {
   type ObserverMap = Map<string, unknown>;
   type TxObserverMap = Map<string, ObserverMap>;
   type UseBLE = {
-    ble: import('src/services/ble').RobotBLEAdapter;
+    ble: BLEInterface;
     connected: import('vue').Ref<boolean>;
     connecting: import('vue').Ref<boolean>;
     connect: (
@@ -25,6 +25,7 @@ declare namespace Bluetooth {
   ): boolean;
 
   interface BLEInterface {
+    name: string;
     send: (rxCharacteristicId: string, message: string) => Promise<never>;
     addTxObserver: <T>(
       txCharacteristicId: string,

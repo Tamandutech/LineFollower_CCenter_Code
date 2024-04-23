@@ -12,6 +12,7 @@ export const useAuth = defineStore('auth', {
   state: () => ({
     _user: null as User,
     _blocked: false,
+    isLoading: true,
   }),
   getters: {
     user: (state) => state._user,
@@ -71,6 +72,8 @@ export const useAuth = defineStore('auth', {
         return Promise.resolve(null);
       } catch (error) {
         return Promise.reject(error as AuthError);
+      } finally {
+        this.isLoading = false;
       }
     },
     setUser(user: User | null) {

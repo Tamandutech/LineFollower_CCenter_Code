@@ -1,38 +1,62 @@
 <template>
-  <q-page class="q-pa-lg">
-    <q-card flat>
-      <q-card-section>
-        <div v-if="auth.user" class="text-h5">
-          Olá, {{ auth.user.displayName.split(' ').at(0) }}!
-        </div>
-        <div v-else class="text-h5">Olá, Visitante!</div>
-      </q-card-section>
-
-      <q-separator inset />
-
-      <q-card-section class="q-gutter-md">
-        <!-- Avisos -->
-        <github-open-auth-app-warning-card></github-open-auth-app-warning-card>
-        <experimental-features-warning-card></experimental-features-warning-card>
-        <browser-support-warning-card></browser-support-warning-card>
-      </q-card-section>
-    </q-card>
+  <q-page class="q-pa-lg row justify-center items-center" v-if="auth.isLoading">
+    <q-spinner color="primary" size="3em" class="col-auto" />
   </q-page>
+  <template v-else>
+    <q-page class="q-pa-lg row justify-center items-center" v-if="!connected">
+      <p class="text-grey-6">Nenhum robô conectado</p>
+    </q-page>
+    <q-page class="q-gutter-md q-pa-lg" v-else>
+      <line-follower-cli class="col-auto" />
+      <system-card />
+    </q-page>
+  </template>
 </template>
 
 <script lang="ts" setup>
 import { useAuth } from 'src/stores/auth';
+import useBluetooth from 'src/services/ble';
 import { onBeforeRouteLeave } from 'vue-router';
-import BrowserSupportWarningCard from '../components/cards/NavigadorSupportWarningCard.vue';
-import ExperimentalFeaturesWarningCard from 'src/components/cards/ExperimentalFeaturesWarningCard.vue';
-import GithubOpenAuthAppWarningCard from 'src/components/cards/GithubOpenAuthAppWarningCard.vue';
+import LineFollowerCli from 'src/components/LineFollowerCli.vue';
+import SystemCard from 'src/components/cards/SystemCard.vue';
+import { warnings } from 'src/constants/warnings';
+import { useQuasar } from 'quasar';
+import { mdiAlert } from '@quasar/extras/mdi-v6';
 
 const emit = defineEmits<{ (e: 'navigationGuard'): void }>();
 
+const $q = useQuasar();
 const auth = useAuth();
+const { connected } = useBluetooth();
 onBeforeRouteLeave((to) => {
   if (to.meta.requiresAuth && !auth.user) {
     emit('navigationGuard');
   }
 });
+
+for (const warning of warnings.filter((w) =>
+  w.condition($q.platform, auth.isAuthenticated)
+)) {
+  $q.notify({
+    icon: mdiAlert,
+    message: warning.description,
+    caption: warning.title,
+    color: 'warning',
+    position: 'bottom',
+    timeout: 5000,
+    actions: [
+      { label: 'Ignorar', color: 'white', href: undefined },
+      ...(warning.actions instanceof Array
+        ? warning.actions
+        : warning.actions($q.platform)),
+    ].map((action) => ({
+      ...action,
+      handler: () => {
+        if (action.href) {
+          window.open(action.href, '_blank');
+        }
+      },
+    })),
+  });
+}
 </script>

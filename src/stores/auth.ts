@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import {
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
   GithubAuthProvider,
   UserCredential,
@@ -12,6 +12,8 @@ export const useAuth = defineStore('auth', {
   state: () => ({
     _user: null as User,
     _blocked: false,
+    _userCredentials: null as UserCredential,
+    isLoading: true,
   }),
   getters: {
     user: (state) => state._user,
@@ -39,9 +41,10 @@ export const useAuth = defineStore('auth', {
         return Promise.reject(error);
       }
     },
-    loginUser(): Promise<never> {
+    async loginUser(): Promise<UserCredential> {
       try {
-        return signInWithRedirect(this.service, this.github_provider);
+        this._userCredentials = await signInWithPopup(this.service, this.github_provider);
+        return this._userCredentials;
       } catch (error) {
         Promise.reject(error as AuthError);
       }
@@ -52,7 +55,7 @@ export const useAuth = defineStore('auth', {
     },
     async handleAuthStateChange(user: User | null) {
       try {
-        const result = await getRedirectResult(this.service);
+        const result = this._userCredentials;
 
         // Usuário identificado via cookies salvos pelo navegador (já estava logado)
         if (!result) {
@@ -71,6 +74,8 @@ export const useAuth = defineStore('auth', {
         return Promise.resolve(null);
       } catch (error) {
         return Promise.reject(error as AuthError);
+      } finally {
+        this.isLoading = false;
       }
     },
     setUser(user: User | null) {

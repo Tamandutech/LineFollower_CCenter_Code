@@ -4,7 +4,6 @@ import {
   signOut,
   GithubAuthProvider,
   UserCredential,
-  getRedirectResult,
 } from 'firebase/auth';
 import type { User, AuthError } from 'firebase/auth';
 
@@ -43,7 +42,10 @@ export const useAuth = defineStore('auth', {
     },
     async loginUser(): Promise<UserCredential> {
       try {
-        this._userCredentials = await signInWithPopup(this.service, this.github_provider);
+        this._userCredentials = await signInWithPopup(
+          this.service,
+          this.github_provider
+        );
         return this._userCredentials;
       } catch (error) {
         Promise.reject(error as AuthError);

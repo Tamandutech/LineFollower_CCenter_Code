@@ -23,14 +23,5 @@
     "./src-capacitor",
     "./src-cordova",
     "./quasar.config.*.temporary.compiled*"
-  ],
-  "include": [
-    "src/**/*.ts",
-    "src/types/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "tests/**/*.ts",
-    "tests/**/*.d.ts",
-    "tests/**/*.tsx"
   ]
 }

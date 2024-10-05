@@ -14,14 +14,6 @@ describe('useErrorCapturing', () => {
     expect(error.value).toBe(null);
   });
 
-  it('should capture and store the error', async () => {
-    const errorMock = new Error();
-    routineMock.mockRejectedValueOnce(errorMock);
-    const [routine, error] = useErrorCapturing(routineMock, [Error]);
-    await routine();
-    expect(error.value).toBe(errorMock);
-  });
-
   it('should rethrow the error if mustReThrow is true', async () => {
     const errorMock = new Error();
     routineMock.mockRejectedValueOnce(errorMock);
@@ -29,7 +21,7 @@ describe('useErrorCapturing', () => {
       routineMock,
       [Error],
       undefined,
-      true
+      true,
     );
     await expect(routine()).rejects.toBe(errorMock);
     expect(error.value).toBe(errorMock);

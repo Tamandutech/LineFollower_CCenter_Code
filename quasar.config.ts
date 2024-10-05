@@ -171,7 +171,7 @@ export default configure(function (/* ctx */) {
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
       workboxMode: 'GenerateSW', // or 'InjectManifest'
-      extendWorkboxGenerateSWOptions(cfg) {
+      extendWorkboxGenerateSWOptions(cfg: any) {
         Object.assign(cfg, {
           cleanupOutdatedCaches: true,
           skipWaiting: true,

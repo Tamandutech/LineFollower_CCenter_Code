@@ -8,29 +8,10 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
-const { configure } = require('quasar/wrappers');
+import { configure } from 'quasar/wrappers';
 
-try {
-  require('dotenv').config({ path: `.env.${process.env.QENV}` });
-} catch (error) {
-  // ...
-}
-
-if (!process.env.API_KEY) {
-  throw new Error('Environment not defined.');
-}
-
-module.exports = configure(function (/* ctx */) {
+export default configure(function (/* ctx */) {
   return {
-    eslint: {
-      // fix: true,
-      // include = [],
-      // exclude = [],
-      // rawOptions = {},
-      warnings: true,
-      errors: true,
-    },
-
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
 
@@ -58,8 +39,8 @@ module.exports = configure(function (/* ctx */) {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#build
     build: {
       target: {
-        browser: ['es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
-        node: 'node16',
+        browser: ['es2022', 'firefox115', 'chrome115', 'safari14'],
+        node: 'node20',
       },
 
       devtool: 'source-map',
@@ -72,19 +53,19 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
-      env: {
-        API_KEY: process.env.API_KEY,
-        AUTH_DOMAIN: process.env.AUTH_DOMAIN,
-        DATA_BASE_URL: process.env.DATA_BASE_URL,
-        PROJECT_ID: process.env.PROJECT_ID,
-        STORAGE_BUCKET: process.env.STORAGE_BUCKET,
-        MESSAGING_SENDER_ID: process.env.MESSAGING_SENDER_ID,
-        APP_ID: process.env.APP_ID,
-        MEASUREMENT_ID: process.env.MEASUREMENT_ID,
-        GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET,
-        GH_CLIENT_ID: process.env.GH_CLIENT_ID,
-        OAUTH_REDIRECT_URI: process.env.OAUTH_REDIRECT_URI,
-      },
+      // env: {
+      //   api_key: process.env.api_key,
+      //   auth_domain: process.env.auth_domain,
+      //   data_base_url: process.env.data_base_url,
+      //   project_id: process.env.project_id,
+      //   storage_bucket: process.env.storage_bucket,
+      //   messaging_sender_id: process.env.messaging_sender_id,
+      //   app_id: process.env.app_id,
+      //   measurement_id: process.env.measurement_id,
+      //   gh_client_secret: process.env.gh_client_secret,
+      //   gh_client_id: process.env.gh_client_id,
+      //   oauth_redirect_uri: process.env.oauth_redirect_uri,
+      // },
       // rawDefine: {}
       // ignorePublicFolder: true,
       minify: 'terser',
@@ -95,7 +76,20 @@ module.exports = configure(function (/* ctx */) {
         viteConf.mode = process.env.QENV;
       },
       // viteVuePluginOptions: {},
-      // // vitePlugins: [[require('vite-plugin-css-injected-by-js'), {}]],
+      vitePlugins: [
+        [
+          'vite-plugin-checker',
+          {
+            vueTsc: {
+              tsconfigPath: 'tsconfig.vue-tsc.json',
+            },
+            eslint: {
+              lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
+            },
+          },
+          { server: false },
+        ],
+      ],
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -142,16 +136,16 @@ module.exports = configure(function (/* ctx */) {
     animations: [],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#sourcefiles
-    // sourceFiles: {
-    //   rootComponent: 'src/App.vue',
-    //   router: 'src/router/index',
-    //   store: 'src/store/index',
-    //   registerServiceWorker: 'src-pwa/register-service-worker',
-    //   serviceWorker: 'src-pwa/custom-service-worker',
-    //   pwaManifestFile: 'src-pwa/manifest.json',
-    //   electronMain: 'src-electron/electron-main',
-    //   electronPreload: 'src-electron/electron-preload'
-    // },
+    sourceFiles: {
+      rootComponent: 'src/App.vue',
+      router: 'src/router/index',
+      store: 'src/stores/index',
+      pwaRegisterServiceWorker: 'src-pwa/register-service-worker',
+      pwaServiceWorker: 'src-pwa/custom-service-worker',
+      pwaManifestFile: 'src-pwa/manifest.json',
+      electronMain: 'src-electron/electron-main',
+      electronPreload: 'src-electron/electron-preload',
+    },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
@@ -176,7 +170,7 @@ module.exports = configure(function (/* ctx */) {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: 'generateSW', // or 'injectManifest'
+      workboxMode: 'GenerateSW', // or 'InjectManifest'
       extendWorkboxGenerateSWOptions(cfg) {
         Object.assign(cfg, {
           cleanupOutdatedCaches: true,

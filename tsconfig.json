@@ -14,11 +14,16 @@
       "utils/*": ["src/utils/*"],
       "services/*": ["src/services/*"]
     },
-    "strictNullChecks": false,
-    "typeRoots": ["./src/types", "./node_modules/@types"],
-    "forceConsistentCasingInFileNames": true,
-    "lib": ["es6", "dom"]
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
+  "exclude": [
+    "./dist",
+    "./.quasar",
+    "./node_modules",
+    "./src-capacitor",
+    "./src-cordova",
+    "./quasar.config.*.temporary.compiled*"
+  ],
   "include": [
     "src/**/*.ts",
     "src/types/*.d.ts",

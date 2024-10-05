@@ -29,7 +29,7 @@ export type ProfileConverter<T> = {
    * @returns {DocumentData} Objeto a ser persistido no banco de dados
    */
   to: (
-    profile: WithFieldValue<T> | FieldValue | PartialWithFieldValue<T>
+    profile: WithFieldValue<T> | FieldValue | PartialWithFieldValue<T>,
   ) => DocumentData;
 
   /**
@@ -58,7 +58,7 @@ export type UseProfileVersionsReturn<T> = {
   persistVersion: (
     data: WithFieldValue<T> | FieldValue,
     id?: string,
-    description?: string
+    description?: string,
   ) => Promise<void>;
 
   /**
@@ -81,7 +81,7 @@ export type UseProfileVersionsReturn<T> = {
 const getFirestoreConverter = <T>(
   robotDocRef: DocumentReference,
   competitionDocRef: DocumentReference,
-  profileConverter?: ProfileConverter<T>
+  profileConverter?: ProfileConverter<T>,
 ): FirestoreDataConverter<Robot.ProfileVersion<T>> => ({
   toFirestore(modelObject) {
     return {
@@ -91,7 +91,8 @@ const getFirestoreConverter = <T>(
       robot: robotDocRef,
       competition: competitionDocRef,
       data: profileConverter
-        ? profileConverter.to(modelObject.data)
+        ? // @ts-ignore
+          profileConverter.to(modelObject.data)
         : modelObject.data,
     };
   },
@@ -126,26 +127,26 @@ export const useProfileVersions = <T>(
   robotRef: Ref<Robot.BluetoothConnectionConfig>,
   competitionIdRef: Ref<Dashboard.Competition['id']>,
   profileConverter?: ProfileConverter<T>,
-  errorHandler?: (e: Error) => void
+  errorHandler?: (e: Error) => void,
 ): UseProfileVersionsReturn<T> => {
   const robotDocRef = computed(() =>
-    doc(firestore, 'robots', robotRef.value.id)
+    doc(firestore, 'robots', robotRef.value.id),
   );
   const competitionDocRef = computed(() =>
-    doc(firestore, 'competitions', competitionIdRef.value)
+    doc(firestore, 'competitions', competitionIdRef.value),
   );
   const converter = getFirestoreConverter(
     robotDocRef.value,
     competitionDocRef.value,
-    profileConverter
+    profileConverter,
   );
 
   const versionsQuery = computed(() =>
     query(
       collection(firestore, collectionName),
       where('competition', '==', competitionDocRef.value),
-      where('robot', '==', robotDocRef.value)
-    ).withConverter(converter)
+      where('robot', '==', robotDocRef.value),
+    ).withConverter(converter),
   );
   const versions = useFirestore(versionsQuery.value, [], {
     errorHandler:
@@ -159,7 +160,7 @@ export const useProfileVersions = <T>(
   async function persistVersion(
     data: WithFieldValue<T> | FieldValue,
     id?: string,
-    description?: string
+    description?: string,
   ): Promise<void> {
     if (Array.isArray(data) && data.length === 0) {
       return; // Não registrar listas ou objetos vazios
@@ -176,7 +177,7 @@ export const useProfileVersions = <T>(
         description,
         created: timestamp,
         updated: timestamp,
-      })
+      }),
     );
   }
 

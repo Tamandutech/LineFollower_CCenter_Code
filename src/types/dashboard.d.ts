@@ -12,7 +12,7 @@ declare namespace Dashboard {
   }
 
   interface Session {
-    competitionId: Competition['id'];
+    competitionId: Competition['id'] | null;
     userId: string;
     robot: Robot.BluetoothConnectionConfig;
     settings: Settings;

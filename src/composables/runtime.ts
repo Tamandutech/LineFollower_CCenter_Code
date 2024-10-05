@@ -24,7 +24,7 @@ export type UseRobotRuntimeReturn = {
 export const useRobotRuntime = (
   ble: Bluetooth.BLEInterface,
   txCharacteristicId: string,
-  rxCharacteristicId: string
+  rxCharacteristicId: string,
 ): UseRobotRuntimeReturn => {
   const parameters = ref<Map<string, number>>(new Map());
 
@@ -33,10 +33,10 @@ export const useRobotRuntime = (
    * @throws {BleError} Caso ocorra um erro na comunicação com o robô
    */
   async function fetchParameters(): Promise<void> {
-    const rawData = await ble.request(
+    const rawData = await ble.request<string>(
       txCharacteristicId,
       rxCharacteristicId,
-      'runtime_list'
+      'runtime_list',
     );
 
     const [, ...results] = rawData.toString().split('\n');
@@ -44,8 +44,9 @@ export const useRobotRuntime = (
     results
       .filter((line) => line !== '')
       .forEach((line) => {
+        // @ts-ignore
         const [, className, parameterName, value] = line.match(
-          /^\s\d+\s-\s(\w+)\.(\w+):\s(-?\d+\.{0,1}\d*)$/
+          /^\s\d+\s-\s(\w+)\.(\w+):\s(-?\d+\.{0,1}\d*)$/,
         );
 
         parameters.value.set(`${className}.${parameterName}`, Number(value));

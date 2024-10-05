@@ -7,7 +7,10 @@
     >
       <StreamChart
         :data="chartData.value"
-        :color="streamsLoaded.get(parameter).color"
+        :color="
+          // @ts-ignore
+          streamsLoaded.get(parameter).color
+        "
       />
     </div>
   </div>
@@ -46,7 +49,7 @@ const streamsValues = new Map(
   [...props.parameters.keys()].map((parameter) => [
     parameter,
     shallowRef<[number, number][]>([]),
-  ])
+  ]),
 );
 const streamsLoaded = reactive(
   new Map<
@@ -61,12 +64,12 @@ const streamsLoaded = reactive(
       sum: number;
       stop: () => ReturnType<typeof stopStreamReading>;
     }
-  >()
+  >(),
 );
 const loading = computed(
   () =>
     streamsLoaded.size == 0 ||
-    [...streamsLoaded.values()].some((loaded) => !loaded)
+    [...streamsLoaded.values()].some((loaded) => !loaded),
 );
 const parametersFirstTimeValue = new Map<string, number>();
 const streamReader = (currentValues: Robot.RuntimeStream[]) => {
@@ -80,7 +83,9 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
 
     if (!streamsValues.has(parameter)) return;
 
+    // @ts-ignore
     const TreatedTime = time - parametersFirstTimeValue.get(parameter);
+    // @ts-ignore
     streamsValues.get(parameter).value.push([TreatedTime, currentValue]);
 
     if (!streamsLoaded.has(parameter)) {
@@ -103,6 +108,10 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
       });
     } else {
       const streamStatus = streamsLoaded.get(parameter);
+      if (!streamStatus) {
+        return;
+      }
+
       streamStatus.StreamFullDataCsv +=
         currentValue.toString() + ';' + TreatedTime.toString() + '\n';
 
@@ -116,7 +125,10 @@ const streamReader = (currentValues: Robot.RuntimeStream[]) => {
       streamStatus.receivedValuesCount += 1;
     }
 
-    triggerRef(streamsValues.get(parameter));
+    const streamValueRef = streamsValues.get(parameter);
+    if (streamValueRef) {
+      triggerRef(streamValueRef);
+    }
   });
 };
 const stopStreamReading = async (parameter: string) => {
@@ -134,10 +146,12 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
     .map(([parameter]) => [
       parameter,
       computed(() => {
-        const valuesCount = streamsValues.get(parameter).value.length;
-        let offset = props.parameters.get(parameter).range;
+        const streamValue = streamsValues.get(parameter);
+        const valuesCount = streamValue ? streamValue.value.length : 0;
+        let offset = props.parameters.get(parameter)?.range ?? 0;
         if (offset > valuesCount) offset = valuesCount;
         return {
+          // @ts-ignore
           labels: streamsValues
             .get(parameter)
             .value.map(([time]) => time)
@@ -145,6 +159,7 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
           datasets: [
             {
               label: parameter,
+              // @ts-ignore
               data: streamsValues
                 .get(parameter)
                 .value.map(([, value]) => value)
@@ -153,7 +168,7 @@ const data = new Map<string, ComputedRef<ChartData<'line'>>>(
           ],
         };
       }),
-    ])
+    ]),
 );
 
 const { ble, disconnect: disconnectBluetooth } = useBluetooth();
@@ -167,24 +182,24 @@ const [protectedStartStream] = useErrorCapturing(
   startStream,
   [RuntimeError],
   error,
-  true
+  true,
 );
 const [protectedStopStream] = useErrorCapturing(
   stopStream,
   [RuntimeError],
-  error
+  error,
 );
 const [protectedStopAllStreams] = useErrorCapturing(
   stopAllStreams,
   [RuntimeError],
   error,
-  true
+  true,
 );
 
 const gracefullyStopStreams = async () => {
   try {
     await protectedStopAllStreams();
-  } catch (error) {
+  } catch {
     disconnectBluetooth();
   }
 };
@@ -198,7 +213,7 @@ onBeforeMount(async () => {
         await protectedStartStream(parameter, interval * 1000);
       }
     }
-  } catch (error) {
+  } catch {
     await gracefullyStopStreams();
   }
 });

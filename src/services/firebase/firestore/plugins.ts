@@ -18,21 +18,24 @@ import type { PiniaPlugin, PiniaPluginContext } from 'pinia';
 export const syncStoresPlugin = function (firestore: Firestore): PiniaPlugin {
   return ({ store, options }: PiniaPluginContext) => {
     store.firestore = markRaw(firestore);
-    if (!options.sync) return;
 
     /**
      * TODO: salvar localmente caso usuário esteja offline
      */
     store.$subscribe(
       async (mutation, state) => {
+        if (!options.sync) {
+          return;
+        }
+
         const fieldsChanged: string[] = Object.keys(
-          mutation.type === 'patch object' ? mutation.payload : state
+          mutation.type === 'patch object' ? mutation.payload : state,
         );
 
         const payload = [...options.sync.fields.entries()].reduce(
           (
             obj: Record<string, unknown>,
-            [stateField, { field: modelField, ref }]
+            [stateField, { field: modelField, ref }],
           ) => {
             if (
               fieldsChanged.includes(stateField.toString()) &&
@@ -44,15 +47,15 @@ export const syncStoresPlugin = function (firestore: Firestore): PiniaPlugin {
             }
             return obj;
           },
-          {}
+          {},
         );
 
         const docSnapshot = await getDoc(
           doc(
             firestore,
             options.sync.collection,
-            state[options.sync.doc] || options.sync.doc
-          )
+            state[options.sync.doc] || options.sync.doc,
+          ),
         );
         if (docSnapshot.exists()) {
           await setDoc(docSnapshot.ref, payload);
@@ -60,7 +63,7 @@ export const syncStoresPlugin = function (firestore: Firestore): PiniaPlugin {
           await addDoc(collection(firestore, options.sync.collection), payload);
         }
       },
-      { detached: true, deep: true }
+      { detached: true, deep: true },
     );
   };
 };

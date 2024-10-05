@@ -11,6 +11,12 @@ provider.setCustomParameters({
   client_secret: process.env.GH_CLIENT_SECRET,
   redirect_uri: process.env.OAUTH_REDIRECT_URI,
 });
+console.log(
+  'provider',
+  process.env.GH_CLIENT_ID,
+  process.env.GH_CLIENT_SECRET,
+  process.env.OAUTH_REDIRECT_URI,
+);
 
 export default (app: FirebaseApp): Firebase.AuthService => ({
   service: getAuth(app),
@@ -28,14 +34,14 @@ export default (app: FirebaseApp): Firebase.AuthService => ({
  */
 export function piniaPlugin(
   service: Auth,
-  github_provider: GithubAuthProvider
+  github_provider: GithubAuthProvider,
 ): PiniaPlugin {
   return ({ store, options }: PiniaPluginContext) => {
     if (options.actions.handleAuthStateChange === undefined) return;
 
     onAuthStateChanged(
       service,
-      options.actions.handleAuthStateChange.bind(store)
+      options.actions.handleAuthStateChange.bind(store),
     );
 
     return { service, github_provider };

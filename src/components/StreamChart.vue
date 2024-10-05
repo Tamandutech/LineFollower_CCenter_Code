@@ -14,10 +14,12 @@ const props = defineProps<{
 }>();
 
 const canvas = ref(null);
+// @ts-ignore
 let chart: Chart<'line'> = null;
 
 onMounted(() => {
   const context = canvas.value;
+  // @ts-ignore
   chart = new Chart<'line'>(context, {
     type: 'line',
     data: props.data,
@@ -50,6 +52,6 @@ watch(
   (data) => {
     chart.data = data;
     chart.update();
-  }
+  },
 );
 </script>

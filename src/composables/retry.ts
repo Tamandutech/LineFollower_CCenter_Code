@@ -21,7 +21,7 @@ export type RetryOptions = {
 
 export type UseRetryReturn<This, Args extends unknown[], Return> = readonly [
   (this: This, ...args: Args) => Promise<Return>,
-  Ref<number>
+  Ref<number>,
 ];
 
 /**
@@ -35,9 +35,9 @@ export type UseRetryReturn<This, Args extends unknown[], Return> = readonly [
  */
 export const useRetry = <This, Args extends unknown[], Return>(
   routine: (this: This, ...args: Args) => Promise<Return>,
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   retryFor: Function[],
-  options: RetryOptions
+  options: RetryOptions,
 ): UseRetryReturn<This, Args, Return> => {
   /**
    * Controlador para o `delay`
@@ -50,6 +50,7 @@ export const useRetry = <This, Args extends unknown[], Return>(
   const autoRetriedRoutine = async function (
     this: This,
     ...args: Args
+    // @ts-ignore
   ): Promise<Return> {
     let tries = unref(options.maxRetries);
     let currentDelay = unref(retryDelay);

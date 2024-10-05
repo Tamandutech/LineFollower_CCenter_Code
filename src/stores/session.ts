@@ -11,9 +11,9 @@ const defaultSettings: Dashboard.Settings = {
 export const useSessionStore = defineStore('session', {
   state: (): Partial<Dashboard.Session> => ({
     competitionId: null,
-    userId: null,
-    robot: null,
-    settings: null,
+    userId: undefined,
+    robot: undefined,
+    settings: undefined,
   }),
 
   actions: {

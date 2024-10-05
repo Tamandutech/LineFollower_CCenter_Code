@@ -1,8 +1,7 @@
 export class BleError extends Error implements Dashboard.ErrorInterface {
-  readonly name: string;
   readonly action: string;
-  readonly message: string;
-  readonly cause?: Error;
+  override readonly message: string;
+  override readonly cause?: Error;
 
   constructor(
     { message, action, cause }: Dashboard.ErrorOptions,
@@ -28,7 +27,7 @@ export class RuntimeError extends BleError {
           'Verifique se há erros não sendo tratados no microcontrolador do robô.',
         cause,
       },
-      ...args
+      ...args,
     );
   }
 }
@@ -45,7 +44,7 @@ export class DeviceNotFoundError extends BleError {
           action || 'Certifique-se de o robô está ligado e aceitando conexões.',
         cause,
       },
-      ...args
+      ...args,
     );
   }
 }
@@ -65,7 +64,7 @@ export class DeviceError extends BleError {
           'Verifique se o robô está processando os comandos corretamente.',
         cause,
       },
-      ...args
+      ...args,
     );
   }
 }
@@ -81,7 +80,7 @@ export class ConnectionError extends BleError {
         action: action || 'Verifique a conexão com o robô.',
         cause,
       },
-      ...args
+      ...args,
     );
   }
 }
@@ -97,7 +96,7 @@ export class CharacteristicWriteError extends BleError {
         action: action || 'Verifique a configuração da conexão com o robô.',
         cause,
       },
-      ...args
+      ...args,
     );
   }
 }
@@ -116,7 +115,7 @@ export class TimeoutError extends BleError {
           'Verifique se o robô ainda está conectado e tente novamente.',
         cause,
       },
-      ...args
+      ...args,
     );
   }
 }

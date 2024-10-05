@@ -16,22 +16,28 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();
   _observables: Map<string, ObservableCharacteristic> = new Map();
   _encoder = new TextEncoder();
-  _device: BluetoothDevice;
+  _device: BluetoothDevice | undefined;
   _emitter: EventEmitter = new EventEmitter(['connect', 'disconnect']);
-  _config: Required<Robot.BluetoothConnectionConfig>;
+  _config: Required<Robot.BluetoothConnectionConfig> | undefined;
 
   async connect(
     device: BluetoothDevice,
-    config: Required<Robot.BluetoothConnectionConfig>
+    config: Required<Robot.BluetoothConnectionConfig>,
   ) {
     this._device = device;
     this._config = config;
 
     try {
+      if (!device.gatt) {
+        throw new ConnectionError({
+          message: 'GATT server is not available on the device.',
+        });
+      }
+
       const robotGattServer = await device.gatt.connect();
 
       device.addEventListener('gattserverdisconnected', () =>
-        this._onDisconnect()
+        this._onDisconnect(),
       );
 
       for (const [uuid, characteristics] of Object.entries(config.services)) {
@@ -44,8 +50,8 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
             this._observables.set(
               id,
               new ObservableCharacteristic(
-                await characteristic.startNotifications()
-              )
+                await characteristic.startNotifications(),
+              ),
             );
           }
         }
@@ -60,15 +66,15 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   }
 
   get connected() {
-    return this._device?.gatt.connected;
+    return this._device?.gatt?.connected ?? false;
   }
 
   get name() {
-    return this._config.name;
+    return this._config?.name ?? '';
   }
 
   disconnect(): void {
-    if (!this._device.gatt.connected) return;
+    if (!this._device?.gatt?.connected) return;
     this._device.gatt.disconnect();
     this._emitter.emit('disconnect');
   }
@@ -84,7 +90,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
    * @param message Mensagem a ser enviada.
    * @returns `Promise<never>`
    */
-  async send(rxCharacteristicId: string, message: string) {
+  async send(rxCharacteristicId: string, message: string): Promise<never> {
     if (!this._characteristics.has(rxCharacteristicId)) {
       throw new ConnectionError({
         message: 'Característica RX não encontrada.',
@@ -94,13 +100,15 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
 
     try {
       await this._characteristics
-        .get(rxCharacteristicId)
+        .get(rxCharacteristicId)!
         .writeValueWithoutResponse(this._encode(message));
     } catch (error) {
       if (error instanceof Error) {
-        return Promise.reject(new CharacteristicWriteError({ cause: error }));
+        throw new CharacteristicWriteError({ cause: error });
       }
     }
+
+    return new Promise(() => {});
   }
 
   /**
@@ -114,7 +122,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   async request<T>(
     txCharacteristicId: string,
     rxCharacteristicId: string,
-    command: string
+    command: string,
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const observerUuid = uuidv4();
@@ -124,7 +132,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
           resolve(response.data ?? (response as unknown as T));
           this.removeTxObserver(txCharacteristicId, observerUuid);
         },
-        observerUuid
+        observerUuid,
       );
 
       this.send(rxCharacteristicId, command).catch(reject);
@@ -139,7 +147,7 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
   addTxObserver<T>(
     txCharacteristicId: string,
     observer: Bluetooth.CharacteristicObserver<T>,
-    observerUuid: string
+    observerUuid: string,
   ): () => boolean {
     if (!this.connected) {
       throw new ConnectionError({
@@ -156,7 +164,15 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
       });
     }
 
-    this._observables.get(txCharacteristicId).subscribe(observer, observerUuid);
+    const observable = this._observables.get(txCharacteristicId);
+    if (observable) {
+      observable.subscribe(observer, observerUuid);
+    } else {
+      throw new ConnectionError({
+        message: 'Observable not found for the given characteristic ID.',
+        action: 'Check if the characteristic ID is correct and try again.',
+      });
+    }
 
     return this.removeTxObserver.bind(this, txCharacteristicId, observerUuid);
   }
@@ -169,7 +185,11 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
    * @returns `true` caso o observer tenha sido removido, `false` caso contrário
    */
   removeTxObserver(txCharacteristicId: string, observerUuid: string): boolean {
-    return this._observables.get(txCharacteristicId).unsubscribe(observerUuid);
+    const observable = this._observables.get(txCharacteristicId);
+    if (observable) {
+      return observable.unsubscribe(observerUuid);
+    }
+    return false;
   }
 
   onConnect(listener: () => void): () => void {
@@ -192,7 +212,7 @@ export const plugin = {
       ble,
       connected: connected,
       connecting: connecting,
-      requestDevice: async (optionalServices: string[]) => {
+      requestDevice: async (optionalServices?: string[]) => {
         const device = await navigator.bluetooth.requestDevice({
           filters: [{ namePrefix: 'TT_' }],
           optionalServices,
@@ -204,7 +224,7 @@ export const plugin = {
       },
       connect: async (
         device: BluetoothDevice,
-        config: Robot.BluetoothConnectionConfig
+        config: Robot.BluetoothConnectionConfig,
       ) => {
         connecting.value = true;
         try {
@@ -231,4 +251,4 @@ export const piniaPlugin = (service: RobotBLEAdapter): PiniaPlugin => {
 };
 
 const key = Symbol('ble');
-export default () => inject<Bluetooth.UseBLE>(key);
+export default () => inject<Bluetooth.UseBLE>(key) as Bluetooth.UseBLE;

@@ -9,7 +9,7 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>Nome</q-item-label>
-            <q-item-label caption>{{ session.robot.name }}</q-item-label>
+            <q-item-label caption>{{ session.robot?.name }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item>
@@ -19,6 +19,7 @@
           <q-item-section>
             <q-item-label>Bateria</q-item-label>
             <q-item-label caption>{{
+              // @ts-ignore
               (battery.voltage / 1000).toFixed(2) + 'V'
             }}</q-item-label>
           </q-item-section>
@@ -40,7 +41,10 @@
             <q-select
               filled
               dense
-              v-model="session.settings.batteryStatusUpdateInterval"
+              v-model="
+                // @ts-ignore
+                session.settings.batteryStatusUpdateInterval
+              "
               :options="batteryStatusUpdateIntervalOptions"
               options-dense
               map-options
@@ -60,7 +64,10 @@
             <q-select
               filled
               dense
-              v-model="session.settings.batteryLowWarningThreshold"
+              v-model="
+                // @ts-ignore
+                session.settings.batteryLowWarningThreshold
+              "
               :options="batteryLowWarningThresholdOptions"
               options-dense
               map-options
@@ -80,7 +87,10 @@
             <q-select
               filled
               dense
-              v-model="session.settings.batteryLowWarningInterval"
+              v-model="
+                // @ts-ignore
+                session.settings.batteryLowWarningInterval
+              "
               :options="batteryLowWarningIntervalOptions"
               options-dense
               map-options
@@ -136,31 +146,34 @@ const session = useSessionStore();
 const battery = useBattery();
 const { state: buttonIcon, next } = useCycleList(
   [mdiRobotMower, mdiBatteryAlert],
-  { initialValue: mdiRobotMower }
+  { initialValue: mdiRobotMower },
 );
 const buttonColor = ref('teal-5');
 
 const batteryStatusUpdateIntervalOptions = ref(
-  [0, 60000, 150000, 300000, 600000].map(getIntervalOption)
+  [0, 60000, 150000, 300000, 600000].map(getIntervalOption),
 );
 const batteryLowWarningThresholdOptions = ref(
   [6000, 5000, 4000, 3000, 1500].map((threshold) => ({
     label: (threshold / 1000).toPrecision(2) + 'V',
     value: threshold,
-  }))
+  })),
 );
 const batteryLowWarningIntervalOptions = ref(
-  [0, 60000, 150000, 300000, 600000].map(getIntervalOption)
+  [0, 60000, 150000, 300000, 600000].map(getIntervalOption),
 );
 
 let batteryLowWarningIntervalId: number;
 battery.$subscribe((mutation, state) => {
+  // @ts-ignore
   if (state.voltage <= session.settings.batteryLowWarningThreshold) {
+    // @ts-ignore
     batteryLowWarningIntervalId = setInterval(
       next,
-      ONE_MINUTE_IN_MILLISECONDS / 2
+      ONE_MINUTE_IN_MILLISECONDS / 2,
     );
     buttonColor.value = 'warning';
+    // @ts-ignore
     emit('low-battery', state.voltage);
   } else {
     clearInterval(batteryLowWarningIntervalId);
@@ -175,16 +188,20 @@ function fetchBatteryVoltage() {
 
 const { resume, pause } = useTimeoutPoll(
   fetchBatteryVoltage,
+  // @ts-ignore
   session.settings.batteryStatusUpdateInterval,
-  { immediate: false }
+  { immediate: false },
 );
 watchEffect(() => {
+  // @ts-ignore
   return session.settings.batteryStatusUpdateInterval == 0
     ? pause()
     : ble.connected && resume();
 });
 
+// @ts-ignore
 const unlistenResumeOnConnect = ble.onConnect(resume);
+// @ts-ignore
 const unlistenPauseOnDisconnect = ble.onDisconnect(pause);
 onUnmounted(() => {
   unlistenPauseOnDisconnect();

@@ -4,7 +4,7 @@ import type { Ref } from 'vue';
 export type UseErrorCapturingReturn<
   This,
   Args extends unknown[],
-  Return
+  Return,
 > = readonly [(this: This, ...args: Args) => Promise<Return>, Ref<unknown>];
 
 /**
@@ -20,10 +20,10 @@ export type UseErrorCapturingReturn<
  */
 export const useErrorCapturing = <This, Args extends unknown[], Return>(
   routine: (this: This, ...args: Args) => Promise<Return>,
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   errorsToCatch: Function[],
   errorRef?: Ref<unknown>,
-  mustReThrow = false
+  mustReThrow = false,
 ): UseErrorCapturingReturn<This, Args, Return> => {
   /**
    * Variável de estado para se armazenar os erros ocorridos
@@ -47,6 +47,7 @@ export const useErrorCapturing = <This, Args extends unknown[], Return>(
       }
       error.value = e;
       if (mustReThrow) throw e;
+      return Promise.reject(e);
     }
   }
 

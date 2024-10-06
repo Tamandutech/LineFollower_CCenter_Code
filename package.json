@@ -7,9 +7,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "QENV=development quasar dev",
-    "build:stage": "QENV=staging quasar build -m pwa && firebase deploy -P tt-linefollower-dev",
-    "build:prod": "QENV=production quasar build -m pwa && firebase deploy -P tt-linefollower",
+    "dev": "quasar dev",
+    "build:stage": "quasar build -m pwa && firebase deploy -P tt-linefollower-dev",
+    "build:prod": "quasar build -m pwa && firebase deploy -P tt-linefollower",
     "lint": "eslint --ext .js,.ts,.vue ./",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"See package.json => scripts for available tests.\" && exit 0",

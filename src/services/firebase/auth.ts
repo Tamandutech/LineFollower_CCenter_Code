@@ -11,12 +11,6 @@ provider.setCustomParameters({
   client_secret: process.env.GH_CLIENT_SECRET,
   redirect_uri: process.env.OAUTH_REDIRECT_URI,
 });
-console.log(
-  'provider',
-  process.env.GH_CLIENT_ID,
-  process.env.GH_CLIENT_SECRET,
-  process.env.OAUTH_REDIRECT_URI,
-);
 
 export default (app: FirebaseApp): Firebase.AuthService => ({
   service: getAuth(app),

@@ -36,8 +36,8 @@ yarn-error.log*
 *.njsproj
 *.sln
 
-# Enviroment files
-.env*
+# local .env files
+.env.local.*
 
 # Firebase Stuff
 .firebase

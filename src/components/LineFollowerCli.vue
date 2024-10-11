@@ -79,12 +79,12 @@ const {
     withTimeout(
       ble.request('UART_TX', 'UART_RX', command.value),
       5,
-      new TimeoutError({ message: 'Comando excedeu o tempo limite' })
+      new TimeoutError({ message: 'Comando excedeu o tempo limite' }),
     ),
   null,
   {
     immediate: false,
-  }
+  },
 );
 
 watchEffect(() => {

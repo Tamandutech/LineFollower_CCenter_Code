@@ -31,7 +31,7 @@ if (process.env.MODE !== 'ssr' || process.env.PROD) {
           new RegExp(process.env.PWA_SERVICE_WORKER_REGEX),
           /workbox-(.)*\.js$/,
         ],
-      }
-    )
+      },
+    ),
   );
 }

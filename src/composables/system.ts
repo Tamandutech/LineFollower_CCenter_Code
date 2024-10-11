@@ -27,7 +27,7 @@ export type UseRobotSystemReturn = {
 export const useRobotSystem = (
   ble: Bluetooth.BLEInterface,
   txCharacteristicId: string,
-  rxCharacteristicId: string
+  rxCharacteristicId: string,
 ): UseRobotSystemReturn => {
   async function pause() {
     await ble.request<string>(txCharacteristicId, rxCharacteristicId, 'pause');

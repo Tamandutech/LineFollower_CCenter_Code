@@ -10,12 +10,12 @@
 export function withTimeout<T>(
   promise: Promise<T>,
   milliseconds: number,
-  reason?: unknown
+  reason?: unknown,
 ): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(reason), milliseconds)
+      setTimeout(() => reject(reason), milliseconds),
     ),
   ]);
 }

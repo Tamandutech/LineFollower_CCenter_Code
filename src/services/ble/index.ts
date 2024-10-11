@@ -4,17 +4,18 @@ import {
   ConnectionError,
   DeviceNotFoundError,
   CharacteristicWriteError,
+  TimeoutError,
 } from './errors';
 import { ObservableCharacteristic } from './observers';
 import { EventEmitter } from './events';
 import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
-import { getTimer } from './utils';
+import { withTimeout } from 'src/lib/promises';
 
 export * from './errors';
 
 export class RobotBLEAdapter implements Bluetooth.BLEInterface {
-  private DEFAULT_TIMEOUT = 5000;
+  private DEFAULT_TIMEOUT = 10000;
 
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();
   _observables: Map<string, ObservableCharacteristic> = new Map();
@@ -124,11 +125,9 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
     txCharacteristicId: string,
     rxCharacteristicId: string,
     command: string,
-    timeout: number | (() => Promise<Error>) = this.DEFAULT_TIMEOUT
+    timeout: number = this.DEFAULT_TIMEOUT
   ): Promise<T> {
-    const timer = typeof timeout === 'number' ? getTimer(timeout) : timeout;
-
-    const promises: [Promise<T>, Promise<Error>] = [
+    return withTimeout(
       new Promise((resolve, reject) => {
         const observerUuid = uuidv4();
         this.addTxObserver(
@@ -142,14 +141,9 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
 
         this.send(rxCharacteristicId, command).catch(reject);
       }),
-      timer(),
-    ];
-
-    const result = await Promise.race(promises);
-    if (result instanceof Error) {
-      throw result;
-    }
-    return result;
+      timeout,
+      new TimeoutError()
+    );
   }
 
   _onDisconnect() {

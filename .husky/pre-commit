@@ -1,1 +1,2 @@
-npm test
+pnpm format:ci
+pnpm lint:ci

@@ -174,7 +174,7 @@ import {
 } from '@quasar/extras/mdi-v6';
 import { computed, onUnmounted, ref, watchEffect } from 'vue';
 import { useTimeoutPoll, useCycleList } from '@vueuse/core';
-import { useArrayMap } from '@vueuse/shared';
+import { useArrayMap } from '@vueuse/core';
 import useFirebase from 'src/services/firebase';
 import { useCompetitions } from 'src/composables/competitions';
 import { useRobotSystem } from 'src/composables/system';

@@ -57,7 +57,7 @@
 import { mdiExport, mdiAccountOff } from '@quasar/extras/mdi-v6';
 import GitHubLoginButton from 'src/components/buttons/GitHubLoginButton.vue';
 import { useAuth } from 'src/stores/auth';
-import type { User } from '@firebase/auth';
+import type { User } from 'firebase/auth';
 
 const emit = defineEmits<{
   (e: 'login', user: User): void;

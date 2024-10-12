@@ -13,7 +13,7 @@ export type Warning = {
   description: string;
   condition: (
     platform: QVueGlobals['platform'],
-    isAuthenticated: boolean
+    isAuthenticated: boolean,
   ) => boolean;
   actions: Action[] | ((platform: QVueGlobals['platform']) => Action[]);
 };
@@ -95,6 +95,7 @@ export const warnings: Warning[] = [
           },
         ];
       }
+      return [];
     },
   },
 ];

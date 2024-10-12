@@ -9,13 +9,13 @@ describe('useRobotParameters', () => {
       const { getParameter } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(getParameter('class', 'parameter')).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'param_get class.parameter'
+        'param_get class.parameter',
       );
     });
   });
@@ -26,15 +26,15 @@ describe('useRobotParameters', () => {
       const { setParameter } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(
-        setParameter('class', 'parameter', 'value')
+        setParameter('class', 'parameter', 'value'),
       ).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'param_set class.parameter value'
+        'param_set class.parameter value',
       );
     });
 
@@ -43,10 +43,10 @@ describe('useRobotParameters', () => {
       const { setParameter } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(
-        setParameter('class', 'parameter', 'value')
+        setParameter('class', 'parameter', 'value'),
       ).rejects.toThrowError();
     });
 
@@ -55,7 +55,7 @@ describe('useRobotParameters', () => {
       const { setParameter, getParameter } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       await getParameter('class', 'parameter');
       await setParameter('class', 'parameter', '42');
@@ -70,7 +70,7 @@ describe('useRobotParameters', () => {
           ' 0 - sLatMarks.marks: 0,45,100,123,566,0,5,2\n' +
           ' 1 - sLatMarks.thresholdToCurve: 3\n' +
           ' 2 - sLatMarks.thresholdToStraight: 3\n' +
-          ' 3 - sLatMarks.thresholdToStop: 3\n'
+          ' 3 - sLatMarks.thresholdToStop: 3\n',
       );
     });
 
@@ -78,13 +78,13 @@ describe('useRobotParameters', () => {
       const { listParameters } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(listParameters()).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'param_list'
+        'param_list',
       );
     });
 
@@ -92,14 +92,14 @@ describe('useRobotParameters', () => {
       const { listParameters, dataClasses } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       await listParameters();
-      expect(dataClasses.value.get('sLatMarks').get('marks')).toBe(
-        '0,45,100,123,566,0,5,2'
+      expect(dataClasses.value.get('sLatMarks')?.get('marks')).toBe(
+        '0,45,100,123,566,0,5,2',
       );
-      expect(dataClasses.value.get('sLatMarks').get('thresholdToCurve')).toBe(
-        '3'
+      expect(dataClasses.value.get('sLatMarks')?.get('thresholdToCurve')).toBe(
+        '3',
       );
     });
   });
@@ -127,16 +127,16 @@ describe('useRobotParameters', () => {
       const { installParameters } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(
-        installParameters(parametersToInstall)
+        installParameters(parametersToInstall),
       ).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenNthCalledWith(
         1,
         'test',
         'test',
-        'param_set sLatMarks.marks 0,45,100,123,566,0,5,2'
+        'param_set sLatMarks.marks 0,45,100,123,566,0,5,2',
       );
     });
 
@@ -145,7 +145,7 @@ describe('useRobotParameters', () => {
       const { installParameters } = useRobotParameters(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(installParameters(parametersToInstall)).rejects.toThrowError();
     });

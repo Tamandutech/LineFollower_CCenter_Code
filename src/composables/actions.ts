@@ -52,7 +52,7 @@ export type UsePerformActionDialogReturn = {
   performAction: <ParametersType extends unknown[], ReturnType>(
     action: (...parameters: ParametersType) => Promise<ReturnType>,
     parameters: ParametersType,
-    settings: ActionSettings
+    settings: ActionSettings,
   ) => Promise<void>;
 
   /**
@@ -88,7 +88,7 @@ export type UseSuccessFeedbackReturn = {
   withSuccessFeedback: <ParametersType extends unknown[], ReturnType>(
     action: (...parameters: ParametersType) => Promise<ReturnType>,
     successFeedback: SuccessFeedback,
-    onError?: (error: unknown) => void
+    onError?: (error: unknown) => void,
   ) => (...parameters: ParametersType) => Promise<ReturnType>;
 };
 
@@ -103,11 +103,11 @@ export const usePerformActionDialog = (): UsePerformActionDialogReturn => {
 
   const performAction = async function <
     ParametersType extends unknown[],
-    ReturnType
+    ReturnType,
   >(
     action: (...parameters: ParametersType) => Promise<ReturnType>,
     parameters: ParametersType,
-    settings: ActionSettings
+    settings: ActionSettings,
   ) {
     state.value = { title: settings.title, question: settings.question };
 
@@ -135,30 +135,17 @@ export const usePerformActionDialog = (): UsePerformActionDialogReturn => {
  * Se não for fornecida, o erro será lançado novamente.
  * @returns {UseSuccessFeedbackReturn}
  */
-export const useSuccessFeedback = (
-  errorHandler?: (error: unknown) => void
-): UseSuccessFeedbackReturn => {
+export const useSuccessFeedback = (): UseSuccessFeedbackReturn => {
   const feedback = ref<SuccessFeedback>();
 
   function withSuccessFeedback<ParametersType extends unknown[], ReturnType>(
     action: (...parameters: ParametersType) => Promise<ReturnType>,
     successFeedback: SuccessFeedback,
-    onError?: (error: unknown) => void
   ): (...parameters: ParametersType) => Promise<ReturnType> {
-    onError = onError || errorHandler;
-
     return async function (...parameters: ParametersType): Promise<ReturnType> {
-      try {
-        const result = await action(...parameters);
-        feedback.value = successFeedback;
-        return result;
-      } catch (error) {
-        if (onError) {
-          onError(error);
-        } else {
-          throw error;
-        }
-      }
+      const result = await action(...parameters);
+      feedback.value = successFeedback;
+      return result;
     };
   }
 

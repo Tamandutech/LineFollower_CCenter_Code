@@ -48,6 +48,6 @@ const state = reactive(
         message:
           'Ocorreu um erro inesperado durante a atualização dos parâmetros',
         action: 'Contacte os desenvolvedores',
-      }
+      },
 );
 </script>

@@ -40,16 +40,17 @@ const converter: FirestoreDataConverter<Dashboard.Competition> = {
  * @returns
  */
 export const useCompetitions = (
-  firestore: Firestore
+  firestore: Firestore,
 ): UseCompetitionsReturn => {
   const error = ref<Error>();
 
   const competitionsQuery = computed(() =>
-    query(collection(firestore, 'competitions')).withConverter(converter)
+    query(collection(firestore, 'competitions')).withConverter(converter),
   );
   const competitions = useFirestore(competitionsQuery, undefined, {
     errorHandler: (e: Error) => (error.value = e),
   });
 
+  // @ts-ignore
   return { competitions, error };
 };

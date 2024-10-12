@@ -96,14 +96,15 @@ export type UseRobotMappingReturn = {
 export const useRobotMapping = (
   ble: Bluetooth.BLEInterface,
   txCharacteristicId: string,
-  rxCharacteristicId: string
+  rxCharacteristicId: string,
 ): UseRobotMappingReturn => {
   const mappingRecords = ref<Robot.MappingRecord[]>([]);
   const { undo, redo } = useRefHistory(mappingRecords, { deep: true });
 
   function deserializeRecord(record: string): Robot.MappingRecord {
+    // @ts-ignore
     return record.match(
-      /(?<id>-?\d+(\.\d+)?),(?<time>-?\d+(\.\d+)?),(?<encMedia>-?\d+(\.\d+)?),(?<trackStatus>-?\d+(\.\d+)?),(?<offset>-?\d+(\.\d+)?)/
+      /(?<id>-?\d+(\.\d+)?),(?<time>-?\d+(\.\d+)?),(?<encMedia>-?\d+(\.\d+)?),(?<trackStatus>-?\d+(\.\d+)?),(?<offset>-?\d+(\.\d+)?)/,
     ).groups as unknown as Robot.MappingRecord;
   }
 
@@ -115,7 +116,7 @@ export const useRobotMapping = (
     const status = await ble.request<string>(
       txCharacteristicId,
       rxCharacteristicId,
-      inRam ? 'map_clear' : 'map_clearFlash'
+      inRam ? 'map_clear' : 'map_clearFlash',
     );
 
     if (status !== 'OK') {
@@ -142,16 +143,19 @@ export const useRobotMapping = (
   }
 
   function removeRecord(
-    id: Robot.MappingRecord['id']
+    id: Robot.MappingRecord['id'],
   ): Robot.MappingRecord | null {
     const index = mappingRecords.value.findIndex((record) => id == record.id);
     if (index === -1) return null;
 
+    // @ts-ignore
     return mappingRecords.value.splice(index, 1).shift();
   }
 
   function addRecord(
-    record: Omit<Robot.MappingRecord, 'id'> & { id?: Robot.MappingRecord['id'] }
+    record: Omit<Robot.MappingRecord, 'id'> & {
+      id?: Robot.MappingRecord['id'];
+    },
   ) {
     mappingRecords.value.push({
       ...record,
@@ -164,7 +168,7 @@ export const useRobotMapping = (
 
     records = [
       ...(records || mappingRecords.value).sort(
-        (r1, r2) => Number(r1.encMedia) - Number(r2.encMedia)
+        (r1, r2) => Number(r1.encMedia) - Number(r2.encMedia),
       ),
     ];
 
@@ -175,18 +179,20 @@ export const useRobotMapping = (
       while (true) {
         if (
           !records.at(0) ||
+          // @ts-ignore
           (mappingPayload + serializeRecord(records.at(0)) + ';').length > 90
         ) {
           break;
         }
 
+        // @ts-ignore
         mappingPayload += serializeRecord(records.shift()) + ';';
       }
 
       sendingStatus = await ble.request(
         txCharacteristicId,
         rxCharacteristicId,
-        `map_add ${mappingPayload}`
+        `map_add ${mappingPayload}`,
       );
       if (sendingStatus !== 'OK') {
         throw new RuntimeError({
@@ -202,7 +208,7 @@ export const useRobotMapping = (
     const savingStatus = await ble.request(
       txCharacteristicId,
       rxCharacteristicId,
-      'map_SaveRuntime'
+      'map_SaveRuntime',
     );
     if (savingStatus !== 'OK') {
       throw new RuntimeError({
@@ -217,7 +223,7 @@ export const useRobotMapping = (
     const rawMapping = await ble.request<string>(
       txCharacteristicId,
       rxCharacteristicId,
-      fromRam ? 'map_getRuntime' : 'map_get'
+      fromRam ? 'map_getRuntime' : 'map_get',
     );
 
     try {

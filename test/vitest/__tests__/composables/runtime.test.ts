@@ -9,7 +9,7 @@ describe('useRobotRuntime', () => {
         'Dados em tempo de execução registrados: 19\n' +
           ' 0 - sLatMarks.thresholdToCurve: 3\n' +
           ' 1 - sLatMarks.thresholdToStraight: 3\n' +
-          ' 2 - sLatMarks.thresholdToStop: 3\n'
+          ' 2 - sLatMarks.thresholdToStop: 3\n',
       );
     });
 
@@ -17,13 +17,13 @@ describe('useRobotRuntime', () => {
       const { fetchParameters } = useRobotRuntime(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(fetchParameters()).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'runtime_list'
+        'runtime_list',
       );
     });
 
@@ -31,7 +31,7 @@ describe('useRobotRuntime', () => {
       const { fetchParameters, parameters } = useRobotRuntime(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       await fetchParameters();
       expect(parameters.value.get('sLatMarks.thresholdToCurve')).toBe(3);

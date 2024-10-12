@@ -10,19 +10,19 @@ export class ObservableCharacteristic {
 
     this._characteristic.addEventListener(
       'characteristicvaluechanged',
-      this._handleChunck.bind(this)
+      this._handleChunck.bind(this),
     );
   }
 
   _handleChunck() {
     const data = this._decoder.decode(
-      new Uint8Array(this._characteristic.value.buffer)
+      new Uint8Array(this._characteristic.value?.buffer || new ArrayBuffer(0)),
     );
     if (data.indexOf('\0') === -1) {
       return this._cacheData(data);
     }
 
-    this._cacheData(data.split('\0').at(0));
+    this._cacheData(data.split('\0').at(0) || '');
     this._pushMessage();
     this._cacheData(data.slice(data.indexOf('\0') + 1));
 
@@ -39,11 +39,13 @@ export class ObservableCharacteristic {
   }
 
   _notify(): void {
-    let message: Bluetooth.Message;
+    let message: Bluetooth.Message | undefined;
 
     while ((message = this._messages.shift())) {
       for (const [, observer] of this._observers) {
-        observer instanceof Function && observer(message);
+        if (observer instanceof Function) {
+          observer(message);
+        }
       }
     }
   }

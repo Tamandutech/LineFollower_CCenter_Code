@@ -13,7 +13,7 @@ declare namespace Bluetooth {
     connecting: import('vue').Ref<boolean>;
     connect: (
       device: BluetoothDevice,
-      config: Robot.BluetoothConnectionConfig
+      config: Robot.BluetoothConnectionConfig,
     ) => Promise<void>;
     requestDevice: (optionalServices?: string[]) => Promise<BluetoothDevice>;
     disconnect: () => void;
@@ -21,7 +21,7 @@ declare namespace Bluetooth {
 
   function removeTxObserver(
     txCharacteristicId: string,
-    observerUuid: string
+    observerUuid: string,
   ): boolean;
 
   interface BLEInterface {
@@ -30,18 +30,18 @@ declare namespace Bluetooth {
     addTxObserver: <T>(
       txCharacteristicId: string,
       observer: CharacteristicObserver<T>,
-      observerUuid: string
+      observerUuid: string,
     ) => () => ReturnType<typeof removeTxObserver>;
     request<T>(
       txCharacteristicId: string,
       rxCharacteristicId: string,
-      command: string
+      command: string,
     ): Promise<T>;
     removeTxObserver: typeof removeTxObserver;
     connected: boolean;
     connect: (
       device: BluetoothDevice,
-      config: Robot.BluetoothConnectionConfig
+      config: Robot.BluetoothConnectionConfig,
     ) => Promise<void>;
     disconnect: () => void;
   }

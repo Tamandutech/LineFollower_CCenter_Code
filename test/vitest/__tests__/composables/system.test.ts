@@ -9,7 +9,7 @@ describe('useRobotSystem', () => {
       const { pause } = useRobotSystem(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(pause()).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith('test', 'test', 'pause');
@@ -22,7 +22,7 @@ describe('useRobotSystem', () => {
       const { resume } = useRobotSystem(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(resume()).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith('test', 'test', 'resume');

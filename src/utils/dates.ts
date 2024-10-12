@@ -1,6 +1,6 @@
 export function timeDistance(date: Date, locale = 'pt') {
   const now = new Date();
-  const distance = date - now;
+  const distance = date.getTime() - now.getTime();
 
   // Format the distance as a relative time string
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });

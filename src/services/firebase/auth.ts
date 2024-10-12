@@ -28,14 +28,14 @@ export default (app: FirebaseApp): Firebase.AuthService => ({
  */
 export function piniaPlugin(
   service: Auth,
-  github_provider: GithubAuthProvider
+  github_provider: GithubAuthProvider,
 ): PiniaPlugin {
   return ({ store, options }: PiniaPluginContext) => {
     if (options.actions.handleAuthStateChange === undefined) return;
 
     onAuthStateChanged(
       service,
-      options.actions.handleAuthStateChange.bind(store)
+      options.actions.handleAuthStateChange.bind(store),
     );
 
     return { service, github_provider };

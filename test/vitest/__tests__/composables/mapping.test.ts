@@ -9,13 +9,13 @@ describe('useRobotMapping', () => {
       const { hardDeleteRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(async () => await hardDeleteRecords()).not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'map_clearFlash'
+        'map_clearFlash',
       );
     });
 
@@ -24,7 +24,7 @@ describe('useRobotMapping', () => {
       const { hardDeleteRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(hardDeleteRecords()).rejects.toThrowError();
     });
@@ -36,7 +36,7 @@ describe('useRobotMapping', () => {
       const { deleteRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(deleteRecords()).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith('test', 'test', 'map_clear');
@@ -47,7 +47,7 @@ describe('useRobotMapping', () => {
       const { deleteRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(deleteRecords()).rejects.toThrowError();
     });
@@ -64,7 +64,7 @@ describe('useRobotMapping', () => {
       const { addRecord, mappingRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       addRecord(recordDto);
       expect(mappingRecords.value).toEqual([
@@ -87,7 +87,7 @@ describe('useRobotMapping', () => {
       const { addRecord, removeRecord, mappingRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
 
       addRecord(recordDto);
@@ -101,7 +101,7 @@ describe('useRobotMapping', () => {
       const { removeRecord } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       const removed = removeRecord('1');
       expect(removed).toEqual(null);
@@ -113,7 +113,7 @@ describe('useRobotMapping', () => {
       const { sendMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
 
       const deleteSpy = bleMock.request.mockResolvedValueOnce('OK');
@@ -126,7 +126,7 @@ describe('useRobotMapping', () => {
       const { sendMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
 
       const requestMock = bleMock.request.mockResolvedValue('OK');
@@ -150,7 +150,7 @@ describe('useRobotMapping', () => {
       expect(requestMock).toHaveBeenCalledWith(
         'test',
         'test',
-        'map_add 0,0,0,0,0;1,1,1,1,1;'
+        'map_add 0,0,0,0,0;1,1,1,1,1;',
       );
     });
   });
@@ -161,13 +161,13 @@ describe('useRobotMapping', () => {
       const { saveMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(saveMapping()).resolves.not.toThrowError();
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'map_SaveRuntime'
+        'map_SaveRuntime',
       );
     });
 
@@ -176,7 +176,7 @@ describe('useRobotMapping', () => {
       const { saveMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(saveMapping()).rejects.toThrowError();
     });
@@ -185,7 +185,7 @@ describe('useRobotMapping', () => {
   describe('fetchMapping', () => {
     beforeEach(() => {
       bleMock.request.mockResolvedValue(
-        '0,0,0,0,0\n1,1,1,1,1\n2,-2,-2,-2,-2\n'
+        '0,0,0,0,0\n1,1,1,1,1\n2,-2,-2,-2,-2\n',
       );
     });
 
@@ -193,13 +193,13 @@ describe('useRobotMapping', () => {
       const { fetchMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       await fetchMapping(true);
       expect(bleMock.request).toHaveBeenCalledWith(
         'test',
         'test',
-        'map_getRuntime'
+        'map_getRuntime',
       );
     });
 
@@ -207,7 +207,7 @@ describe('useRobotMapping', () => {
       const { fetchMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       await fetchMapping(false);
       expect(bleMock.request).toHaveBeenCalledWith('test', 'test', 'map_get');
@@ -217,7 +217,7 @@ describe('useRobotMapping', () => {
       const { fetchMapping, mappingRecords } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       await fetchMapping(false);
       expect(mappingRecords.value).toEqual<Robot.MappingRecord[]>([
@@ -250,7 +250,7 @@ describe('useRobotMapping', () => {
       const { fetchMapping } = useRobotMapping(
         bleMock as Bluetooth.BLEInterface,
         'test',
-        'test'
+        'test',
       );
       expect(fetchMapping(true)).rejects.toThrowError();
     });

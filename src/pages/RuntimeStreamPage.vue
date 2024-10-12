@@ -48,7 +48,7 @@
                     Resolução
                   </div>
                   <q-select
-                    v-model="parametersToStream.get(option).range"
+                    v-model="parametersToStream.get(option)!.range"
                     dense
                     options-dense
                     bottom-slots
@@ -72,15 +72,25 @@
                     switch-label-side
                     color="teal"
                     class="col"
-                    :label-value="parametersToStream.get(option).interval + 's'"
-                    :model-value="parametersToStream.get(option).interval"
+                    :label-value="
+                      parametersToStream.get(option)?.interval + 's'
+                    "
+                    :model-value="parametersToStream.get(option)?.interval"
                     @update:model-value="
-                      (value) =>
-                        (parametersToStream.get(option).interval = value)
+                      (value: unknown) => {
+                        const parameter = parametersToStream.get(option);
+                        if (parameter) {
+                          parameter.interval = value as number;
+                        }
+                      }
                     "
                     @change="
-                      (value) =>
-                        (parametersToStream.get(option).interval = value)
+                      (value: unknown) => {
+                        const parameter = parametersToStream.get(option);
+                        if (parameter) {
+                          parameter.interval = value as number;
+                        }
+                      }
                     "
                     :step="0.05"
                   ></q-slider>
@@ -190,8 +200,8 @@
               label="Salvar"
               @click="
                 SaveStreamCsv(
-                  parameterTab,
-                  streams.get(parameterTab).StreamFullDataCsv
+                  parameterTab as string,
+                  streams.get(parameterTab as string)!.StreamFullDataCsv,
                 )
               "
               v-close-popup
@@ -199,7 +209,7 @@
             <q-btn
               color="grey-9"
               label="Parar"
-              @click="streams.get(parameterTab).stop"
+              @click="streams.get(parameterTab as string)?.stop"
               v-close-popup
             />
             <q-btn
@@ -272,19 +282,19 @@ const error = ref<BleError | null>(null);
 const { parameters, fetchParameters: _fetchParameters } = useRobotRuntime(
   ble,
   'UART_TX',
-  'UART_RX'
+  'UART_RX',
 );
 const [fetchParameters] = useErrorCapturing(
   _fetchParameters,
   [BleError],
-  error
+  error,
 );
 const showErrorDialog = useIsTruthy(error);
 
 const showConfigDialog = ref(false);
 const showInvalidConfigMessage = ref(false);
 const showControlsDialog = ref(false);
-const configForm = ref<quasar.QForm>(null);
+const configForm = ref<quasar.QForm>();
 const parametersToStream = reactive<
   Map<string, { interval: number; range: number }>
 >(new Map());
@@ -304,14 +314,14 @@ const [updateRuntimeParameters, updatingParameters] = useLoading(
   async function () {
     await fetchParameters();
     parameters.value.forEach((_, parameter) =>
-      parametersToStream.set(parameter, { interval: 0, range: 20 })
+      parametersToStream.set(parameter, { interval: 0, range: 20 }),
     );
-  }
+  },
 );
 
 const submitConfigForm = () => {
   if ([...parametersToStream.values()].some(({ interval }) => interval > 0)) {
-    configForm.value.submit(new Event('submit'));
+    configForm.value?.submit(new Event('submit'));
   } else {
     showInvalidConfigMessage.value = true;
   }

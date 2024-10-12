@@ -1,7 +1,7 @@
 <template>
   <q-btn v-if="auth.isAuthenticated">
     <q-avatar style="font-size: 42px">
-      <img :src="auth.user.photoURL" />
+      <img :src="auth.user?.photoURL || undefined" />
     </q-avatar>
     <q-menu fit transition-show="jump-down" transition-hide="jump-up">
       <div class="row no-wrap q-pa-md">
@@ -9,20 +9,20 @@
           <q-item v-close-popup>
             <q-item-section>
               <q-item-label>Nome</q-item-label>
-              <q-item-label caption>{{ auth.user.displayName }}</q-item-label>
+              <q-item-label caption>{{ auth.user?.displayName }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-close-popup>
             <q-item-section>
               <q-item-label>E-mail</q-item-label>
-              <q-item-label caption>{{ auth.user.email }}</q-item-label>
+              <q-item-label caption>{{ auth.user?.email }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-close-popup>
             <q-item-section>
               <q-item-label>Autenticador</q-item-label>
               <q-item-label caption>{{
-                auth.user.providerData[0].providerId
+                auth.user?.providerData[0].providerId
               }}</q-item-label>
             </q-item-section>
           </q-item>
@@ -57,7 +57,7 @@
 import { mdiExport, mdiAccountOff } from '@quasar/extras/mdi-v6';
 import GitHubLoginButton from 'src/components/buttons/GitHubLoginButton.vue';
 import { useAuth } from 'src/stores/auth';
-import type { User } from '@firebase/auth';
+import type { User } from 'firebase/auth';
 
 const emit = defineEmits<{
   (e: 'login', user: User): void;

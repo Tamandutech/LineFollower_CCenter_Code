@@ -2,7 +2,7 @@ import { type Ref, ref } from 'vue';
 
 export type UseLoadingReturn<This, Args extends unknown[], Return> = readonly [
   (this: This, ...args: Args) => Promise<Return>,
-  Ref<boolean>
+  Ref<boolean>,
 ];
 
 /**
@@ -12,7 +12,7 @@ export type UseLoadingReturn<This, Args extends unknown[], Return> = readonly [
  * @returns {UseLoadingReturn} Função cuja execução pode ser notificada e referência para o estado de execução
  */
 export const useLoading = <This, Args extends unknown[], Return>(
-  routine: (this: This, ...args: Args) => Promise<Return>
+  routine: (this: This, ...args: Args) => Promise<Return>,
 ): UseLoadingReturn<This, Args, Return> => {
   /**
    * Estado de execução da função

@@ -73,11 +73,11 @@
                               await setParameter(
                                 props.row.class,
                                 props.row.name,
-                                newValue
+                                newValue,
                               );
                               await getParameter(
                                 props.row.class,
-                                props.row.name
+                                props.row.name,
                               );
                             }
                           "
@@ -106,7 +106,7 @@
       collection="parameters"
       title="Parâmetros"
       :data="dataClasses"
-      :converter="(profileConverter as ProfileConverter<Robot.Parameters>)"
+      :converter="profileConverter as ProfileConverter<unknown>"
       @install-request="
         (version: Robot.ProfileVersion<unknown>) =>
           performAction(
@@ -119,7 +119,7 @@
               title: 'Instalar Versão',
               question:
                 'Tem certeza que deseja instalar a versão selecionada dos parâmetros?',
-            }
+            },
           )
       "
       installable
@@ -129,13 +129,21 @@
     >
       <q-list separator>
         <q-expansion-item
-          v-for="[dataclass, parameters] of (version.data as Robot.Parameters)"
+          v-for="
+          // @ts-ignore
+          [dataclass, parameters] of version.data"
           :key="dataclass"
           :label="dataclass"
-          :caption="`${parameters.size} parâmetros`"
+          :caption="// @ts-ignore
+          `${parameters.size} parâmetros`"
         >
           <q-list separator>
-            <q-item v-for="[parameter, value] of parameters" :key="parameter">
+            <q-item
+              v-for="
+              // @ts-ignore
+              [parameter, value] of parameters"
+              :key="parameter"
+            >
               <q-item-section>{{ parameter }}</q-item-section>
               <q-item-section side>{{ value }}</q-item-section>
             </q-item>
@@ -149,12 +157,12 @@
       v-model="isRevealed"
       v-if="isRevealed"
     >
-      <template #title>{{ confirmDialogState.title }}</template>
-      <template #question>{{ confirmDialogState.question }}</template>
+      <template #title>{{ confirmDialogState?.title }}</template>
+      <template #question>{{ confirmDialogState?.question }}</template>
     </ConfirmActionDialog>
     <SuccessDialog
-      :title="successDialogState.summary"
-      :message="successDialogState.message"
+      :title="successDialogState?.summary ?? ''"
+      :message="successDialogState?.message ?? ''"
       v-model="showSuccessDialog"
       v-if="showSuccessDialog"
     />
@@ -202,18 +210,18 @@ const [setParameter] = useErrorCapturing(_setParameter, [BleError], error);
 const [_protectedListParameters] = useErrorCapturing(
   _listParameters,
   [BleError],
-  error
+  error,
 );
 const [listParameters, listingParameters] = useLoading(
-  _protectedListParameters
+  _protectedListParameters,
 );
 const [_protectedInstallParameters] = useErrorCapturing(
   _installParameters,
   [BleError],
-  error
+  error,
 );
 const [installParameters, installingParameters] = useLoading(
-  _protectedInstallParameters
+  _protectedInstallParameters,
 );
 
 const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
@@ -233,7 +241,7 @@ const rows = computed(() =>
       class: className,
       value,
     })),
-  }))
+  })),
 );
 
 const {

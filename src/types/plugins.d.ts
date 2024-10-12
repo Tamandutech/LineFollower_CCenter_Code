@@ -6,7 +6,6 @@ declare module 'pinia' {
     github_provider: import('firebase/auth').GithubAuthProvider;
     ble: import('src/services/ble').RobotBLEAdapter;
     firestore: import('firebase/firestore').Firestore;
-    router: import('vue-router').Router;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

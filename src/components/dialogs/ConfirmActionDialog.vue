@@ -39,7 +39,7 @@ const props = withDefaults(
     flat?: boolean;
     width?: number | string;
   }>(),
-  { width: 500 }
+  { width: 500 },
 );
 const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>();
 

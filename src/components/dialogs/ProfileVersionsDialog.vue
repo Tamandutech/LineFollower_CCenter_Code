@@ -130,9 +130,17 @@
           <template v-if="selectedVersion !== null">
             <div class="row justify-between q-mb-md">
               <div class="col">
-                <div class="text-h6">{{ selectedVersion.id }}</div>
+                <div class="text-h6">
+                  {{
+                    // @ts-ignore
+                    selectedVersion.id
+                  }}
+                </div>
                 <div class="text-caption">
-                  {{ selectedVersion.description }}
+                  {{
+                    // @ts-ignore
+                    selectedVersion.description
+                  }}
                 </div>
               </div>
               <div class="col-auto q-gutter-sm">
@@ -140,7 +148,10 @@
                   round
                   :icon="mdiCloudDownload"
                   v-if="installable"
-                  @click="emit('install-request', selectedVersion)"
+                  @click="
+                    // @ts-ignore
+                    emit('install-request', selectedVersion)
+                  "
                   color="teal"
                 />
                 <q-btn
@@ -148,11 +159,11 @@
                   flat
                   :icon="mdiDelete"
                   @click="
-                    performAction(deleteVersion, [selectedVersion.id], {
+                    performAction(deleteVersion, [selectedVersion?.id || ''], {
                       title: 'Deletar Versão',
                       question:
                         'Tem certeza que deseja deletar a versão ' +
-                        selectedVersion.id +
+                        selectedVersion?.id +
                         '?',
                     })
                   "
@@ -180,9 +191,9 @@
       v-model="isRevealed"
       v-if="isRevealed"
     >
-      <template #title>{{ actionDialogState.title }}</template>
+      <template #title>{{ actionDialogState?.title }}</template>
       <template #question>
-        {{ actionDialogState.question }}
+        {{ actionDialogState?.question }}
       </template>
     </ConfirmActionDialog>
   </q-dialog>
@@ -219,7 +230,7 @@ const props = withDefaults(
     installable: boolean;
     converter?: ProfileConverter<unknown>;
   }>(),
-  { title: 'Versões' }
+  { title: 'Versões' },
 );
 const { title, collection, data, converter, modelValue } = toRefs(props);
 
@@ -241,15 +252,16 @@ const show = computed({
 const session = useSessionStore();
 const { robot, competitionId } = storeToRefs(session);
 const {
-  versions,
+  versions = ref([]),
   persistVersion: _persistVersion,
   deleteVersion: _deleteVersion,
 } = useProfileVersions(
   useFirebase().db,
   collection.value,
+  // @ts-ignore
   robot,
   competitionId,
-  converter.value
+  converter.value,
   // TODO: implementar tratamento de erros do Firebase
 );
 const [persistVersion, persisting] = useLoading(_persistVersion);
@@ -263,14 +275,15 @@ async function uploadVersion(): Promise<void> {
   emit('version-saved');
 }
 
-const selectedVersion = ref<Robot.ProfileVersion<unknown>>(null);
+const selectedVersion = ref<Robot.ProfileVersion<unknown>>();
 
 const searchInput = ref<string>('');
 const searchResults = useArrayFilter(
+  // @ts-ignore
   versions,
   (version) =>
     version.description?.includes(searchInput.value) ||
-    version.id.includes(searchInput.value)
+    version.id.includes(searchInput.value),
 );
 
 const {

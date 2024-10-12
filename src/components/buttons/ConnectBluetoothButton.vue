@@ -49,7 +49,7 @@ const [connect] = useRetry(_connect, [ConnectionError, BleError], {
   delay: 1000,
 });
 const [performConnect, loading] = useLoading(async function (
-  config: Robot.BluetoothConnectionConfig
+  config: Robot.BluetoothConnectionConfig,
 ) {
   try {
     const device = await requestDevice(Object.keys(config.services));
@@ -61,7 +61,7 @@ const [performConnect, loading] = useLoading(async function (
       'bluetooth-connection-error',
       error instanceof ConnectionError
         ? error.message
-        : 'Ocorreu um erro durante a conexão com o robô. Tente novamente.'
+        : 'Ocorreu um erro durante a conexão com o robô. Tente novamente.',
     );
   }
 });
@@ -70,7 +70,7 @@ const robots = ref<Robot.BluetoothConnectionConfig[]>([]);
 onMounted(async () => {
   const { db } = useFirebase();
   robots.value = (await getDocs(query(collection(db, 'robots')))).docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() })
+    (doc) => ({ id: doc.id, ...doc.data() }),
   ) as Robot.BluetoothConnectionConfig[];
 });
 </script>

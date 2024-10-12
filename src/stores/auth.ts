@@ -4,15 +4,14 @@ import {
   signOut,
   GithubAuthProvider,
   UserCredential,
-  getRedirectResult,
 } from 'firebase/auth';
 import type { User, AuthError } from 'firebase/auth';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
-    _user: null as User,
+    _user: null as User | null,
     _blocked: false,
-    _userCredentials: null as UserCredential,
+    _userCredentials: null as unknown as UserCredential,
     isLoading: true,
   }),
   getters: {
@@ -23,7 +22,7 @@ export const useAuth = defineStore('auth', {
     async isMemberTTGithub(userCredential: UserCredential): Promise<boolean> {
       try {
         const token =
-          GithubAuthProvider.credentialFromResult(userCredential).accessToken;
+          GithubAuthProvider.credentialFromResult(userCredential)?.accessToken;
         const response = await fetch(
           'https://api.github.com/user/memberships/orgs/Tamandutech',
           {
@@ -32,7 +31,7 @@ export const useAuth = defineStore('auth', {
               Authorization: `Bearer ${token}`,
               Accept: 'application/vnd.github+json',
             },
-          }
+          },
         );
 
         const membership = await response.json();
@@ -43,10 +42,13 @@ export const useAuth = defineStore('auth', {
     },
     async loginUser(): Promise<UserCredential> {
       try {
-        this._userCredentials = await signInWithPopup(this.service, this.github_provider);
+        this._userCredentials = await signInWithPopup(
+          this.service,
+          this.github_provider,
+        );
         return this._userCredentials;
       } catch (error) {
-        Promise.reject(error as AuthError);
+        return Promise.reject(error as AuthError);
       }
     },
     logoutUser(): Promise<void> {

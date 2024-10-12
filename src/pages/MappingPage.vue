@@ -3,7 +3,7 @@
     <q-table
       title="Mapeamento"
       :rows="mappingRecords"
-      :columns="(columns as QTableProps['columns'])"
+      :columns="columns"
       row-key="id"
       binary-state-sort
     >
@@ -106,7 +106,7 @@
             {
               title: 'Salvar Mapeamento',
               question: 'Tem certeza que deseja salvar o mapeamento atual?',
-            }
+            },
           )
         "
         color="primary"
@@ -119,8 +119,14 @@
       <SuccessDialog
         v-model="showSuccessDialog"
         v-if="showSuccessDialog"
-        :title="successDialogState.summary"
-        :message="successDialogState.message"
+        :title="
+          // @ts-ignore
+          successDialogState.summary
+        "
+        :message="
+          // @ts-ignore
+          successDialogState.message
+        "
       />
       <ConfirmActionDialog
         :confirm="confirm"
@@ -128,8 +134,14 @@
         :cancel="cancel"
         v-model="isRevealed"
       >
-        <template #title>{{ confirmDialogState.title }}</template>
-        <template #question>{{ confirmDialogState.question }}</template>
+        <template #title>{{
+          // @ts-ignore
+          confirmDialogState.title
+        }}</template>
+        <template #question>{{
+          // @ts-ignore
+          confirmDialogState.question
+        }}</template>
       </ConfirmActionDialog>
 
       <ProfileVersionsDialog
@@ -137,19 +149,21 @@
         title="Mapeamentos"
         :data="mappingRecords"
         @install-request="
-        (version: Robot.ProfileVersion<unknown>) =>
-          performAction(
-            withSuccessFeedback(
-              sendMapping,
-              {summary: 'Versão instalada com sucesso!', message: 'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.'}
-            ),
-            [version.data as Robot.MappingRecord[]],
-            {
-              title: 'Instalar Versão',
-              question: 'Tem certeza que deseja instalar a versão selecionada do mapeamento?'
-            }
-          )
-      "
+          (version: Robot.ProfileVersion<unknown>) =>
+            performAction(
+              withSuccessFeedback(sendMapping, {
+                summary: 'Versão instalada com sucesso!',
+                message:
+                  'O mapeamento foi enviado para robô. Salve para que ele seja utilizado na pista.',
+              }),
+              [version.data as Robot.MappingRecord[]],
+              {
+                title: 'Instalar Versão',
+                question:
+                  'Tem certeza que deseja instalar a versão selecionada do mapeamento?',
+              },
+            )
+        "
         installable
         v-model="showVersionsDialog"
         v-slot="{ version }"
@@ -158,7 +172,7 @@
         <q-list separator>
           <q-expansion-item
             switch-toggle-side
-            v-for="(record, index) of version.data"
+            v-for="(record, index) of version?.data"
             :key="index"
             :caption="(Number(index) || '0').toString()"
           >
@@ -181,7 +195,7 @@
             {
               title: 'Deletar Registro',
               question: `Tem certeza que deseja deletar o registro ${deleteRecordId}`,
-            }
+            },
           )
         "
         color="primary"
@@ -198,7 +212,7 @@
             {
               title: 'Deletar Mapeamento',
               question: 'Tem certeza que deseja deletar o mapeamento atual?',
-            }
+            },
           )
         "
         color="primary"
@@ -214,7 +228,7 @@
     <q-table
       title="Adicionar Registro"
       :rows="newRecord"
-      :columns="(newColumns as QTableProps['columns'])"
+      :columns="newColumns"
       row-key="id"
       binary-state-sort
     >
@@ -302,7 +316,7 @@ import { mdiSourceBranch } from '@quasar/extras/mdi-v6';
 import { useErrorCapturing } from 'src/composables/error';
 import { useLoading } from 'src/composables/loading';
 import { useRetry } from 'src/composables/retry';
-import type { QTableColumn, QTableProps } from 'quasar';
+import type { QTableColumn } from 'quasar';
 
 const { ble } = useBluetooth();
 const error = ref<BleError | null>(null);
@@ -318,7 +332,7 @@ const {
 const [_protectedSendMapping] = useErrorCapturing(
   _sendMapping,
   [BleError],
-  error
+  error,
 );
 const [_protectedSendMappingWithRetry] = useRetry(
   _protectedSendMapping,
@@ -327,29 +341,29 @@ const [_protectedSendMappingWithRetry] = useRetry(
     maxRetries: 3,
     delay: 1000,
     exponentialBackoff: true,
-  }
+  },
 );
 const [sendMapping, sendingMapping] = useLoading(
-  _protectedSendMappingWithRetry
+  _protectedSendMappingWithRetry,
 );
 const [_protectedHardDeleteRecords] = useErrorCapturing(
   _hardDeleteRecords,
   [BleError],
-  error
+  error,
 );
 const [hardDeleteRecords, deletingRecords] = useLoading(
-  _protectedHardDeleteRecords
+  _protectedHardDeleteRecords,
 );
 const [_protectedSaveMapping] = useErrorCapturing(
   _saveMapping,
   [BleError],
-  error
+  error,
 );
 const [saveMapping, savingMapping] = useLoading(_protectedSaveMapping);
 const [_protectedFetchMapping] = useErrorCapturing(
   _fetchMapping,
   [BleError],
-  error
+  error,
 );
 const [fetchMapping, fetchingMapping] = useLoading(_protectedFetchMapping);
 
@@ -358,7 +372,7 @@ const isCommandRunning = computed(
     sendingMapping.value ||
     deletingRecords.value ||
     savingMapping.value ||
-    fetchingMapping.value
+    fetchingMapping.value,
 );
 
 const showErrorDialog = useIsTruthy(error);
@@ -379,13 +393,13 @@ const [showVersionsDialog, toogleVersionsDialog] = useToggle(false);
 
 const deleteRecordId = ref('0');
 const recordDeleteOptions = computed(() =>
-  mappingRecords.value.map((record) => record.id)
+  mappingRecords.value.map((record) => record.id),
 );
 watchEffect(() => {
   if (mappingRecords.value.length > 0) {
-    deleteRecordId.value = mappingRecords.value.at(0).id;
+    deleteRecordId.value = mappingRecords.value.at(0)!.id;
   } else {
-    deleteRecordId.value = null;
+    deleteRecordId.value = '';
   }
 });
 
@@ -414,7 +428,7 @@ const columns = [
   { name: 'Time', label: 'Tempo (ms)', field: 'Time' },
   { name: 'Offset', label: 'Offset(pulsos)', field: 'Offset' },
   { name: 'TrackStatus', label: 'Trecho anterior', field: 'TrackStatus' },
-];
+] as QTableColumn[];
 const newColumns: QTableColumn[] = [
   {
     name: 'EncMedia',
@@ -437,7 +451,7 @@ const newRecord = ref<Omit<Robot.MappingRecord, 'id'>[]>([
 
 const sectionOftheTrackToText = (trackStatus: number) => {
   const option = trackStatusOptions.find(
-    (option) => option.value == trackStatus
+    (option) => option.value == trackStatus,
   );
   return option ? option.label : 'Desconhecido';
 };

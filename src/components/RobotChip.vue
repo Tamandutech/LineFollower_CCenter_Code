@@ -10,7 +10,10 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>Nome</q-item-label>
-              <q-item-label caption>{{ session.robot.name }}</q-item-label>
+              <q-item-label caption>{{
+                // @ts-ignore
+                session.robot.name
+              }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item>
@@ -20,6 +23,7 @@
             <q-item-section>
               <q-item-label>Bateria</q-item-label>
               <q-item-label caption>{{
+                // @ts-ignore
                 (battery.voltage / 1000).toFixed(2) + 'V'
               }}</q-item-label>
             </q-item-section>
@@ -61,7 +65,10 @@
               <q-select
                 filled
                 dense
-                v-model="session.settings.batteryStatusUpdateInterval"
+                v-model="
+                  // @ts-ignore
+                  session.settings.batteryStatusUpdateInterval
+                "
                 :options="batteryStatusUpdateIntervalOptions"
                 options-dense
                 map-options
@@ -82,7 +89,10 @@
               <q-select
                 filled
                 dense
-                v-model="session.settings.batteryLowWarningThreshold"
+                v-model="
+                  // @ts-ignore
+                  session.settings.batteryLowWarningThreshold
+                "
                 :options="batteryLowWarningThresholdOptions"
                 options-dense
                 map-options
@@ -105,7 +115,10 @@
               <q-select
                 filled
                 dense
-                v-model="session.settings.batteryLowWarningInterval"
+                v-model="
+                  // @ts-ignore
+                  session.settings.batteryLowWarningInterval
+                "
                 :options="batteryLowWarningIntervalOptions"
                 options-dense
                 map-options
@@ -161,7 +174,7 @@ import {
 } from '@quasar/extras/mdi-v6';
 import { computed, onUnmounted, ref, watchEffect } from 'vue';
 import { useTimeoutPoll, useCycleList } from '@vueuse/core';
-import { useArrayMap } from '@vueuse/shared';
+import { useArrayMap } from '@vueuse/core';
 import useFirebase from 'src/services/firebase';
 import { useCompetitions } from 'src/composables/competitions';
 import { useRobotSystem } from 'src/composables/system';
@@ -182,10 +195,10 @@ const batteryLowWarningThresholdOptions = ref(
   [7900, 7600, 7400, 7200, 6900, 6600].map((threshold) => ({
     label: (threshold / 1000).toPrecision(2) + 'V',
     value: threshold,
-  }))
+  })),
 );
 const batteryLowWarningIntervalOptions = ref(
-  [0, 60000, 150000, 300000, 600000].map(getIntervalOption)
+  [0, 60000, 150000, 300000, 600000].map(getIntervalOption),
 );
 function getIntervalOption(interval: number): { value: number; label: string } {
   return {
@@ -199,28 +212,34 @@ function getIntervalOption(interval: number): { value: number; label: string } {
 
 const { resume: resumeLowBatteryWarning, pause: pauseLowBatteryWarning } =
   useTimeoutPoll(
+    // @ts-ignore
     () => emit('low-battery', battery.voltage),
+    // @ts-ignore
     session.settings.batteryLowWarningInterval,
-    { immediate: false }
+    { immediate: false },
   );
 
 const buttonColor = ref('teal-5');
 const { state: buttonIcon, next } = useCycleList(
   [mdiRobotMower, mdiBatteryAlert],
-  { initialValue: mdiRobotMower }
+  { initialValue: mdiRobotMower },
 );
 
 const batteryLowWarningIntervalId = ref<number | null>(null);
 battery.$subscribe((_, state) => {
+  // @ts-ignore
   clearInterval(batteryLowWarningIntervalId.value);
+  // @ts-ignore
   if (state.voltage <= session.settings.batteryLowWarningThreshold) {
+    // @ts-ignore
     batteryLowWarningIntervalId.value = setInterval(
       next,
-      ONE_MINUTE_IN_MILLISECONDS / 2
+      ONE_MINUTE_IN_MILLISECONDS / 2,
     );
     buttonColor.value = 'warning';
     resumeLowBatteryWarning();
   } else {
+    // @ts-ignore
     clearInterval(batteryLowWarningIntervalId.value);
     buttonColor.value = 'teal-5';
     pauseLowBatteryWarning();
@@ -229,15 +248,17 @@ battery.$subscribe((_, state) => {
 });
 
 const batteryStatusUpdateIntervalOptions = ref(
-  [0, 30000, 60000, 90000, 120000].map(getIntervalOption)
+  [0, 30000, 60000, 90000, 120000].map(getIntervalOption),
 );
 const { resume: resumeBatteryVoltageUpdate, pause: pauseBatteryVoltageUpdate } =
   useTimeoutPoll(
     battery.fetchVoltage.bind(battery, ble, 'UART_TX', 'UART_RX'),
+    // @ts-ignore
     session.settings.batteryStatusUpdateInterval,
-    { immediate: false }
+    { immediate: false },
   );
 watchEffect(() => {
+  // @ts-ignore
   return session.settings.batteryStatusUpdateInterval == 0
     ? pauseBatteryVoltageUpdate()
     : ble.connected && resumeBatteryVoltageUpdate();
@@ -246,16 +267,19 @@ watchEffect(() => {
 /**
  * TODO: tratar erros durante a leitura dos dados do Firestore
  */
+// @ts-ignore
 const { competitions } = useCompetitions(useFirebase().db);
 const competitionsOptions = useArrayMap(
   competitions,
   (competition: Dashboard.Competition) => ({
     value: competition.id,
     label: `${competition.name} (${competition.year})`,
-  })
+  }),
 );
 
+// @ts-ignore
 const unlistenResumeOnConnect = ble.onConnect(resumeBatteryVoltageUpdate);
+// @ts-ignore
 const unlistenPauseOnDisconnect = ble.onDisconnect(pauseBatteryVoltageUpdate);
 onUnmounted(() => {
   unlistenPauseOnDisconnect();
@@ -267,7 +291,7 @@ onUnmounted(() => {
 const { resume: _resume, pause: _pause } = useRobotSystem(
   ble,
   'UART_TX',
-  'UART_RX'
+  'UART_RX',
 );
 const [notifiedPause, isPausing] = useLoading(_pause);
 const [notifiedResume, isResuming] = useLoading(_resume);

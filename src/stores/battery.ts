@@ -3,19 +3,19 @@ import { defineStore } from 'pinia';
 export const useBattery = defineStore('battery', {
   state: (): Partial<Robot.BatteryStatus> & {
     historic: Omit<Robot.BatteryStatus, 'historic'>[];
-    error: Dashboard.ErrorInterface;
+    error: Dashboard.ErrorInterface | null;
   } => ({
-    voltage: null,
-    time: null,
+    voltage: undefined,
+    time: undefined,
     historic: [] /** TODO: mostrar isso em um gráfico */,
     error: null,
   }),
 
   getters: {
     level: (state): Robot.BatteryLevel => {
-      if (state.voltage >= 6000) {
+      if ((state.voltage ?? 0) >= 6000) {
         return Robot.BatteryLevel.OK;
-      } else if (state.voltage >= 3000) {
+      } else if ((state.voltage ?? 0) >= 3000) {
         return Robot.BatteryLevel.LOW;
       } else {
         return Robot.BatteryLevel.CRITIC;
@@ -27,15 +27,19 @@ export const useBattery = defineStore('battery', {
     async fetchVoltage(
       ble: Bluetooth.BLEInterface,
       txCharacteristicId: string,
-      rxCharacteristicId: string
+      rxCharacteristicId: string,
     ): Promise<void> {
       try {
         const rawValue = await ble.request<string>(
           txCharacteristicId,
           rxCharacteristicId,
-          'bat_voltage'
+          'bat_voltage',
         );
-        const [, measurement] = rawValue.match(/(\d+\.*\d+)\w+/);
+        const match = rawValue.match(/(\d+\.*\d+)\w+/);
+        if (!match) {
+          throw new Error('Invalid voltage format');
+        }
+        const [, measurement] = match;
         this.$patch((state) => {
           state.voltage = Number(measurement);
           state.time = new Date();
@@ -53,8 +57,8 @@ export const useBattery = defineStore('battery', {
                 time: state.time,
                 voltage: state.voltage,
                 error: state.error,
-              })
-            )
+              }),
+            ),
           );
         });
       }

@@ -49,11 +49,11 @@ export const useRobotDataStream = (
   streamCharacteristicId: string,
   txCharacteristicId: string,
   rxCharacteristicId: string,
-  streamReader: (values: Robot.RuntimeStream[]) => void
+  streamReader: (values: Robot.RuntimeStream[]) => void,
 ): UseRobotDataStreamReturn => {
   const parametersInStream = ref<Map<string, number>>(new Map());
   const isStreamActive = computed<boolean>(
-    () => parametersInStream.value.size > 0
+    () => parametersInStream.value.size > 0,
   );
   const streamObserverUuid = uuidv4();
   ble.addTxObserver(streamCharacteristicId, streamReader, streamObserverUuid);
@@ -66,7 +66,7 @@ export const useRobotDataStream = (
     const status = await ble.request(
       txCharacteristicId,
       rxCharacteristicId,
-      `start_stream ${parameter} ${interval}`
+      `start_stream ${parameter} ${interval}`,
     );
     if (status === 'OK') {
       parametersInStream.value.set(parameter, interval);
@@ -81,22 +81,22 @@ export const useRobotDataStream = (
 
   async function stop(parameter: string): Promise<boolean> {
     if (!isStreamActive.value) {
-      return;
+      return false;
     }
 
-      const status = await ble.request(
-        txCharacteristicId,
-        rxCharacteristicId,
-        `start_stream ${parameter} 0`
-      );
-      if (status === 'OK') {
-        parametersInStream.value.delete(parameter);
-        if (parametersInStream.value.size === 0) {
-          ble.removeTxObserver(streamCharacteristicId, streamObserverUuid);
-        }
-
-        return;
+    const status = await ble.request(
+      txCharacteristicId,
+      rxCharacteristicId,
+      `start_stream ${parameter} 0`,
+    );
+    if (status === 'OK') {
+      parametersInStream.value.delete(parameter);
+      if (parametersInStream.value.size === 0) {
+        ble.removeTxObserver(streamCharacteristicId, streamObserverUuid);
       }
+
+      return true;
+    }
 
     throw new RuntimeError({
       message: 'Ocorreu um erro durante a finalização da transmissão.',

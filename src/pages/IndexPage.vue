@@ -35,7 +35,7 @@ onBeforeRouteLeave((to) => {
 });
 
 for (const warning of warnings.filter((w) =>
-  w.condition($q.platform, auth.isAuthenticated)
+  w.condition($q.platform, auth.isAuthenticated),
 )) {
   $q.notify({
     icon: mdiAlert,

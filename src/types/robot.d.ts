@@ -67,6 +67,6 @@ declare namespace Robot {
   type Command = (
     ble: Bluetooth.BLEInterface,
     command: string,
-    characteristicId: string
+    characteristicId: string,
   ) => Promise<never>;
 }

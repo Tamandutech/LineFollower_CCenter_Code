@@ -41,7 +41,7 @@ export type UseRobotParametersReturn = {
   setParameter: (
     className: string,
     parameterName: string,
-    value: Robot.ParameterValue
+    value: Robot.ParameterValue,
   ) => Promise<void>;
 
   /**
@@ -70,7 +70,7 @@ export const profileConverter = { to: mapToObject, from: objectToMap };
 export const useRobotParameters = (
   ble: Bluetooth.BLEInterface,
   txCharacteristicId: string,
-  rxCharacteristicId: string
+  rxCharacteristicId: string,
 ): UseRobotParametersReturn => {
   const dataClasses = ref<Robot.Parameters>(new Map());
 
@@ -90,25 +90,26 @@ export const useRobotParameters = (
   function addParameter(
     className: string,
     parameterName: string,
-    value: Robot.ParameterValue
+    value: Robot.ParameterValue,
   ): void {
     if (!dataClasses.value.has(className)) addDataClass(className, new Map());
 
-    dataClasses.value.get(className).set(parameterName, value);
+    dataClasses.value.get(className)?.set(parameterName, value);
   }
 
   async function listParameters() {
     const rawData = await ble.request<string>(
       txCharacteristicId,
       rxCharacteristicId,
-      'param_list'
+      'param_list',
     );
 
     const [, ...results] = rawData.slice(0, -1).split('\n');
 
     results.forEach((line) => {
+      // @ts-ignore
       const [, className, parameterName, value] = line.match(
-        /^\s\d+\s-\s(\w+)\.(\w+):\s(.*)$/
+        /^\s\d+\s-\s(\w+)\.(\w+):\s(.*)$/,
       );
       addParameter(className, parameterName, value);
     });
@@ -118,7 +119,7 @@ export const useRobotParameters = (
     const rawNewValue = await ble.request<string>(
       txCharacteristicId,
       rxCharacteristicId,
-      `param_get ${className}.${parameterName}`
+      `param_get ${className}.${parameterName}`,
     );
     addParameter(className, parameterName, rawNewValue);
   }
@@ -126,14 +127,14 @@ export const useRobotParameters = (
   async function setParameter(
     className: string,
     parameterName: string,
-    value: Robot.ParameterValue
+    value: Robot.ParameterValue,
   ) {
     if (dataClasses.value.get(className)?.get(parameterName) === value) return;
 
     const status = await ble.request<string>(
       txCharacteristicId,
       rxCharacteristicId,
-      `param_set ${className}.${parameterName} ${valueToString(value)}`
+      `param_set ${className}.${parameterName} ${valueToString(value)}`,
     );
     if (status !== 'OK') {
       throw new RuntimeError({
@@ -145,7 +146,7 @@ export const useRobotParameters = (
   }
 
   async function installParameters(
-    dataClassesToInstall: Robot.Parameters
+    dataClassesToInstall: Robot.Parameters,
   ): Promise<void> {
     for (const [className, parameters] of dataClassesToInstall.entries()) {
       for (const [parameterName, value] of parameters.entries()) {

@@ -82,7 +82,7 @@
 
     <q-dialog v-model="lowBatteryDialog.show">
       <BatteryWarningCard
-        :current-voltage="lowBatteryDialog.voltage"
+        :current-voltage="lowBatteryDialog.voltage ?? 0"
       ></BatteryWarningCard>
     </q-dialog>
   </q-layout>
@@ -120,6 +120,7 @@ const lowBatteryDialog = reactive({
   warned: false,
   warn(currentVoltage: number) {
     if (!this.warned) {
+      // @ts-ignore
       this.voltage = currentVoltage;
       this.show = true;
       this.warned = true;
@@ -134,7 +135,7 @@ function notifyBluetoothError(message: string) {
 
 function welcomeUser(user: User) {
   return $q.notify({
-    message: `Bem-vind@ ${user.displayName.split(' ').at(0)}!`,
+    message: `Bem-vind@ ${user.displayName?.split(' ').at(0)}!`,
     color: 'positive',
     icon: mdiAccountCheck,
   });
@@ -150,7 +151,7 @@ function notifyBlock() {
 }
 
 function notifyError(error: AuthError) {
-  let message: string;
+  let message: string = 'Um erro inesperado ocorreu durante a autenticação.';
   if (error.hasOwnProperty('code')) {
     switch (error.code) {
       case 'auth/user-cancelled':

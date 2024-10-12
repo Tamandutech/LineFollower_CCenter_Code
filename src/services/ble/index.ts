@@ -4,15 +4,19 @@ import {
   ConnectionError,
   DeviceNotFoundError,
   CharacteristicWriteError,
+  TimeoutError,
 } from './errors';
 import { ObservableCharacteristic } from './observers';
 import { EventEmitter } from './events';
 import type { PiniaPlugin } from 'pinia';
 import type { App } from 'vue';
+import { withTimeout } from 'src/lib/promises';
 
 export * from './errors';
 
 export class RobotBLEAdapter implements Bluetooth.BLEInterface {
+  private DEFAULT_TIMEOUT = 10000;
+
   _characteristics: Map<string, BluetoothRemoteGATTCharacteristic> = new Map();
   _observables: Map<string, ObservableCharacteristic> = new Map();
   _encoder = new TextEncoder();
@@ -107,28 +111,39 @@ export class RobotBLEAdapter implements Bluetooth.BLEInterface {
    * @param txCharacteristicId Característica onde o robô escreverá a resposta
    * @param rxCharacteristicId Caraterística onde o comando será escrito
    * @param command Comando a ser enviado
+   * @param timeout Tempo em milissegundos para esperar pela resposta do robô, ou uma função
+   * que retorna uma `Promise` que sempre rejeita, para concorrer com
+   * a resposta, possibilitando o cancelamento da espera através do lançamento
+   * de um erro, por exemplo.
    * @returns Uma `Promise` que resolve com o novo valor da característica `txCharacteristicId`
    * quando o robô a altera como resposta ao comando enviado. Não chame esse método de forma
-   * concorrente (em `.forEach(async () => ...)` ou `Promise.all(...)` por exemplo) pois o robô pode não conseguir processar diversas alterações da característica RX em sequência.
+   * concorrente (em `.forEach(async () => ...)` ou `Promise.all(...)` por exemplo) pois o robô
+   * pode não conseguir processar diversas alterações da característica RX em sequência.
+   * @throws {BleError} Se ocorrer um erro durante a comunicação com o robô.
    */
   async request<T>(
     txCharacteristicId: string,
     rxCharacteristicId: string,
-    command: string
+    command: string,
+    timeout: number = this.DEFAULT_TIMEOUT
   ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const observerUuid = uuidv4();
-      this.addTxObserver(
-        txCharacteristicId,
-        (response: Robot.Response<T>) => {
-          resolve(response.data ?? (response as unknown as T));
-          this.removeTxObserver(txCharacteristicId, observerUuid);
-        },
-        observerUuid
-      );
+    return withTimeout(
+      new Promise((resolve, reject) => {
+        const observerUuid = uuidv4();
+        this.addTxObserver(
+          txCharacteristicId,
+          (response: Robot.Response<T>) => {
+            resolve(response.data ?? (response as unknown as T));
+            this.removeTxObserver(txCharacteristicId, observerUuid);
+          },
+          observerUuid
+        );
 
-      this.send(rxCharacteristicId, command).catch(reject);
-    });
+        this.send(rxCharacteristicId, command).catch(reject);
+      }),
+      timeout,
+      new TimeoutError()
+    );
   }
 
   _onDisconnect() {

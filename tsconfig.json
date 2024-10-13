@@ -12,7 +12,8 @@
       "boot/*": ["src/boot/*"],
       "stores/*": ["src/stores/*"],
       "utils/*": ["src/utils/*"],
-      "services/*": ["src/services/*"]
+      "services/*": ["src/services/*"],
+      "@/*": ["src/*"]
     },
     "typeRoots": ["./src/types", "./node_modules/@types"]
   },

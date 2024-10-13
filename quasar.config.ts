@@ -89,6 +89,7 @@ export default configure(function (/* ctx */) {
           },
           { server: false },
         ],
+        ['vite-tsconfig-paths'],
       ],
     },
 

@@ -15,7 +15,7 @@
     "lint": "pnpm lint:ci --fix",
     "lint:ci": "eslint --ext .js,.ts,.vue ./",
     "format": "pnpm format:ci --write",
-    "format:ci": "prettier --check \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
+    "format:ci": "prettier --check \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore --ignore-path src-capacitor/**/.gitignore",
     "test": "echo \"See package.json => scripts for available tests.\" && exit 0",
     "test:unit": "vitest",
     "test:unit:ci": "vitest run",

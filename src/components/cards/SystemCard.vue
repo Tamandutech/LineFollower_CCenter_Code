@@ -21,6 +21,10 @@ import { useAsyncState } from '@vueuse/core';
 
 const { ble } = useBluetooth();
 const { pause, resume } = useRobotSystem(ble, 'UART_TX', 'UART_RX');
-const { isLoading: isPausing } = useAsyncState(pause, null);
-const { isLoading: isResuming } = useAsyncState(resume, null);
+const { isLoading: isPausing } = useAsyncState(pause, null, {
+  immediate: false,
+});
+const { isLoading: isResuming } = useAsyncState(resume, null, {
+  immediate: false,
+});
 </script>

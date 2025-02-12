@@ -3,104 +3,116 @@
     <q-dialog v-model="showErrorDialog">
       <CommandErrorCard :error="error" />
     </q-dialog>
-    <div class="q-pa-md">
-      <q-table
-        grid
-        card-container-class="row wrap justify-start items-baseline"
-        title="Classes"
-        :rows="rows"
-        :columns="columns"
-        row-key="name"
-        :filter="filter"
-        hide-header
-        hide-bottom
-      >
-        <template v-slot:top-left>
-          <q-btn-group>
-            <q-btn
-              :loading="listingParameters"
-              :icon="mdiRefreshCircle"
-              @click="listParameters"
-              color="primary"
+    <div class="q-pa-md row">
+      <div class="col-xs-12 q-mb-md">
+        <q-table
+          grid
+          card-container-class="row wrap justify-start items-baseline"
+          title="Classes"
+          :rows="rows"
+          :columns="columns"
+          row-key="name"
+          :filter="filter"
+          hide-header
+          hide-bottom
+        >
+          <template v-slot:top-left>
+            <q-btn-group>
+              <q-btn
+                :loading="listingParameters"
+                :icon="mdiRefreshCircle"
+                @click="listParameters"
+                color="primary"
+              >
+                <template v-slot:loading>
+                  <q-spinner-hourglass class="on-center" />
+                </template>
+              </q-btn>
+              <q-btn
+                :icon="mdiSourceBranch"
+                @click="toogleVersionsDialog(true)"
+                :disable="!connected"
+              />
+            </q-btn-group>
+          </template>
+
+          <template v-slot:top-right>
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Procurar"
             >
-              <template v-slot:loading>
-                <q-spinner-hourglass class="on-center" />
+              <template v-slot:append>
+                <q-icon :name="mdiMagnify" />
               </template>
-            </q-btn>
-            <q-btn
-              :icon="mdiSourceBranch"
-              @click="toogleVersionsDialog(true)"
-              :disable="!connected"
-            />
-          </q-btn-group>
-        </template>
+            </q-input>
+          </template>
 
-        <template v-slot:top-right>
-          <q-input
-            borderless
-            dense
-            debounce="300"
-            v-model="filter"
-            placeholder="Procurar"
-          >
-            <template v-slot:append>
-              <q-icon :name="mdiMagnify" />
-            </template>
-          </q-input>
-        </template>
+          <template v-slot:item="props">
+            <div
+              class="q-pa-xs col-xs-12 col-sm-6 col-md-4"
+              style="height: 100%"
+            >
+              <q-card>
+                <q-card-section class="text-center">
+                  <strong>{{ props.row.name }}</strong>
+                </q-card-section>
+                <q-separator />
+                <q-card-section>
+                  <q-table :rows="props.row.parameters" hide-header flat>
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td key="name" :props="props">
+                          <strong>{{ props.row.name }}</strong>
+                        </q-td>
 
-        <template v-slot:item="props">
-          <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4" style="height: 100%">
-            <q-card>
-              <q-card-section class="text-center">
-                <strong>{{ props.row.name }}</strong>
-              </q-card-section>
-              <q-separator />
-              <q-card-section>
-                <q-table :rows="props.row.parameters" hide-header flat>
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td key="name" :props="props">
-                        <strong>{{ props.row.name }}</strong>
-                      </q-td>
-
-                      <q-td key="value" :props="props">
-                        {{ props.row.value }}
-                        <q-popup-edit
-                          :model-value="props.row.value"
-                          @save="
-                            async (newValue: Robot.ParameterValue) => {
-                              await setParameter(
-                                props.row.class,
-                                props.row.name,
-                                newValue
-                              );
-                              await getParameter(
-                                props.row.class,
-                                props.row.name
-                              );
-                            }
-                          "
-                          :title="props.row.name"
-                          buttons
-                          v-slot="scope"
-                        >
-                          <q-input
-                            type="number"
-                            v-model="scope.value"
-                            dense
-                            autofocus
-                          />
-                        </q-popup-edit>
-                      </q-td>
-                    </q-tr>
-                  </template>
-                </q-table>
-              </q-card-section>
-            </q-card>
-          </div>
-        </template>
-      </q-table>
+                        <q-td key="value" :props="props">
+                          {{ props.row.value }}
+                          <q-popup-edit
+                            :model-value="props.row.value"
+                            @save="
+                              async (newValue: Robot.ParameterValue) => {
+                                await setParameter(
+                                  props.row.class,
+                                  props.row.name,
+                                  newValue
+                                );
+                                await getParameter(
+                                  props.row.class,
+                                  props.row.name
+                                );
+                              }
+                            "
+                            :title="props.row.name"
+                            buttons
+                            v-slot="scope"
+                          >
+                            <q-input
+                              type="number"
+                              v-model="scope.value"
+                              dense
+                              autofocus
+                            />
+                          </q-popup-edit>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                  </q-table>
+                </q-card-section>
+              </q-card>
+            </div>
+          </template>
+        </q-table>
+      </div>
+      <q-card class="col-xs-12 q-pa-md">
+        <BatchParameterUpdateForm
+          v-if="dataClasses.size"
+          :data-classes="dataClasses"
+          @batch-update="listParameters"
+        />
+      </q-card>
     </div>
     <ProfileVersionsDialog
       collection="parameters"
@@ -172,6 +184,7 @@ import CommandErrorCard from 'src/components/cards/CommandErrorCard.vue';
 import ProfileVersionsDialog from 'src/components/dialogs/ProfileVersionsDialog.vue';
 import ConfirmActionDialog from 'src/components/dialogs/ConfirmActionDialog.vue';
 import SuccessDialog from 'src/components/dialogs/SuccessDialog.vue';
+import BatchParameterUpdateForm from 'src/components/forms/BatchParameterUpdateForm.vue';
 import {
   usePerformActionDialog,
   useSuccessFeedback,
@@ -187,6 +200,8 @@ import { useToggle } from '@vueuse/core';
 import type { ProfileConverter } from 'src/composables/profile-versions';
 import { useLoading } from 'src/composables/loading';
 import { useErrorCapturing } from 'src/composables/error';
+
+const LOADING_GROUP = 'version-install';
 
 const { ble, connected } = useBluetooth();
 const error = ref<BleError | null>(null);
@@ -254,9 +269,10 @@ watchEffect(() => {
       message: 'Instalando parâmetros...',
       boxClass: 'bg-grey-2 text-grey-9',
       spinnerColor: 'teal',
+      group: LOADING_GROUP,
     });
   } else if ($q.loading.isActive) {
-    $q.loading.hide();
+    $q.loading.hide(LOADING_GROUP);
   }
 });
 

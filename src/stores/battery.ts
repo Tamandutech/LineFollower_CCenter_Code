@@ -35,7 +35,8 @@ export const useBattery = defineStore('battery', {
           rxCharacteristicId,
           'bat_voltage'
         );
-        const [, measurement] = rawValue.match(/(\d+\.*\d+)\w+/);
+        const [, measurement] = rawValue.match(/(\d+(\.\d*)?|\.\d+)/);
+
         this.$patch((state) => {
           state.voltage = Number(measurement);
           state.time = new Date();
